@@ -4,5 +4,6 @@
 - Contributed to functional and non-functional requirements
 - Completed final formatting for requirements documentation
 - Took part in team discussions regarding initial project set-up and planning
-<img width="541" height="715" alt="image" src="https://github.com/user-attachments/assets/42eb790b-9142-45e9-815f-e3958843bb24" />
+<img width="1063" height="652" alt="image" src="https://github.com/user-attachments/assets/507c07f5-5739-408a-a234-71065c8395cf" />
+
 
