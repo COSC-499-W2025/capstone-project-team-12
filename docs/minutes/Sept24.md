@@ -12,6 +12,7 @@
 - Moving to Python over Java due to this new approach (easier to implement with this approach)
 ### Team Member Assignments
 <img width="1450" height="1062" alt="image" src="https://github.com/user-attachments/assets/d20d3461-582c-4151-b21e-f600666b9568" />
+
 - Sara, Maddy & Devin to look at the Identifier Extractor, Code Tokenizer, & Text Analysis Pipeline
 - An, Lexi, Sithara HTML, Insights Generator & Text Processing Pipeline
 - Maddy, Sithara & Lexi Meta Data Analyzer
