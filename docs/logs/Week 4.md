@@ -11,9 +11,16 @@
 | An Tran          | antran-17       |
 
 ### Work Done
-- Completed System Architecture Diagram
+- Discussed and mostly settled on a specific project architecture
+- Completed System Architecture Diagram  
+- Completed the project proposal, including:
+  - Scenarios
+  - Gathering use cases
+  - Requirements
 - Created a use case UML Diagram
-- Completed the Project Plan documentation
 - Discussed division of work with System Architecture; documented in meeting minutes for the week
+- Reconsidered the use of an external LLM API and discussed shifting towards a pipeline centered on classical NLP techniques
+- Discussed and modified parts of the initial backend tech stack
+
 ### Upcoming plans
 - Further expand on issues and to do items in GitHub Projects
