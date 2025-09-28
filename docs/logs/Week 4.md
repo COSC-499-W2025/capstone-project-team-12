@@ -11,5 +11,9 @@
 | An Tran          | antran-17       |
 
 ### Work Done
-
+- Completed System Architecture Diagram
+- Created a use case UML Diagram
+- Completed the Project Plan documentation
+- Discussed division of work with System Architecture; documented in meeting minutes for the week
 ### Upcoming plans
+- Further expand on issues and to do items in GitHub Projects
