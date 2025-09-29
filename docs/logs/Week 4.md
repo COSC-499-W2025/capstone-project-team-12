@@ -37,6 +37,8 @@
 
 ![Burnup chart](/docs/logs/imgs/Week%204%20Burnup%20chart.png)
 
+![Task Table](/docs/logs/imgs/Week%204%20Tasks%20table.png)
+
 
 
 ### Upcoming plans
