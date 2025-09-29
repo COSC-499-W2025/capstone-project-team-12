@@ -1,3 +1,11 @@
 # Dev Template
 
-This is a WIP DEV Template
+### Completed:
+- [ ] Component tests
+- [ ] Documentation
+
+### Test cases:
+- 
+
+### Requirements fulfilled:
+- 
