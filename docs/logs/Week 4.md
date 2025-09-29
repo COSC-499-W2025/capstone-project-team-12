@@ -28,12 +28,16 @@
 - Populated Github Project with items and issues for current week and past week
 - Partial Progress on Pull request automation.
 
+**Note:** For setting up PR template selection and automation, we had to make relevant commits directly to the `main` branch.
+
 ### Burnup chart
 
     Note: Past week's issues were retroactively added and thus contributing to current burn up chart 
     In addition issues were added/tracked on a single day, chart should be accurate moving forward
 
 ![Burnup chart](/docs/logs/imgs/Week%204%20Burnup%20chart.png)
+
+
 
 ### Upcoming plans
 
