@@ -48,7 +48,7 @@ Main Scenario:
   - 3a. Insights unclear: If the system cannot recognize specific patterns in the data, it provides a more general output instead  
   - 4a. Display issue: if the insights cannot be shown in the normal resume-ready format, the system will show them to the user as plain text instead
 
-Use Case 2:  A graduate student or early professional uploads their notes and files to generate a resume-ready summary,
+Use Case 2:  A graduate student or early professional uploads their notes,papers and other academic text file.  
 
 - Primary actor: Graduate students or early professionals  
 - Description: The user wants to upload their notes, files and other academic data, so the system can analyze it and extract relevant skills and contributions, creating a summary that is ready to put on a resume.  
