@@ -19,3 +19,27 @@
 We have good team synergy and a shared line of thinking with enough diversity in skillset that I feel confident in our team's ability to work together. We had some issues with pushing directly to main by accident since we cant setup branch protection on a non enterprise private repo. Hopefully it shouldnt happen going forward
 
 ## Week 4
+
+### Work Done
+
+- Participated and lead discussions on architecture
+- Participated and lead discussions on work division based on architecture
+- Researched and learned various classical NLP methods
+- Researched libraries and decided on tentative tech-stack + libraries
+- Created New Architecture diagram based on new LDA Topic Analysis Approach
+- Minor contribution and edits to use cases section of Project Proposal
+- Created and populated Github Project
+  - Resolved team repo attribution issues
+  - Remade all issues/task from scratch as fix
+  - Coordinated with Team-8 to correct misattributions
+- Began work on PR Templates and automation
+- Provided help and insight on use-cases
+- Made live presentation and elaborated on Architecture and diagram
+- Found, curated and provided selective and relevant resources for team learning on Topic Identifying MLs
+
+![Canvas quiz response](imgs/Sara%20Srinivasan%20Week%204.png)
+
+### Review and Future Plans
+
+Populate the rest of the Github Project with foreseeable tasks  
+Complete work on PR automation
