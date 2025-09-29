@@ -1,5 +1,13 @@
 # Madelyn DeGruchy Personal Log (85064962 - maddydeg)
-
+## Week 4 (09/22/2025 - 09/28/2025)
+- Worked with the team through the design process of the System Architecture Diagram in class
+- Kept minutes through team meetings
+- Coordinated the task dispersal of the Use Case and Requirement sections of the Project Plan
+- Collaborated on the final Project Plan document
+- Set up a branch for project-plan and converted the project plan file to markdown
+- Received help from Sara on the proper use of images in markdown
+- Contributed to team discussions on use cases and further implementation plans
+![Peer Evaluation Response](imgs/Madelyn%20DeGruchy%20Week%204.png)
 ## Week 3 (09/15/2025 - 09/21/2025)
 - Contributed to functional and non-functional requirements
 - Completed final formatting for requirements documentation
