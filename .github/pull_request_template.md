@@ -2,6 +2,6 @@
 
 ## Please go to the `Preview` tab and select the appropriate sub-template
 
-* [PR for Main Branch](?expand=1&template=PR_Main_Template.md)
-* [PR for Dev Branch](?expand=1&template=PR_Dev_Template.md)
-* [PR for Logs Branch](?expand=1&template=PR_Logs_Template.md)
+* [PR for Main Branch](?template=main.md)
+* [PR for Dev Branch](?template=dev.md)
+* [PR for Logs Branch](?template=logs.md)
