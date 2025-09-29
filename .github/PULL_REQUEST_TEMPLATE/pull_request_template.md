@@ -1,7 +1,7 @@
-# Template Selection
+# Pull Request Template Selection
 
 ## Please go to the `Preview` tab and select the appropriate sub-template
 
-* [Development Branch Template](?expand=1&template=pull_request_dev_template.md)
-* [Main Branch Template](?expand=1&template=pull_request_logs_template.md)
-* [Logs Branch Template](?expand=1&template=pull_request_main_template.md)
+* [PR for Main Branch](?expand=1&template=group_a_template.md)
+* [PR for Dev Branch](?expand=1&template=group_b_template.md)
+* [PR for Dev Branch](?expand=1&template=group_b_template.md)
