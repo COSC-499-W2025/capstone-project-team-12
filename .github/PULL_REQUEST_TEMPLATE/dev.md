@@ -21,7 +21,7 @@ Delete options that aren't relevant:
 ## Checklist
 - [ ] I have self-reviewed my code
 - [ ] I have done component tests
-- [ ] New and existing tests locally with my changes
+- [ ] New and existing tests pass locally with my changes
 - [ ] I have made relevant updates to documentation
 - [ ] I have commented my code for easier understanding
 
