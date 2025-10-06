@@ -1,6 +1,6 @@
 # Lexi Loudiadis (93546844) Personal Log
 
-## Week 4 (09/22/2025 - 09/28/2025)
+## Week 4 (09/29/2025 - 10/05/2025)
 
 - Participated in team discussions about our DFD Level 0 and Level 1
 - Did research to better understand our software architecture
