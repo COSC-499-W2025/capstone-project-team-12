@@ -3,6 +3,7 @@
 - Discussed DFD diagrams in team meetings
 - Assisted in the creation of the level 0 and level 1 diagrams
 - Helped create team logs
+
 ![Peer Evaluation Response Week 5](imgs/Madelyn%20DeGruchy%20Week%205.png)
 
 ## Week 4 (09/22/2025 - 09/28/2025)
