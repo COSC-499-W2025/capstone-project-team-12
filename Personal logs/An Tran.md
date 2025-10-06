@@ -1,4 +1,11 @@
 # An Tran Personal Log (79499364)
+## Week 5 (09/29/2025 - 10/05/2025)
+- Participated in discussions about DFD during the team meeting
+- Collaborated on making the DFD
+- Created PR template for merges to the dev branch
+
+<img width="1070" height="627" alt="Screenshot 2025-10-05 at 7 09 36 PM" src="https://github.com/user-attachments/assets/0bae51d9-ee84-4516-ac4e-8f4f2fa73d29" />
+
 ## Week 4 (09/22/2025 - 09/28/2025)
 - Took part in team meetings and discussions about system architecture and project proposal
 - Recorded meeting on system architecture discussion for future reference
