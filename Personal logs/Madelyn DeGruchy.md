@@ -1,4 +1,10 @@
 # Madelyn DeGruchy Personal Log (85064962 - maddydeg)
+## Week 5 (09/29/2025 - 10/05/2025)
+- Discussed DFD diagrams in team meetings
+- Assisted in the creation of the level 0 and level 1 diagrams
+- Helped create team logs
+![Peer Evaluation Response Week 5](imgs/Madelyn%20DeGruchy%20Week%205.png)
+
 ## Week 4 (09/22/2025 - 09/28/2025)
 - Worked with the team through the design process of the System Architecture Diagram in class
 - Kept minutes through team meetings
