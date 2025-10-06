@@ -47,11 +47,13 @@ Complete work on PR automation
 ## Week 5
 
 ### Work Done
+
 - Discussed and helped with DFD level 1 and 0
 - Suggested changes for DFD
 - Discussed with other teams, their DFDs
 - Added and managed github project tasks (partially)
 - More progress on PR automation, one more step remaining for completion
+- Opened PR for DFD addition
 
 ![Week 5 Question response](imgs/Sara%20week%205%20question%20response.png)
 
