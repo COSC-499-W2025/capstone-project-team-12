@@ -2,6 +2,15 @@
 
 ## Week 4 (09/22/2025 - 09/28/2025)
 
+- Participated in team discussions about our DFD Level 0 and Level 1
+- Helped create create and edit our DFD diagrams
+- Participated in class discussion with other groups
+
+![Type of tasks I worked on](imgs/Week%205%20Lexi.png)
+
+
+## Week 4 (09/22/2025 - 09/28/2025)
+
 - Participated in team discussions about our software architecture and project proposal
 - Wrote up parts of the project propsal
 - Contributed to the UML use case diagram
