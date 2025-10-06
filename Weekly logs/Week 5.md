@@ -14,12 +14,14 @@
 | An Tran          | antran-17       |
 
 ### Work Done
-- Discussed and created level 0 and level 1 dataflow diagrams
-- Set up Pull Request Template Automations
-
-### Burnup chart
+- Collaborated on level 0 and level 1 dataflow diagrams
+- Discussed potential changes to System Architecture and other previous plans in the coming weeks
 
 
+### Burnup chart & Task Table
+![Burnup chart](/imgs/Week5BurnupTeam12.png)
+![Task Table](/imgs/Week5TaskTable.png)
 ### Upcoming plans
 - Discuss changes needed to align with finalized project requirements
 - Continue to populate the GitHub Project with foreseeable tasks and issues
+- Complete the setup Pull Request Template Automations
