@@ -1,0 +1,26 @@
+version: '3.8'
+services:
+  frontend_app:
+    build:
+      dockerfile: frontend.dockerfile
+      context: frontend/
+    ports:
+      - 80:80
+    depends_on: backend_app
+  
+  backend_app:
+    build:
+      dockerfile: backend.dockerfile
+      context: backend_app/
+    ports:
+      - 8080:8080
+    depends_on:
+      backend_db:
+        condition: service_started
+  backend_db:
+    build: db.dockerfile
+    context: database/
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+
