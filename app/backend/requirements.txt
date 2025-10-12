@@ -1,0 +1,4 @@
+pygments == 2.19.2
+pyLDAvis == 2.1.2
+gensim == 4.3.3
+nltk == 3.9.2
