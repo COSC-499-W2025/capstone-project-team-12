@@ -6,20 +6,22 @@ services:
       context: frontend/
     ports:
       - 80:80
-    depends_on: backend_app
+    depends_on: 
+      - backend_app
   
   backend_app:
     build:
       dockerfile: backend.dockerfile
-      context: backend_app/
+      context: backend/
     ports:
       - 8080:8080
-    depends_on:
-      backend_db:
-        condition: service_started
+    depends_on: 
+      - backend_db
+
   backend_db:
-    build: db.dockerfile
-    context: database/
+    build:
+      dockerfile: db.dockerfile
+      context: database/
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
