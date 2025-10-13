@@ -1,6 +1,15 @@
 # Lexi Loudiadis (93546844) Personal Log
 
-## Week 4 (09/29/2025 - 10/05/2025)
+## Week 6 (10/06/2025 - 10/12/2025)
+
+- Wrote the DFD explanation for our README
+- Wrote the System Architecture explanation for our README
+- Revised our DFD diagram to make it consistent with the new project requirements
+- Attended group meetings and participated in discussions
+
+![Type of tasks I worked on](imgs/Week%206%20Lexi.png)
+
+## Week 5 (09/29/2025 - 10/05/2025)
 
 - Participated in team discussions about our DFD Level 0 and Level 1
 - Did research to better understand our software architecture
