@@ -4,7 +4,7 @@
 - Performed code reviews for PR's in the project
 - Participated in team meetings to discuss changes to architecture, DFD, and WBS
 - Researched PyDriller, a library to be used to mine .git folders saved locally
-- Updated README to include DFD and System Architecture with explanations
+- Updated README to include DFD and System Architecture with explanations provided by the rest of the team
 
 ![Peer Evaluation Response Week 6](imgs/Madelyn%20DeGruchy%20Week%206.png)
 
