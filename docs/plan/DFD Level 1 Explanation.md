@@ -1,4 +1,4 @@
-![DFD Level 1](plan/imgs/Level%201%20DFD.png)
+![DFD Level 1](imgs/Level%201%20DFD.png)
 
 # DFD Level 1 Explanation
 
