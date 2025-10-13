@@ -1,5 +1,14 @@
 ## Devin Huang Personal Log (86828886)
 
+### Week 6
+- Created the documentation for the WBD
+- Created the diagram for the WBD
+- Contributed to requirement table review
+- Participated in group meetings and discussions about updated architecture and task grouping
+
+<img width="1067" height="622" alt="image" src="https://github.com/user-attachments/assets/5c4c3246-5696-43a0-af7c-68599f66c189" />
+
+
 ### Week 5
 - Contributed in the creation of the level 0 and 1 of the data flow diagram
 - Participated in discussions regarding ours and other teams DFD to enhance and refine our own diagram
