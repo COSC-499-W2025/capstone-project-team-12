@@ -12,13 +12,13 @@
 
 [Link to DFD Level 1 Image Only](https://github.com/COSC-499-W2025/capstone-project-team-12/blob/1f6f109c44c3f30c8d1d35acdc7efaa5253d45c2/docs/plan/imgs/Level%201%20DFD.png)
 
-[Link to DFD Level 1 with Explanation](https://github.com/COSC-499-W2025/capstone-project-team-12/blob/517f7f8ecb11361e6318d01da7bbaefc2c26a7de/docs/plan/DFD%20Level%201%20Explanation.md)
+[Link to DFD Level 1 with Explanation](https://github.com/COSC-499-W2025/capstone-project-team-12/blob/111b27dc38ba19d7a0e577bf896a2e2534fdf8e5/docs/plan/DFD%20Level%201%20Explanation.md)
 
 ## System Architecture Diagram
 
 [Link to System Architecture Diagram Image Only](https://github.com/COSC-499-W2025/capstone-project-team-12/blob/517f7f8ecb11361e6318d01da7bbaefc2c26a7de/docs/plan/imgs/System%20Architecture%20Diagram.png)
 
-[Link to System Architecture Diagram with Explanation](https://github.com/COSC-499-W2025/capstone-project-team-12/blob/517f7f8ecb11361e6318d01da7bbaefc2c26a7de/docs/plan/System%20Architecture%20Diagram%20Explanation.md)
+[Link to System Architecture Diagram with Explanation](https://github.com/COSC-499-W2025/capstone-project-team-12/blob/111b27dc38ba19d7a0e577bf896a2e2534fdf8e5/docs/plan/System%20Architecture%20Diagram%20Explanation.md)
 
 ## Project Proposal
 [Link to Project Proposal](https://github.com/COSC-499-W2025/capstone-project-team-12/blob/c240296205b4e40998d494888c9242e36341b1ce/docs/plan/Group%2012%20Project%20Proposal.md)
