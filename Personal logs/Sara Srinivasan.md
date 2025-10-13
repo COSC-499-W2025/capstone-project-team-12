@@ -60,3 +60,28 @@ Complete work on PR automation
 ### Review and Future plans
 
 Had a medical flare up that took priority, team accomodated and helped make up for my relative decrease in contributions
+
+## Week 6
+
+### Work Done
+
+- Made edits to Architecture diagram based on finalized requirements list
+- Added TA's Pull-Request Template to Repo
+- Dockerized frontend, backend and database
+- Made edits and reworked DFD level 1 based on new requirements
+- Edited,modified and reformatted the DFD and Arch diagram explanation by Lexi
+- Provided input on comments for the requirements table.
+- Created updated and managed tasks in Github Projects
+- Made PRs for various changes
+- Helped Troubleshoot docker deployment issues on Devin's computer.
+
+![Week 6 Response](imgs/Sara%20Srinivasan%20Week%206.png)
+
+### Review and Future plans
+
+Very productive week for the team. The end of design phase is in sight QwQ.
+
+- Add Docker volumes and make db data persistent
+- Begin code work on project
+
+## Week 7
