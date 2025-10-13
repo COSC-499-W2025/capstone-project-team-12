@@ -2,7 +2,7 @@
 
 ## Work Breakdown Diagram
 
-[Work Breakdown Structure (Text Format)](https://github.com/user-attachments/files/22875956/CAPSTONE.499.WBS.DOCUMENTATION.pdf)
+[Work Breakdown Structure (Text Format)](https://github.com/COSC-499-W2025/capstone-project-team-12/blob/project-plans/docs/plan/Work%20Breakdown%20Diagram%20Description.md)
 
 <img width="4900" height="2223" alt="CAPSTONE WBS" src="https://github.com/user-attachments/assets/41aed394-48b3-48e6-812c-97253b352b92" />
 
