@@ -28,8 +28,9 @@
 ### Burnup chart & Task Table
 
 [//]: # "ADD IMAGES after all the work is pushed"
-![Burnup chart](/imgs/Week6BurnupTeam12.png)
-![Task Table](/imgs/Week6TaskTable.png)
+![Burnup chart](/imgs/Week%206%20Burnup.png)
+
+![Task Table](/imgs/Week%206%20Tasks.png)
 
 ### Upcoming plans
 
