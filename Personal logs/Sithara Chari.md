@@ -20,3 +20,15 @@
 - Made issues in our kanban board of all the things to do this week 
 ![alt text](<![alt text](imgs/Sithara Chari Week 5.png)>)
 
+
+## Week 6 (10/06/2025 - 10/12/2025)
+- Performed code reviews for PR's in the project
+- Participated in team meetings to discuss changes to architecture, DFD, and WBS
+- Wrote first draft of our file manager code
+- Submitted PR for code 
+- Sade requested changes
+- Researched how to use Pathlib library in python 
+![alt text](<imgs/Sithara Chari Week 6.png>)
+
+
+
