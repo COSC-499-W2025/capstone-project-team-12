@@ -1,4 +1,11 @@
 # An Tran Personal Log (79499364)
+## Week 6 (10/06/2025 - 10/12/2025)
+- Participated in team meeting and discussion regarding tasks and changes following finalized requirements
+- Developed a list of tasks for this week
+- Contributed to the WBS requirements table after finalized requirements
+
+<img width="696" height="523" alt="Screenshot 2025-10-12 at 5 49 04 PM" src="https://github.com/user-attachments/assets/0dc9295a-4965-44be-9b81-1b13f313bb41" />
+
 ## Week 5 (09/29/2025 - 10/05/2025)
 - Participated in discussions about DFD during the team meeting
 - Collaborated on making the DFD
