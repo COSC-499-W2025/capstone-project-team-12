@@ -22,3 +22,10 @@ Please use the provided folder structure for your project. You are free to organ
 
 Please use a branching workflow, and once an item is ready, do remember to issue a PR, review, and merge it into the master branch.
 Be sure to keep your docs and README.md up-to-date.
+
+## Work Breakdown Diagram
+
+[Work Breakdown Structure (Text Format)](https://github.com/user-attachments/files/22875956/CAPSTONE.499.WBS.DOCUMENTATION.pdf)
+
+<img width="4900" height="2223" alt="CAPSTONE WBS" src="https://github.com/user-attachments/assets/41aed394-48b3-48e6-812c-97253b352b92" />
+
