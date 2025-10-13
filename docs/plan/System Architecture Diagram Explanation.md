@@ -1,4 +1,4 @@
-![System Architecture Diagram](plan/imgs/System%20Architecture%20Diagram.png)
+![System Architecture Diagram](imgs/System%20Architecture%20Diagram.png)
 
 # Software Architecture Explanation
 
