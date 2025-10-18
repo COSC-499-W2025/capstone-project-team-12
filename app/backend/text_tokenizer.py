@@ -23,18 +23,14 @@ def get_tokens(filepath):
     clean_txt = re.sub(r"\n", " ", working_txt)
     clean_txt = re.sub(r"\s+", " ", clean_txt).strip()
 
-    print("Cleaned text preview:\n", clean_txt[:200], "\n")
+    print("\nCleaned text preview:\n", clean_txt[:200], "\n")
 
     tokens = word_tokenize(clean_txt)
-    print("First 5 tokens:\n", tokens[:5], "\n")
+    print("Tokens:\n", tokens, "\n")
 
-    # remove non-alphabetic tokens. this includes numbers, and punctuation such as ":" and "@"
-    filtered_tokens_alpha = [word for word in tokens if word.isalpha()]
-    print("Alphabetic tokens:\n", filtered_tokens_alpha, "\n")
-
-    # filtered_tokens_alpha removes all tokens that contain non-alphabetic characters. This can result in loss of tokens that
-    # contain actual words, such as "2.Python"
+    # removing non-alphabetic tokens can result in the loss of tokens that contain actual words, like in "2.Python"
     # here we replace all non-alphabetic characters with a single space, then remove all surrounding spaces
+    
     reg_txt = re.sub(r"[^a-zA-Z\s]", " ", clean_txt)
     reg_txt = re.sub(r"\s+", " ", reg_txt).strip()
     reg_tokens = word_tokenize(reg_txt)
