@@ -25,10 +25,8 @@ def get_tokens(filepath):
 
     print("\nCleaned text preview:\n", clean_txt[:200], "\n")
 
-    tokens = word_tokenize(clean_txt)
-    print("Tokens:\n", tokens, "\n")
-
-    # removing non-alphabetic tokens can result in the loss of tokens that contain actual words, like in "2.Python"
+    # removing non-alphabetic tokens
+    # this can result in the loss of tokens that contain actual words, like in "2.Python"
     # here we replace all non-alphabetic characters with a single space, then remove all surrounding spaces
     
     reg_txt = re.sub(r"[^a-zA-Z\s]", " ", clean_txt)
