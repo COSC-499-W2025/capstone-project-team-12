@@ -1,8 +1,10 @@
 def getFileType(file_name):
-    if (isCode(file_name)):
+    if isCode(file_name):
         return "code"
-    elif (isText(file_name)):
+    elif isText(file_name):
         return "text"
+    elif file_name.lower().endswith('.zip'):
+        return "zipped"
     else:
         return "other"
     
