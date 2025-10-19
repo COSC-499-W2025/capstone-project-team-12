@@ -1,0 +1,8 @@
+#ignore the caches from running tests
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# ignore pytest cache
+.pytest_cache/

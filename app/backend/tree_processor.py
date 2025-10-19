@@ -1,5 +1,6 @@
 from anytree import PreOrderIter
 #here we would import the getFileType function from its module
+from file_classifier import getFileType
 
 def process_file_tree(root):
     for node in PreOrderIter(root):
