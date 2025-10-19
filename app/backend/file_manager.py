@@ -1,41 +1,47 @@
 from pathlib import Path
 import zipfile
-import  tempfile
+import tempfile
 import shutil
+from anytree import Node, RenderTree
 
 class FileManager:
     def __init__ (self):
         self.max_size_bytes = 4 * 1024 * 1024 * 1024 #4gb
         self.temp_extract_dir = None
+        self.file_tree = None  # Root node of the tree
         self.file_objects = []
 
-    def _load_from_filepath(self, filepath):
-        
+    def load_from_filepath(self, filepath):
         try:
             self.file_objects = []
-            #pass filepaths to helper methods
+            self.file_tree = None           
+
             path = self._validate_path(filepath)
-            self.file_objects = self._load_files(path)
+
+            #create root node for tree
+            root_name = path.name if path.name else "root"
+            self.file_tree = Node(root_name, type="directory", path=str(path))
+
+            # Load files and build tree
+            self._load_files(path, self.file_tree)
 
             if not self.file_objects:
                 return {
-                    'status' : 'error',
-                    'message' : 'No valid files found',
-                    'files' : []
+                    'status': 'error',
+                    'message': 'No valid files found'
                 }
             
-            return{
-                'status' : 'success',
-                'message' : f'loaded {len(self.file_objects)} file(s)',
-                'files' : self.file_objects
+            return {
+                'status': 'success',
+                'message': f'loaded {len(self.file_objects)} file(s)',
+                'tree': self.file_tree
             }
         
         except Exception as e:
             return {
                 'status' : 'error',
                 'message' : str(e),
-                'error_type' : type(e).__name__,
-                'files' : []
+                'error_type' : type(e).__name__
             }
 
 
@@ -75,22 +81,31 @@ class FileManager:
         return path
     
 
-    def _load_files(self, path):
-        file_objects = [] 
-        #didn't use the file objects attribute here because I assign the result of this method to the attribue in the _load_from_filepath method anyway, and it's more explicit there.
+    def _load_files(self, path, parent_node):
 
         #check if file is a compressed zip file, and pass to helper method accordingly
         if path.is_file() and path.suffix.lower() == '.zip':
-            file_objects = self._extract_and_load_zip(path)
+            self._extract_and_load_zip(path, parent_node)
         
         elif path.is_file():
             file_obj = self._load_single_file(path)
             if file_obj:
-                file_objects.append(file_obj)
-        
+                # Create node for this file
+                Node(
+                    file_obj['filename'],
+                    parent=parent_node,
+                    type="file",
+                    file_data=file_obj
+                )
+                self.file_objects.append(file_obj)
+
         #if path is a directory, look at each file within it
         elif path.is_dir():
-            for file_path in path.rglob('*'):
+            
+            # Create a dictionary to track folder nodes
+            folder_nodes = {str(path): parent_node}      
+
+            for file_path in sorted(path.rglob('*')):
                 if not file_path.is_file():
                     continue
 
@@ -100,12 +115,47 @@ class FileManager:
                 if file_path.stat().st_size > self.max_size_bytes:
                     continue
 
-                file_obj = self._load_single_file(file_path)
-                if file_obj:
-                    file_objects.append(file_obj)
-        return file_objects 
+                #file_path.parent is an attribute of pathlib.path, not to be confused with parent nodes
+                parent_folder_node = self._get_or_create_folder_nodes(
+                    file_path.parent, folder_nodes, path, parent_node
+                )
 
                 
+                file_obj = self._load_single_file(file_path)
+                if file_obj:
+                    Node(
+                        file_obj['filename'],
+                        parent=parent_folder_node,
+                        type="file",
+                        file_data=file_obj
+                    )
+                    self.file_objects.append(file_obj)
+
+    def _get_or_create_folder_nodes(self, folder_path, folder_nodes, root_path, root_node):
+        folder_str = str(folder_path)
+
+        #if folder node already exists, return it
+        if folder_str in folder_nodes:
+            return folder_nodes[folder_str]
+        
+        #if this is the root folder
+        if folder_path == root_path:
+            return root_node
+        
+        #recursively create parent folders
+        parent_folder_node = self._get_or_create_folder_nodes(folder_path.parent, folder_nodes, root_path, root_node)
+
+        #Create this folder node
+        folder_node = Node(
+            folder_path.name,
+            parent=parent_folder_node,
+            type="directory",
+            path=folder_str
+        )
+        folder_nodes[folder_str] = folder_node
+
+        return folder_node
+
 
 
     def _load_single_file(self, file_path):
@@ -126,32 +176,51 @@ class FileManager:
         
 
 
-    def _extract_and_load_zip(self, zip_path):
-        file_objects = []
-
-        #temporary directory to store the contents of zip file we will uncompress
+    def _extract_and_load_zip(self, zip_path, parent_node):
+        # Ttmporary directory to store the contents of zip file we will uncompress
         self.temp_extract_dir = tempfile.mkdtemp()
         temp_path = Path(self.temp_extract_dir)
+        
         try:
-            #use built in ZipFile library to extract contents
+            # use built in ZipFile library to extract contents
             with zipfile.ZipFile(zip_path, 'r') as zip_ref:
                 zip_ref.extractall(temp_path)
 
-            #run through each file we just extracted and pass those on to _load_single_file when needed    
-            for file_path in temp_path.rglob('*'):
+            #create a zip container node
+            zip_node = Node(
+                zip_path.name,
+                parent=parent_node,
+                type="zip",
+                path=str(zip_path)
+            )
+
+            #build tree for extracted contents
+            folder_nodes = {str(temp_path): zip_node}
+            
+            for file_path in sorted(temp_path.rglob('*')):
                 if not file_path.is_file():
                     continue
-
+                
                 if self._is_rar_file(file_path):
                     continue
 
                 if file_path.stat().st_size > self.max_size_bytes:
                     continue
 
+                #get or create parent folder node
+                parent_folder_node = self._get_or_create_folder_nodes(
+                    file_path.parent, folder_nodes, temp_path, zip_node
+                )
+
                 file_obj = self._load_single_file(file_path)
                 if file_obj:
-                    file_objects.append(file_obj)
-            return file_objects
+                    Node(
+                        file_obj['filename'],
+                        parent=parent_folder_node,
+                        type="file",
+                        file_data=file_obj
+                    )
+                    self.file_objects.append(file_obj)
         
         except zipfile.BadZipFile:
             raise ValueError(f"invalid or corrupted ZIP file: {zip_path}")
@@ -171,28 +240,41 @@ class FileManager:
     #helper method to check if a file is a rar file
     def _is_rar_file(self, path):
         return path.suffix.lower() in ['.rar', '.r00', '.r01']
+    
+    def print_tree(self):
+        if not self.file_tree:
+            print("No tree loaded")
+            return
+        
+        for pre, _, node in RenderTree(self.file_tree):
+            if node.type == "file":
+                size_kb = node.file_data['size_bytes'] / 1024
+                print(f"{pre}{node.name} ({size_kb:.1f} KB)")
+            else:
+                print(f"{pre}{node.name}/")
 
 
 #to test the function of this class 
 if __name__ == "__main__":
     import os
     print(f"Current working directory: {os.getcwd()}")
+    
     file_manager = FileManager()
     filepath = input("Enter file or folder path: ")
-    result = file_manager._load_from_filepath(filepath)
+    result = file_manager.load_from_filepath(filepath)
 
     print("\n" + "="*60)
     if result['status'] == 'success':
         print(f"✓ {result['message']}")
-        print("\nLoaded files:")
-        # Access files via file_manager.file_objects
+        print("\nTree structure:")
+        file_manager.print_tree()
+        
+        print("\n" + "-"*60)
+        print("Flat file list:")
         for file_obj in file_manager.file_objects:
             size_kb = file_obj['size_bytes'] / 1024
             print(f"  • {file_obj['filename']} ({size_kb:.1f} KB)")
-            print(f"    Extension: {file_obj['extension']}")
-            print(f"    Path: {file_obj['path']}")
     else:
         print(f"✗ Error: {result['message']}")
     print("="*60)
-
 
