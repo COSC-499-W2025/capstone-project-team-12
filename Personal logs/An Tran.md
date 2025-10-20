@@ -1,4 +1,12 @@
 # An Tran Personal Log (79499364)
+## Week 7 (10/13/2025 - 10/19/2025)
+- Participated in team meeting and discussion regarding assigning tasks
+- Created getFileType function for file classifier and added tests which all passed
+- Created PR for file classifier
+- Reviewed PR #47
+
+<img width="696" height="520" alt="Screenshot 2025-10-19 at 9 16 49 PM" src="https://github.com/user-attachments/assets/3126fca3-1951-4a36-8882-b8d6cbf1ebed" />
+
 ## Week 6 (10/06/2025 - 10/12/2025)
 - Participated in team meeting and discussion regarding tasks and changes following finalized requirements
 - Developed a list of tasks for this week

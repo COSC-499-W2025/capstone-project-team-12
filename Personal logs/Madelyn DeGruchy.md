@@ -1,4 +1,22 @@
 # Madelyn DeGruchy Personal Log (85064962 - maddydeg)
+## Week 7 (10/13/2025 - 10/19/2025)
+- Implemented the helper methods isCode() and isText() for classifying files
+- Collaborated on the file classifier
+- Wrote testing for helper methods
+
+### In Progress
+- Working on refactoring the file classifier to consider the full node passed from the tree -> this changes current checks from strings to the full node
+- Will need to fully refactor testing, current implementations are very string-specific
+
+### For Next Week
+- Discuss refactoring of tree processing as it changes how it passes a full node object instead of just the name (string)
+- Add issues for the rest of Milestone 1, discuss further task assignments with the group
+
+![Peer Evaluation Response Week 7](imgs/Madelyn%20Degruchy%20Week%207.png)
+
+
+### Weekly Tasks Image
+
 ## Week 6 (10/06/2025 - 10/12/2025)
 - Updated Requirements to reflect finalized Milestones and changes needed to the system.
 - Performed code reviews for PR's in the project

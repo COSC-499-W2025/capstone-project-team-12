@@ -30,5 +30,10 @@
 - Researched how to use Pathlib library in python 
 ![alt text](<imgs/Sithara Chari Week 6.png>)
 
-
+## Week 7 (10/13/2025 - 10/19/2025)
+- Performed code reviews for PR's in the project
+- Participated in team meetings to discuss changes to existing code, as well as what to do moving forward
+- Made requested implementation changes to file manage (issue #40)
+- Made new PR
+![alt text](<imgs/Sithara Chari Week 7.png>)
 

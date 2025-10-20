@@ -1,5 +1,15 @@
 # Lexi Loudiadis (93546844) Personal Log
 
+## Week 7 (10/13/2025 - 10/19/2025)
+
+- Coded the text tokenizer
+- Coded the text stopword remover
+- Coded the text lemmatizer
+- Created tests for these which including edge cases to make sure they'll work as expected
+- Reviewed comments on my PR and made changes accordingly
+
+![Type of tasks I worked on](imgs/Week%207%20Lexi.png)
+
 ## Week 6 (10/06/2025 - 10/12/2025)
 
 - Wrote the DFD explanation for our README
