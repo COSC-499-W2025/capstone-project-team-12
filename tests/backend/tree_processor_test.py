@@ -13,11 +13,11 @@ class TestTreeProcessor:
     def setup_method(self):
         """Create a fresh test tree before each test"""
         # Simple project structure
-        self.root = Node("project")
-        self.git = Node(".git", parent=self.root)
-        self.src = Node("src", parent=self.root)
-        self.app_js = Node("app.js", parent=self.src)
-        self.readme = Node("README.md", parent=self.root)
+        self.root = Node("project",  type="directory")
+        self.git = Node(".git", type="directory", parent=self.root)
+        self.src = Node("src",  type="directory", parent=self.root)
+        self.app_js = Node("app.js", type="file", parent=self.src)
+        self.readme = Node("README.md", type="file", parent=self.root)
     
     def test_files_get_classified(self):
         """Test that files receive classification attribute"""
