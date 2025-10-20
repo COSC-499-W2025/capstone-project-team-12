@@ -24,6 +24,11 @@
 
 [//]: # "ADD IMAGES after all the work is pushed"
 
+![Week 7 Burn Up](../imgs/Week%207%20Burnup.png)
+
+![Week 7 Tasks Table](../imgs/Week%207%20Tasks.png)
+Filtered to only show Tasks with changes this week.
+
 
 ### In Progress
 - Discussing refactoring of the file classifier to better utilize the File Manager's tree structure.
