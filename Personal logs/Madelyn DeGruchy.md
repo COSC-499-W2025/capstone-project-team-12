@@ -12,6 +12,9 @@
 - Discuss refactoring of tree processing as it changes how it passes a full node object instead of just the name (string)
 - Add issues for the rest of Milestone 1, discuss further task assignments with the group
 
+![Peer Evaluation Response Week 7](imgs/Madelyn%20DeGruchy%20Week%207.png)
+
+
 ### Weekly Tasks Image
 
 ## Week 6 (10/06/2025 - 10/12/2025)
