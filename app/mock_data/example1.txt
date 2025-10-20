@@ -1,1 +1,1 @@
-This is an example text file to test if the code tokenizer is working properly. Example text 1. 2.Python. Running ran use used
+This is an example text file to test if the code tokenizer is working properly. Example text 1. 2.Python. Running ran use used They're résumé

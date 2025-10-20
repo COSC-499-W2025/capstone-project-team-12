@@ -1,4 +1,4 @@
-import re
+import regex as re
 import spacy
 import nltk
 from nltk.corpus import stopwords
@@ -29,7 +29,7 @@ def get_tokens(filepath):
     # this can result in the loss of tokens that contain actual words, like in "2.Python"
     # here we replace all non-alphabetic characters with a single space, then remove all surrounding spaces
     
-    reg_txt = re.sub(r"[^a-zA-Z\s]", " ", clean_txt)
+    reg_txt = re.sub(r"[^\p{L}\s]", " ", clean_txt)
     reg_txt = re.sub(r"\s+", " ", reg_txt).strip()
     reg_tokens = word_tokenize(reg_txt)
 
