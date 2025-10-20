@@ -1,5 +1,12 @@
 ## Devin Huang Personal Log (86828886)
 
+### Week 7
+- Implemented tree processor component for file classification system alongside it's tests, which all passed
+- Set up pytest testing framework in Docker environment
+- Participated in team meetings regarding task priority and assignment
+
+<img width="1174" height="603" alt="image" src="https://github.com/user-attachments/assets/59ec3b7a-8395-44e6-9f7e-1f387dd42000" />
+
 ### Week 6
 - Created the documentation for the WBD
 - Created the diagram for the WBD
