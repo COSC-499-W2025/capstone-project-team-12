@@ -17,6 +17,8 @@ services:
       - 8080:8080
     depends_on: 
       - backend_db
+    volumes:
+    - ../tests:/app/tests
 
   backend_db:
     build:
