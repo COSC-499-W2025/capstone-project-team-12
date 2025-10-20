@@ -4,6 +4,8 @@
 
 ### Work Done
 
+- Made minor updates to Github Project.
+- Reviewed PRs and other's code and suggested changes.
 - Helped provide feed back and addressed implementation concerns and questions on Discord
 - Assigned tasks to team
 
