@@ -17,6 +17,8 @@
 - Completed implementation of the file manager to access local files
 - Implemented the file classifier to traverse the tree representing the file structure and classify files for processing
 - Implemented the Text file pre-processing to tokenize, remove stop words, and lemmatize text files.
+- Set up pytest testing framework in Docker environment
+- Implemented tests for all created components
 
 ### Burnup chart & Task Table
 
