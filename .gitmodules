@@ -1,0 +1,3 @@
+[submodule "app/backend/tests_backend/test_main_dir/capstone_team12_testrepo"]
+	path = app/backend/tests_backend/test_main_dir/capstone_team12_testrepo
+	url = https://github.com/Eveline36/capstone_team12_testrepo
