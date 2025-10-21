@@ -1,4 +1,3 @@
-version: '3.8'
 services:
   frontend_app:
     build:
@@ -27,4 +26,6 @@ services:
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
+    volumes:
+      - ./database/pgdata:/var/lib/postgresql/18/data
 
