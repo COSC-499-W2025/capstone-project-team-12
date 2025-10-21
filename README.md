@@ -27,6 +27,7 @@
 
   - For ease of automated testing all tests are found inside each service sub-folder of the app folder. The top level tests directory contains an md file that links to respective test folders for convenience.
  - For proper running of repo mining tests, note that there is git submodule under `app/backend/tests_backend/test_main_dir/capstone_team12_testrepo`.<br />Alternatively, click this link! [Testing Submodule](app/backend/tests_backend/test_main_dir/capstone_team12_testrepo)
+ - To visit the remote copy of submodule [Click Here](https://github.com/Eveline36/capstone_team12_testrepo)
  - To run test ensure submodule folder is upto date, or run `git pull` on main branch of submodule before docker build and/or running tests.
 
 # Project-Starter
