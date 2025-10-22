@@ -43,7 +43,7 @@ def validate_path(self, filepath):
 def run_all_backend_tests():
     print("\nRunning all backend tests\n")
     tests_path = "app/backend/tests_backend"
-    try:
+    try:                                          
         result = subprocess.run(["pytest", "-v", tests_path], check=False) # runs tests as if you type the command in terminal
        # check=False means don't crash if pytest fails - we will handle the error ourselves
         if result.returncode == 0: # 0 if all tests passed

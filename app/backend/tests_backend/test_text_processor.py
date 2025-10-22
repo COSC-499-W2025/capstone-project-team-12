@@ -1,7 +1,7 @@
 
 import unittest
 import os
-from app.backend.text_tokenizer import get_tokens, sw_filtered_tokens, lemmatize_tokens
+from text_tokenizer import get_tokens, sw_filtered_tokens, lemmatize_tokens
 
 class TestTextProcessor(unittest.TestCase):
 
