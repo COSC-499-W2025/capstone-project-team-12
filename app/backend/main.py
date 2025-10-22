@@ -4,8 +4,19 @@ import subprocess
 from pathlib import Path
 from file_manager import FileManager
 
-def validate_path(self, filepath):
-        # print(f"DEBUG: Raw input → {repr(filepath)}")
+def validate_path(filepath):
+        max_size_bytes = 4 * 1024 * 1024 * 1024  # 4gb limit
+
+        def _is_rar_file(path):
+            return path.suffix.lower() in ['.rar', '.r00', '.r01']
+        
+        #helper method to find the total size of directory
+        def _get_directory_size(path):
+            total = 0
+            for file_path in path.rglob('*'):
+                if file_path.is_file():
+                    total += file_path.stat().st_size
+            return total
 
         #remove quotations marks if user pastes file path in as input
         filepath = filepath.strip().strip('"').strip("'")
@@ -13,28 +24,24 @@ def validate_path(self, filepath):
         #to ensure that directory looks at paths absolutely
         path = Path(filepath).expanduser().resolve()
 
-        # print(f"DEBUG: Resolved path → {path}")
-        # print(f"DEBUG: Exists? {path.exists()}")
-
-
         if not path.exists():
             raise FileNotFoundError(f"Path not found: {filepath}")
         
         #pass path to helper method to check if it is a RAR file
-        if path.is_file() and self._is_rar_file(path):
+        if path.is_file() and _is_rar_file(path):
             raise ValueError(f"RAR files are not supported: {filepath}")
         
         if path.is_file():
             size = path.stat().st_size
-            if size > self.max_size_bytes:
+            if size > max_size_bytes:
                 size_gb = size/(1024 ** 3)
                 raise ValueError(f"File too large: {size_gb:.2f}GB (max 4GB)")
 
         #if path given is a directory    
         elif path.is_dir():
             #helper method to get directory size
-            total_size = self._get_directory_size(path)
-            if total_size > self.max_size_bytes:
+            total_size = _get_directory_size(path)
+            if total_size > max_size_bytes:
                 size_gb = total_size / (1024 ** 3) 
                 raise ValueError(f"Folder too large: {size_gb:.2f}GB (max 4GB)")   
         return path
