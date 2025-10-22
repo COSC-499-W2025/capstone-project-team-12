@@ -1,9 +1,5 @@
 import pytest
 from anytree import Node, PreOrderIter
-# Import your tree_processor function
-# Adjust the import path based on where your file is
-import sys
-sys.path.insert(0, '../../app/backend')  # Go up to reach backend folder
 from tree_processor import process_file_tree
 
 

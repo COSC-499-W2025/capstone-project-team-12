@@ -3,6 +3,7 @@ import unittest
 import os
 from text_tokenizer import get_tokens, sw_filtered_tokens, lemmatize_tokens
 
+
 class TestTextProcessor(unittest.TestCase):
 
     def setUp(self):
