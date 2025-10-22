@@ -4,7 +4,7 @@ import subprocess
 from pathlib import Path
 from file_manager import FileManager
 
-def _validate_path(self, filepath):
+def validate_path(self, filepath):
         # print(f"DEBUG: Raw input → {repr(filepath)}")
 
         #remove quotations marks if user pastes file path in as input
@@ -39,3 +39,57 @@ def _validate_path(self, filepath):
                 raise ValueError(f"Folder too large: {size_gb:.2f}GB (max 4GB)")   
         return path
     
+
+def run_all_backend_tests():
+    print("\nRunning all backend tests\n")
+    tests_path = "app/backend/tests_backend"
+    try:
+        result = subprocess.run(["pytest", "-v", tests_path], check=False) # runs tests as if you type the command in terminal
+       # check=False means don't crash if pytest fails - we will handle the error ourselves
+        if result.returncode == 0: # 0 if all tests passed
+            print("\nAll tests passed.")
+        else:
+            print("\nSome tests failed.")
+    except Exception as e:
+        print(f"Error running tests: {e}") # catches the error if something goes wrong instead of crashing program
+
+
+def main():
+    choice = input("Would you like to run all backend tests? (y/n) \n> ").strip().lower()
+
+    if choice in ("y", "yes"):
+        run_all_backend_tests()
+        sys.exit(0)
+
+    elif choice in ("n", "no"):
+        while True: # looping so that prompts get asked until the user is successful or the user does not want to try again
+            filepath = input("\nEnter a file path to process: \n>").strip()
+
+            try:
+                path = validate_path(filepath) # validate using method above
+                print("\nPath is valid. Loading file in File Manager...\n")
+
+                file_manager = FileManager() # if valid send the filepath to be loaded in File Manager class
+                result = file_manager.load_from_filepath(str(path))
+
+                if result["status"] == "success": # what is returned from load_from_filepath
+                    print(f"File path loaded successfully in File Manager: {result['message']}\n")
+                elif result["status"] == "error":
+                    print(f"There was an error loading the file to File Manager: {result['message']}\n")
+
+                break
+            
+            except Exception as e:
+                print(f"\nFile path is not valid: {e}")
+                retry = input("\nWould you like to try again? (y/n) \n> ").strip().lower()
+
+                if retry in("n", "no"):
+                    print("\nExiting. Byeeeee")
+                    break
+
+    else:
+        print("\nInput invalid - try again (y/n) ")
+
+
+if __name__ == "__main__":
+    main()
