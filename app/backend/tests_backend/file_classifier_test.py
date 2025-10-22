@@ -1,5 +1,4 @@
 import pytest
-
 from file_classifier import getFileType, isCode, isText
 
 class TestFileClassifier:

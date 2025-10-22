@@ -1,23 +1,44 @@
-
 import unittest
 import os
 from text_tokenizer import get_tokens, sw_filtered_tokens, lemmatize_tokens
 
-
 class TestTextProcessor(unittest.TestCase):
 
     def setUp(self):
+        self.filepath = os.path.join(
+        os.path.dirname(__file__),
+        "test_main_dir",
+        "capstone_team12_testrepo",
+        "mock_texts",
+        "text_prep_text.txt"
+    )
         # create temporary mock files for edge cases
-        self.filepath = "app/mock_data/example1.txt"
-
-        self.empty_file = "app/mock_data/empty.txt"
+        self.empty_file = os.path.join(
+            os.path.dirname(__file__),
+            "test_main_dir",
+            "capstone_team12_testrepo",
+            "mock_texts",
+            "empty.txt"
+        )
         open(self.empty_file, "w").close()
 
-        self.stopword_file = "app/mock_data/only_stopwords.txt"
+        self.stopword_file = os.path.join(
+            os.path.dirname(__file__),
+            "test_main_dir",
+            "capstone_team12_testrepo",
+            "mock_texts",
+            "only_stopwords.txt"
+        )
         with open(self.stopword_file, "w") as f:
             f.write("the and if but or")
 
-        self.punct_file = "app/mock_data/punct.txt"
+        self.punct_file = os.path.join(
+            os.path.dirname(__file__),
+            "test_main_dir",
+            "capstone_team12_testrepo",
+            "mock_texts",
+            "punct.txt"
+        )
         with open(self.punct_file, "w") as f:
             f.write("...!!!???")
 

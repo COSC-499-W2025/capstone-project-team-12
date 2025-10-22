@@ -2,7 +2,6 @@ import pytest
 from anytree import Node, PreOrderIter
 from tree_processor import process_file_tree
 
-
 class TestTreeProcessor:
     """Tests for tree processor functionality"""
     
