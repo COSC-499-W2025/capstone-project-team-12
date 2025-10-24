@@ -4,7 +4,7 @@ from anytree import Node, PreOrderIter
 # Adjust the import path based on where your file is
 import sys
 sys.path.insert(0, '..')  # Go up to reach backend folder
-from tree_processor import process_file_tree
+from tree_processor import process_file_tree, _drop_invalid_node
 
 
 class TestTreeProcessor:
@@ -20,6 +20,7 @@ class TestTreeProcessor:
         self.app_js.file_data = {'extension': '.js'}
         self.readme = Node("README.md", type="file", parent=self.root)
         self.readme.file_data = {'extension': '.md'}
+        self.invalid_file = Node("invalid.png", type="file", parent=self.src)
     
     def test_files_get_classified(self):
         """Test that files receive classification attribute"""
@@ -91,6 +92,25 @@ class TestTreeProcessor:
         # Should not crash, just shouldn't mark anything
         assert result is not None, "Should handle .git at root"
         print(f"✓ .git at root handled without crash")
+
+    def test_drop_invalid_node(self):
+        # test that invalid file is dropped from tree
+        assert self.invalid_file.parent == self.src
+        assert self.invalid_invalid in self.src.children
+
+        result = _drop_invalid_node(self.invalid_file)
+
+        assert self.invalid_file.parent is None
+        assert self.invalid_invalid not in self.src.children
+
+    def test_drop_invalid_node_no_parent(self):
+        # test that dropping a node with no parent does not raise error
+        orphan_node = Node("orphan_file", type="file")
+        assert orphan_node.parent is None
+
+        result = _drop_invalid_node(orphan_node)
+
+        assert orphan_node.parent is None  # still no parent
 
 
 if __name__ == "__main__":
