@@ -3,7 +3,7 @@ from anytree import Node, PreOrderIter
 # Import your tree_processor function
 # Adjust the import path based on where your file is
 import sys
-sys.path.insert(0, '../../app/backend')  # Go up to reach backend folder
+sys.path.insert(0, '..')  # Go up to reach backend folder
 from tree_processor import process_file_tree
 
 
@@ -17,7 +17,9 @@ class TestTreeProcessor:
         self.git = Node(".git", type="directory", parent=self.root)
         self.src = Node("src",  type="directory", parent=self.root)
         self.app_js = Node("app.js", type="file", parent=self.src)
+        self.app_js.file_data = {'extension': '.js'}
         self.readme = Node("README.md", type="file", parent=self.root)
+        self.readme.file_data = {'extension': '.md'}
     
     def test_files_get_classified(self):
         """Test that files receive classification attribute"""

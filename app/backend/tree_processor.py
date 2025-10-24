@@ -12,7 +12,7 @@ def process_file_tree(root):
         # Classify files (leaf nodes)
         if hasattr(node, 'type') and node.type == "file": # checks if it's a file or a folder
             # Adds new attribute 'classification' to the node, the value will be the one resulting from the getFileType function
-            node.classification = getFileType(node.name) 
+            node.classification = getFileType(node) 
         else:
             node.classification = None
             if not hasattr(node, 'is_repo_head'):
