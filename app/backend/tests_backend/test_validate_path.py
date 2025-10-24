@@ -26,3 +26,67 @@ def test_rar_file_raises_valueerror(tmp_path):
     with pytest.raises(ValueError, match="RAR files are not supported"):
         validate_path(str(rar_file))
 
+
+
+def test_file_too_large(tmp_path):
+    large_file = tmp_path / "bigfile.bin"
+    large_file.touch()
+
+    # Path.stat() (from validate_path) normally returns an os.stat_result object so we Create a fake stat object that mimics os.stat_result with a large st_size
+    class FakeStat:
+        st_size = 5 * 1024 * 1024 * 1024  # 5gb, too large for our file validation
+        st_mode = 0o100644  # other object attributes
+        st_mtime = st_ctime = st_atime = 0
+
+    # replace Path.stat() return value just for this test
+    real_stat = Path.stat
+    try:
+        Path.stat = lambda self, **kwargs: FakeStat()
+        with pytest.raises(ValueError, match="File too large"):
+            validate_path(str(large_file))
+    finally:
+        Path.stat = real_stat  # restore original Path.stat() return value afterwards
+
+
+
+def test_directory_too_large(tmp_path):
+    # the fake directory has these files, and each file is 5gb
+    dir_path = tmp_path / "bigdir"
+    dir_path.mkdir()
+    big_file = dir_path / "file1.bin"
+    big_file.touch()
+
+    # Create a fake os.stat_result object again
+    class FakeStat:
+        st_size = 5 * 1024 * 1024 * 1024 
+        st_mode = 0o100644
+        st_mtime = st_ctime = st_atime = 0
+
+    # Save original setting
+    real_stat = Path.stat
+    real_rglob = Path.rglob
+
+    try:
+        # change Path.stat to always return the fake large file size (for now)
+        Path.stat = lambda self, **kwargs: FakeStat()
+
+        # change Path.rglob to just return a list with our one fake file (for now)
+        Path.rglob = lambda self, pattern: [big_file]
+
+        with pytest.raises(ValueError, match="File too large"):
+            validate_path(str(dir_path))
+    finally:
+        # Restore original setting
+        Path.stat = real_stat
+        Path.rglob = real_rglob
+
+
+# test that any quotations used when entering the file path are stripped
+def test_strip_quotes(tmp_path):
+    file = tmp_path / "quoted.txt"
+    file.write_text("sample")
+    quoted_path = f"'{file}'"
+    double_quoted_path = f'"{file}"'
+    
+    assert validate_path(quoted_path) == file.resolve()
+    assert validate_path(double_quoted_path) == file.resolve()
