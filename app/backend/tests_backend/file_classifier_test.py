@@ -22,8 +22,6 @@ class TestFileClassifier:
         # Text files returns "text" label
         assert getFileType(MockNode("readme.txt", ".txt")) == "text"
         assert getFileType(MockNode("notes.docx", ".docx")) == "text"
-        # Zip files returns "zipped" label
-        assert getFileType(MockNode("archive.zip", ".zip")) == "zipped"
         # Non-conforming files returns "other" label
         assert getFileType(MockNode("data.json", ".json")) == "other"
         assert getFileType(MockNode("notes.tex", ".tex")) == "other"

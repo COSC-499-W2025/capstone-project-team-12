@@ -12,10 +12,20 @@ def process_file_tree(root):
         # Classify files (leaf nodes)
         if hasattr(node, 'type') and node.type == "file": # checks if it's a file or a folder
             # Adds new attribute 'classification' to the node, the value will be the one resulting from the getFileType function
-            node.classification = getFileType(node) 
+            node.classification = getFileType(node)
+            if node.classification == "other":
+                # Drop invalid files
+                _drop_invalid_node(node) 
         else:
             node.classification = None
             if not hasattr(node, 'is_repo_head'):
                 node.is_repo_head = False
 
     return root
+
+def _drop_invalid_node(node):
+    # detaching the node from the tree by removing its parent reference
+    if node.parent:
+        node.parent = None
+    # TODO: drop the binary data once binary data list is implemented
+    # set binarydata[index of node] = None
