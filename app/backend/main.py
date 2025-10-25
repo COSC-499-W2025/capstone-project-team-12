@@ -78,6 +78,7 @@ def main():
                 print("\nPath is valid. Loading file in File Manager...\n")
 
                 file_manager = FileManager() # if valid send the filepath to be loaded in File Manager class
+
                 fm_result = file_manager.load_from_filepath(str(path))
 
                 if fm_result["status"] == "success": # what is returned from load_from_filepath

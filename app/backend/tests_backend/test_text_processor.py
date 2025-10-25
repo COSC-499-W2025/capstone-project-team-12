@@ -8,7 +8,6 @@ class TestTextProcessor(unittest.TestCase):
         self.filepath = os.path.join(
         os.path.dirname(__file__),
         "test_main_dir",
-        "capstone_team12_testrepo",
         "mock_texts",
         "text_prep_text.txt"
     )
@@ -16,7 +15,6 @@ class TestTextProcessor(unittest.TestCase):
         self.empty_file = os.path.join(
             os.path.dirname(__file__),
             "test_main_dir",
-            "capstone_team12_testrepo",
             "mock_texts",
             "empty.txt"
         )
@@ -25,7 +23,6 @@ class TestTextProcessor(unittest.TestCase):
         self.stopword_file = os.path.join(
             os.path.dirname(__file__),
             "test_main_dir",
-            "capstone_team12_testrepo",
             "mock_texts",
             "only_stopwords.txt"
         )
@@ -35,7 +32,6 @@ class TestTextProcessor(unittest.TestCase):
         self.punct_file = os.path.join(
             os.path.dirname(__file__),
             "test_main_dir",
-            "capstone_team12_testrepo",
             "mock_texts",
             "punct.txt"
         )
