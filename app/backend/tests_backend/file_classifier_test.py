@@ -1,9 +1,4 @@
 import pytest
-import sys
-import os
-
-backend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..','..','app','backend'))
-sys.path.insert(0, backend_path)  # Go up to reach backend folder
 from file_classifier import getFileType, isCode, isText
 
 class TestFileClassifier:
