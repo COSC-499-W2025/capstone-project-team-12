@@ -1,5 +1,4 @@
 from anytree import PreOrderIter
-#here we would import the getFileType function from its module
 from file_classifier import getFileType
 class TreeProcessor:
     def __init__(self):
@@ -21,13 +20,13 @@ class TreeProcessor:
             
             # Classify files (update the existing classification attribute)
             if hasattr(node, 'type') and node.type == "file":
-                classification = getFileType(node.name)
+                classification = getFileType(node)
                 node.classification = classification  # Update existing attribute
                 
                 # Add to appropriate array based on classification
-                if classification == "TEXT" and hasattr(node, 'path'):
+                if classification == "text" and hasattr(node, 'path'):
                     self.text_files.append(node.path)
-                elif classification == "CODE" and hasattr(node, 'path'):
+                elif classification == "code" and hasattr(node, 'path'):
                     self.code_files.append(node.path)
             #note that directories keep their default classification=None from FileManager
         return root
