@@ -3,6 +3,7 @@ import sys
 import subprocess
 from pathlib import Path
 from file_manager import FileManager
+from tree_processor import process_file_tree
 
 def validate_path(filepath):
         max_size_bytes = 4 * 1024 * 1024 * 1024  # 4gb limit
@@ -77,12 +78,23 @@ def main():
                 print("\nPath is valid. Loading file in File Manager...\n")
 
                 file_manager = FileManager() # if valid send the filepath to be loaded in File Manager class
-                result = file_manager.load_from_filepath(str(path))
 
-                if result["status"] == "success": # what is returned from load_from_filepath
-                    print(f"File path loaded successfully in File Manager: {result['message']}\n")
-                elif result["status"] == "error":
-                    print(f"There was an error loading the file to File Manager: {result['message']}\n")
+                fm_result = file_manager.load_from_filepath(str(path))
+
+                if fm_result["status"] == "success": # what is returned from load_from_filepath
+                    print(f"File path loaded successfully in File Manager: {fm_result['message']}\n")
+
+                    if "tree" not in fm_result or fm_result["tree"] is None:  # makes sure FileManager returns a tree
+                        print("ERROR: FileManager did not return a tree.")
+                        break
+                    file_tree = fm_result["tree"] # if successful, store the root node of the tree
+
+                    processed_tree = process_file_tree(file_tree) # send the tree to Tree Processor
+                    print("Tree processed succesfully in Tree Processor.\n") # end here for now until file classifier is refactored
+
+                         
+                elif fm_result["status"] == "error":
+                    print(f"There was an error loading the file to File Manager: {fm_result['message']}\n")
 
                 break
             
