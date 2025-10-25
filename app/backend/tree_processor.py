@@ -31,7 +31,7 @@ class TreeProcessor:
             #note that directories keep their default classification=None from FileManager
         return root
     
-    def _drop_invalid_node(node):
+    def _drop_invalid_node(self, node):
     # detaching the node from the tree by removing its parent reference
         if node.parent:
             node.parent = None
