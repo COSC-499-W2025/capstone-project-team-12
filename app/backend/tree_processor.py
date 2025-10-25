@@ -14,10 +14,8 @@ class TreeProcessor:
         self.git_repos = []
         
         for node in PreOrderIter(root):
-            # Check for .git and mark parent as repo head
             if node.name == ".git" and node.parent:
                 node.parent.is_repo_head = True  # Update existing attribute
-                # Add the repo root path to git_repos array
                 if hasattr(node.parent, 'path'):
                     self.git_repos.append(node.parent.path)
             
@@ -31,14 +29,22 @@ class TreeProcessor:
                     self.text_files.append(node.path)
                 elif classification == "CODE" and hasattr(node, 'path'):
                     self.code_files.append(node.path)
-            # Note: directories keep their default classification=None from FileManager
+            #note that directories keep their default classification=None from FileManager
         return root
     
+    def _drop_invalid_node(node):
+    # detaching the node from the tree by removing its parent reference
+        if node.parent:
+            node.parent = None
+    # TODO: drop the binary data once binary data list is implemented
+    # set binarydata[index of node] = None
+
+    #get text and get
     def get_text_files(self):
         return self.text_files
     
     def get_code_files(self):
         return self.code_files
     
-    def get_git_repos(self):
+    def get_git_repos(self): #returns only root paths of repos
         return self.git_repos
