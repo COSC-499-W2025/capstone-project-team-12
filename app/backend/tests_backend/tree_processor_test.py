@@ -3,7 +3,10 @@ from anytree import Node, PreOrderIter
 import sys
 sys.path.insert(0, '..')  # Go up to reach backend folder
 from tree_processor import TreeProcessor
+<<<<<<< HEAD
 
+=======
+>>>>>>> a7c3316e1daeac775476d3e421977a67796eda3d
 
 class TestTreeProcessor:
     """Tests for tree processor functionality"""
@@ -64,8 +67,12 @@ class TestTreeProcessor:
     
     def test_files_get_classified(self):
         """Test that files receive classification attribute"""
+<<<<<<< HEAD
         processor = TreeProcessor()
         result = processor.process_file_tree(self.root)
+=======
+        result = TreeProcessor.process_file_tree(self.root)
+>>>>>>> a7c3316e1daeac775476d3e421977a67796eda3d
         
         # Check that app.js has classification
         for node in PreOrderIter(result):
@@ -76,17 +83,26 @@ class TestTreeProcessor:
     
     def test_git_marks_parent_as_repo(self):
         """Test that .git marks parent directory as repo head"""
+<<<<<<< HEAD
         processor = TreeProcessor()
         result = processor.process_file_tree(self.root)
+=======
+        result = TreeProcessor.process_file_tree(self.root)
+>>>>>>> a7c3316e1daeac775476d3e421977a67796eda3d
         
         assert hasattr(result, 'is_repo_head'), "Root should have is_repo_head attribute"
         assert result.is_repo_head == True, "Root should be marked as repo head"
         print(f"✓ Root is marked as repo head: {result.is_repo_head}")
     
     def test_directories_not_classified_as_files(self):
+<<<<<<< HEAD
         """Test that directories keep None classification"""
         processor = TreeProcessor()
         result = processor.process_file_tree(self.root)
+=======
+        """Test that directories get None classification"""
+        result = TreeProcessor.process_file_tree(self.root)
+>>>>>>> a7c3316e1daeac775476d3e421977a67796eda3d
         
         for node in PreOrderIter(result):
             if node.name == "src":
@@ -94,10 +110,16 @@ class TestTreeProcessor:
                 print(f"✓ src directory classification: {node.classification}")
     
     def test_all_files_get_classification(self):
+<<<<<<< HEAD
         """Test that every file gets classified"""
         processor = TreeProcessor()
         result = processor.process_file_tree(self.root)
         
+=======
+        """Test that every file (leaf node) gets classified"""
+        result = TreeProcessor.process_file_tree(self.root)
+
+>>>>>>> a7c3316e1daeac775476d3e421977a67796eda3d
         for node in PreOrderIter(result):
             # Check files by type attribute
             if hasattr(node, 'type') and node.type == "file":
@@ -107,8 +129,12 @@ class TestTreeProcessor:
     
     def test_non_repo_directories_marked_false(self):
         """Test that directories without .git get is_repo_head = False"""
+<<<<<<< HEAD
         processor = TreeProcessor()
         result = processor.process_file_tree(self.root)
+=======
+        result = TreeProcessor.process_file_tree(self.root)
+>>>>>>> a7c3316e1daeac775476d3e421977a67796eda3d
         
         for node in PreOrderIter(result):
             if node.name == "src":
@@ -136,8 +162,12 @@ class TestTreeProcessor:
             parent=subproject
         )
         
+<<<<<<< HEAD
         processor = TreeProcessor()
         result = processor.process_file_tree(self.root)
+=======
+        result = TreeProcessor.process_file_tree(self.root)
+>>>>>>> a7c3316e1daeac775476d3e421977a67796eda3d
         
         # Both root and subproject should be marked as repo heads
         assert self.root.is_repo_head == True, "Root should be repo head"
@@ -147,6 +177,7 @@ class TestTreeProcessor:
     
     def test_git_without_parent(self):
         """Test .git at root level (no parent to mark)"""
+<<<<<<< HEAD
         git_root = Node(
             ".git", 
             type="directory",
@@ -156,6 +187,10 @@ class TestTreeProcessor:
         )
         processor = TreeProcessor()
         result = processor.process_file_tree(git_root)
+=======
+        git_root = Node(".git")
+        result = TreeProcessor.process_file_tree(git_root)
+>>>>>>> a7c3316e1daeac775476d3e421977a67796eda3d
         
         # Should not crash, just shouldn't mark anything
         assert result is not None, "Should handle .git at root"
@@ -175,6 +210,7 @@ class TestTreeProcessor:
         assert invalid_file.parent == self.src
         assert invalid_file in self.src.children
 
+<<<<<<< HEAD
         # Drop the node
         processor = TreeProcessor()
         processor._drop_invalid_node(invalid_file)
@@ -182,6 +218,12 @@ class TestTreeProcessor:
         # Verify it's removed
         assert invalid_file.parent is None
         assert invalid_file not in self.src.children
+=======
+        result = TreeProcessor._drop_invalid_node(self.invalid_file)
+
+        assert self.invalid_file.parent is None
+        assert self.invalid_invalid not in self.src.children
+>>>>>>> a7c3316e1daeac775476d3e421977a67796eda3d
 
     def test_drop_invalid_node_no_parent(self):
         """test that dropping a node with no parent does not raise error"""
@@ -196,10 +238,14 @@ class TestTreeProcessor:
         
         assert orphan_node.parent is None # Still no parent
 
+<<<<<<< HEAD
     # def test_drop_invalid_node(self):
     #     # test that invalid file is dropped from tree
     #     assert self.invalid_file.parent == self.src
     #     assert self.invalid_invalid in self.src.children
+=======
+        result = TreeProcessor._drop_invalid_node(orphan_node)
+>>>>>>> a7c3316e1daeac775476d3e421977a67796eda3d
 
     #     result = _drop_invalid_node(self.invalid_file)
 
