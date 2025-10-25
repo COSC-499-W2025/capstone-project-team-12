@@ -3,10 +3,6 @@ from anytree import Node, PreOrderIter
 import sys
 sys.path.insert(0, '..')  # Go up to reach backend folder
 from tree_processor import TreeProcessor
-<<<<<<< HEAD
-
-=======
->>>>>>> a7c3316e1daeac775476d3e421977a67796eda3d
 
 class TestTreeProcessor:
     """Tests for tree processor functionality"""
