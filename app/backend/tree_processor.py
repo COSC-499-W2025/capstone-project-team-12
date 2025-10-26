@@ -21,6 +21,9 @@ class TreeProcessor:
             # Classify files (update the existing classification attribute)
             if hasattr(node, 'type') and node.type == "file":
                 classification = getFileType(node)
+                if classification == "other": #drop if invalid file type
+                    self._drop_invalid_node(node)
+                    continue
                 node.classification = classification  # Update existing attribute
                 
                 # Add to appropriate array based on classification
