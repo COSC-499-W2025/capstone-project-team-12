@@ -139,8 +139,8 @@ def localtest(filepath:str):
     nodelist: List[Node] = [testNode,testNode]
     output = list(code_preprocess(nodelist))
     for result in output:
-        print("RESULT" + str(result))
+        print("\n----RESULT----\n" + str(result))
     return
 
 
-localtest("tests_backend/test_main_dir/code_proc_testfile.cpp")
+localtest("tests_backend/test_main_dir/codeProcessor_testfile.cpp")
