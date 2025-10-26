@@ -3,7 +3,7 @@ import sys
 import subprocess
 from pathlib import Path
 from file_manager import FileManager
-from tree_processor import process_file_tree
+from tree_processor import TreeProcessor
 
 def validate_path(filepath):
         max_size_bytes = 4 * 1024 * 1024 * 1024  # 4gb limit
@@ -88,7 +88,8 @@ def main():
                         break
                     file_tree = fm_result["tree"] # if successful, store the root node of the tree
 
-                    processed_tree = process_file_tree(file_tree) # send the tree to Tree Processor
+                    tree_processor = TreeProcessor() 
+                    processed_tree = tree_processor.process_file_tree(file_tree) # send the tree to Tree Processor
                     print("Tree processed succesfully in Tree Processor.\n") # end here for now until file classifier is refactored
 
                          
