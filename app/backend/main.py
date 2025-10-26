@@ -78,6 +78,7 @@ def main():
                 print("\nPath is valid. Loading file in File Manager...\n")
 
                 file_manager = FileManager() # if valid send the filepath to be loaded in File Manager class
+
                 fm_result = file_manager.load_from_filepath(str(path))
 
                 if fm_result["status"] == "success": # what is returned from load_from_filepath
@@ -88,10 +89,9 @@ def main():
                         break
                     file_tree = fm_result["tree"] # if successful, store the root node of the tree
 
-                    tree_processor = TreeProcessor() 
+                    tree_processor = TreeProcessor()
                     processed_tree = tree_processor.process_file_tree(file_tree) # send the tree to Tree Processor
                     print("Tree processed succesfully in Tree Processor.\n") # end here for now until file classifier is refactored
-
                          
                 elif fm_result["status"] == "error":
                     print(f"There was an error loading the file to File Manager: {fm_result['message']}\n")
