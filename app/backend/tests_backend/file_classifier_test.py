@@ -56,6 +56,12 @@ class TestFileClassifier:
         assert _isCode(node) is False
         assert _isText(node) is False
 
+    def test_no_extension_handling(self):
+        node = MockNode("filewithnoext")
+        assert getFileType(node) == "other"
+        assert _isCode(node) is False
+        assert _isText(node) is False
+
 if __name__ == "__main__":
     # Run tests with pytest
     pytest.main([__file__, "-v"])
