@@ -8,8 +8,7 @@ def getFileType(node):
         return "other"
 
 def _getExtension(node):
-    extension = node.file_data.get('extension', '')
-    return extension.lower()
+    return node.extension.lower() if node.extension else ''
 
 def _isCode(node):
     code_extensions = ['.py', '.java', '.cpp', '.js', '.rb', '.go', '.cs', '.c', '.h', '.php', '.html', '.css', '.htm']
