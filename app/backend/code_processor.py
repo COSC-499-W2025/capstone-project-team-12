@@ -20,15 +20,40 @@ MIN_TOKEN_LEN = 5
 Include = [tk.Comment, tk.Name,tk.Name.Function] #Default values for inclusion filter
 Exclude = [tk.Whitespace,tk.Punctuation,tk.Operator,tk.__builtins__,tk.Keyword] #Default value for exclusion filter
 
-#Sets values of code token type filters. Returns true on success, false on fail.
-def set_filters(include: List[pygments.token], exclude: List[pygments.token]) -> bool:
+#OOP method to get current state of filters. Returns none if Filters are not Intialized
+def get_code_filters()->List[List[pygments.token]]:
+    global Include 
+    global Exclude
+    if Include is not None and Exclude is not None:
+        #print("Inclusion Filters:" +str(Include) + '\n')
+        #print("Exclusion Filters:" +str(Exclude) + '\n')
+        return [Include,Exclude]
+    else:
+        return None
+        
+
+# Sets values of code token type filters. Returns true on success, false on fail.
+def set_code_filters(include: List[pygments.token], exclude: List[pygments.token]) -> bool:
     try:
+        global Include 
+        global Exclude  
         Include = include
         Exclude = exclude
         return True         #Sucessfully set token filters
     except:
         print("Failed to set token type filters")    
         return False        #Failed to set token filters
+    
+def append_code_filters(include: List[pygments.token], exclude: List[pygments.token]):
+    try:
+        global Include, Exclude
+        Include = Include + include
+        Exclude = Exclude + exclude
+        return True #Sucessfully added token filters
+    except:
+        print("Failed to add token type filters")    
+        return False #Failed to add token filters
+
 
 
 # Primary function to be used by main.py, Receives node array and returns Array of Arrays consisting of user defined tokens.
@@ -70,21 +95,22 @@ def get_tokens(filepath:str) -> List[pygments.token]:
         #Try tp get appropriate lexer using the filepath and extension
         try:
             lexer = pygments.lexers.get_lexer_for_filename(filepath)
-            return pygments.lex(code_string,lexer)
+            return list(pygments.lex(code_string,lexer))
         #If Language not supported or, extension is invalid. Print error to console and Return None
         except pygments.util.ClassNotFound:
             print("Failed to identify Lexer! Language Not supported or Invalid file extension.\n")
             return None
 
-#Given a anytree filenode of with filename attribute returns list of all valid tokens. For definition valid see filtering
+# Given a anytree filenode with filename attribute, returns list of all valid tokens. 
+# For definition of valid token see filters.
 def get_identifiers(node: Node) -> List[pygments.token]:
     tokens = get_tokens(node.filepath)
     if tokens is None:
         print("Failed to get tokens from file")
         return None
     else:
-        tokens = filter(filter_by_category,tokens) #Use filter function that returns true or false to generate iterable of tokens
-        return tokens
+        temp = list(filter(filter_by_category,tokens)) #Use filter function that returns true or false to generate iterable of tokens
+        return list(temp)
 
 
 # Uses the global Include Exclude filters to return True or False
@@ -100,13 +126,21 @@ def filter_by_category(token: pygments.token) -> bool:
         return True #Return true if all filters pass!
 
 
-def localtest(filepath):
-    testNode: Node = Node("testNode")
-    testNode.filepath = 'testfile.cpp'
-    nodelist = [testNode,testNode]
-    output = code_preprocess(nodelist)
+def localtest(filepath:str):
+    
+    #Test Getting and Setting Filters:
+    get_code_filters()
+    append_code_filters([],[])
+    get_code_filters()
+    
+    #Test Identifier Extraction:
+    testNode: Node = Node("testingNode")
+    testNode.filepath = str(filepath)
+    nodelist: List[Node] = [testNode,testNode]
+    output = list(code_preprocess(nodelist))
     for result in output:
-        print(result)
+        print("RESULT" + str(result))
+    return
 
 
-localtest("testfile.cpp")
+localtest("tests_backend/test_main_dir/code_proc_testfile.cpp")
