@@ -40,7 +40,7 @@ class TestTreeProcessor:
             classification=None,
             is_repo_head=False,
             parent=self.src,
-            file_data={'extension': '.js'}
+            extension='.js'
         )
         self.readme = Node(
             "README.md", 
@@ -49,7 +49,7 @@ class TestTreeProcessor:
             classification=None,
             is_repo_head=False,
             parent=self.root,
-            file_data={'extension': '.md'}
+            extension ='.md'
         )
         self.config = Node(
             "config.json",
@@ -58,7 +58,7 @@ class TestTreeProcessor:
             classification=None,
             is_repo_head=False,
             parent=self.root,
-            file_data={'extension': '.json'}
+            extension='.json'
         )
     
     def test_files_get_classified(self):

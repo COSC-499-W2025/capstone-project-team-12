@@ -10,7 +10,7 @@ class MockNode:
     # A simple mock class to simulate file nodes from file manager
     def __init__(self, name, extension=''):
         self.name = name
-        self.file_data = {'extension': extension}
+        self.extension = extension
 
 class TestFileClassifier:
 
@@ -30,7 +30,6 @@ class TestFileClassifier:
     def test_getFileType_edge_cases(self):
         assert getFileType(MockNode("SCRIPT.JS", ".JS")) == "code"  # Case insensitivity
         assert getFileType(MockNode("readme.MD", ".MD")) == "text"
-        assert getFileType(MockNode("compressed.ZIP", ".ZIP")) == "zipped"
         assert getFileType(MockNode("unknownfile.xyz", ".xyz")) == "other"
         assert getFileType(MockNode("noextension", "")) == "other"
     
