@@ -1,17 +1,10 @@
 import pytest
-import sys
-import os
-
-backend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.insert(0, backend_path)  # Go up to reach backend folder
 from file_classifier import getFileType, _isCode, _isText
-
 class MockNode:
     # A simple mock class to simulate file nodes from file manager
     def __init__(self, name, extension=''):
         self.name = name
         self.extension = extension
-
 class TestFileClassifier:
 
     def test_getFileType_function(self):

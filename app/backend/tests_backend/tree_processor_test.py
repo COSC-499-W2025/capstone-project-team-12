@@ -1,7 +1,5 @@
 import pytest
 from anytree import Node, PreOrderIter
-import sys
-sys.path.insert(0, '..')  # Go up to reach backend folder
 from tree_processor import TreeProcessor
 
 class TestTreeProcessor:
