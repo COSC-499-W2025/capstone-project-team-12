@@ -1,4 +1,12 @@
 # An Tran Personal Log (79499364)
+
+## Week 8 (10/20/2025 - 10/26/2025)
+- Participated in team meeting and discussion regarding assigning tasks and code implementation updates
+- Adjusted file classifier and tree processor to not consider zipped files and drop invalid nodes (non-text or code files) from the tree
+- Minor refactoring for naming conventions in the file classifier
+
+<img width="697" height="513" alt="Screenshot 2025-10-26 at 7 53 14 PM" src="https://github.com/user-attachments/assets/2d27fb69-3ae1-4d8d-80f4-e39edf750c3f" />
+
 ## Week 7 (10/13/2025 - 10/19/2025)
 - Participated in team meeting and discussion regarding assigning tasks
 - Created getFileType function for file classifier and added tests which all passed
