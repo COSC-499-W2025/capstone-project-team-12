@@ -1,23 +1,19 @@
-def getFileType(file_name):
-    if isCode(file_name):
+# file_name represents the node passed from tree_processor.py 
+def getFileType(node):
+    if _isCode(node):
         return "code"
-    elif isText(file_name):
+    elif _isText(node):
         return "text"
-    elif file_name.lower().endswith('.zip'):
-        return "zipped"
     else:
         return "other"
-    
-def isCode(file_name):
-    code_extensions = ['.py', '.java', '.cpp', '.js', '.rb', '.go', '.cs', '.c', '.h', '.php', '.html', '.css', '.htm']
-    for ext in code_extensions:
-        if file_name.lower().endswith(ext):
-            return True
-    return False
 
-def isText(file_name):
+def _getExtension(node):
+    return node.extension.lower() if node.extension else ''
+
+def _isCode(node):
+    code_extensions = ['.py', '.java', '.cpp', '.js', '.rb', '.go', '.cs', '.c', '.h', '.php', '.html', '.css', '.htm']
+    return _getExtension(node) in code_extensions
+
+def _isText(node):
     text_extensions = ['.txt', '.md', '.rtf', '.pdf', '.doc', '.docx']
-    for ext in text_extensions:
-        if file_name.lower().endswith(ext):
-            return True
-    return False
+    return _getExtension(node) in text_extensions
