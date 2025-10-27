@@ -1,5 +1,6 @@
 nltk == 3.9.2
 anytree == 2.13.0
 pytest == 8.4.2
+pytest-mock == 3.15.1
 pygments == 2.19.2
-spacy==3.7.2
+gensim == 4.4.0
