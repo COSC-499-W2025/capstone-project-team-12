@@ -1,4 +1,18 @@
 # Madelyn DeGruchy Personal Log (85064962 - maddydeg)
+## Week 8 (10/20/2025 - 10/26/2025)
+- Refactored _isCode() and _isText() to match the refactor of the attributes structure of file nodes in the file manager
+- Added new helper method _getExtension() to retrieve the extension of the node passed from the tree processor
+- Refactored testing of the file classifier for parity with file manager node attribute structure, including new MockNode() helper method
+- Assisted in troubleshooting the validate-main-test branch, where a test directory and file could not be committed to the repo
+- Took part in team discussions to determine tasks for the week
+### For Next Week
+- We will be meeting on Monday to set out next week's issues, and to plan some additional issues to be assigned to be prepared for the coming weeks
+- Further research PyDriller to be prepared to begin the metadata analysis pipeline.
+
+![Peer Evaluation Response Week 8]()
+
+
+
 ## Week 7 (10/13/2025 - 10/19/2025)
 - Implemented the helper methods isCode() and isText() for classifying files
 - Collaborated on the file classifier
