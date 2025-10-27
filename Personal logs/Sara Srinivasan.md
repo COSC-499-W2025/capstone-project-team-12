@@ -1,5 +1,38 @@
 # Sara Srinivasan Personal Log (10801751)
 
+## Week 8
+
+### Work Done
+
+- DevOps(Mon/Tue)
+  - Troubleshoot postgres dockerization
+  - Test Locally the use of Dev Containers
+  - Teach Team to use Dev Containers
+  - Added locally mounted volume directory for data persistence
+- Coding (Wed - Sun)
+  - Documented and discussed with team use of Pygments and related concerns
+  - Composed and wrote entirety of code pre_processing component (incl. comments and error handling) ~180 lines
+  - Reviewed PRs
+- Github Process
+  - Made all issues and project Tasks for the week (Mon)
+  - Tracked and updated github project and timeline for team
+
+![Week 7 Response](imgs/Sara%20Srinivasan%20Week%208.png)
+
+### Review and Future Plans
+
+Very productive week for me, i'd argue it makes up for last week's absence (though that was for medical reasons...)
+
+One of our dependencies (SpaCy) is broken due to upstream changes, I've volunteered to investigate and fix the issue or alternatively find an alternative library.
+
+This will require a full rewrite of one of our text_processing module. Which I am likely to handle next week as well
+
+We found the current agreed upon coding style standards to be inadequate so we're planning to discuss a full rework
+of our code base next week to bring all components into alignment
+
+A conversation I will likely lead, with that all of our preprocessing components are done.
+We should be well positioned to get into ML driven Analysis in Week 10
+
 ## Week 7
 
 ### Work Done
