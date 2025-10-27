@@ -1,5 +1,22 @@
 # Lexi Loudiadis (93546844) Personal Log
 
+## Week 8 (10/20/2025 - 10/26/2025)
+
+- Coded the main.py method
+- Refactored the validate_path() logic
+- Wrote unit tests for the validate_path() method
+
+### In Progress
+
+- Adding more logic to main as it what we're using to handle interaction between different classes for Milestone 1. So we need to keep connecting it to different classes/methods as they become available. For next week this is likely connnecting it to Text Preprocessor, our newly refactored File Classifier and our newly added Code Preprocessor. 
+
+### What's Next
+- Some more refactoring, establishing testing, var/func name standards, type declarations, etc
+- Implementing our PII remover so the Text Preprocessing pipleine is fully completed
+
+![Type of tasks I worked on](imgs/Week%208%20Lexi.png)
+
+
 ## Week 7 (10/13/2025 - 10/19/2025)
 
 - Coded the text tokenizer
