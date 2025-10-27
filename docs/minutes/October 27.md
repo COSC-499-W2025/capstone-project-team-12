@@ -28,8 +28,10 @@
 - File Manager refactor to change how binary data is saved (in array) -> Sithara
   - Will now return the tree and the array, and only pass the array to files that need it
   - Add return types and variable types
-- PII Removal (Lexi and Maddy)
-- Return types, expected type, declared types and error handling on all current classes (Devin and An)
+- PII Removal -> Lexi and Maddy
+- Return types, expected type, declared types and error handling on all current classes -> Devin and An
+  - Only need to work on files that don't have someone assigned to them this week
+- Refactor the tree processor for return output -> Devin
 
 ## For Next Week
 - Begin Analysis planning
