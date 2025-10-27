@@ -1,5 +1,5 @@
 import regex as re
-import spacy
+# import spacy
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
@@ -7,12 +7,12 @@ from nltk.stem import WordNetLemmatizer
 from nltk.corpus import wordnet
 from nltk import word_tokenize, pos_tag
 
-nlp = spacy.load("en_core_web_sm")
+# nlp = spacy.load("en_core_web_sm")
 
 # --------------------------
 # TOKENIZATION
 # --------------------------
-def get_tokens(filepath):
+def get_tokens(filepath: str) -> list[str]:
     
     # read and clean local text (with sithara's implementation can read file from file system)
     file_path = filepath
@@ -40,7 +40,7 @@ def get_tokens(filepath):
 # --------------------------
 # STOPWORD REMOVAL
 # --------------------------
-def sw_filtered_tokens(filepath):
+def sw_filtered_tokens(filepath: str) -> list[str]:
     # import tokens from text_tokenizer
     tokens = get_tokens(filepath)
 
@@ -59,7 +59,7 @@ def sw_filtered_tokens(filepath):
 # --------------------------
 
 # we need to tell the lemmatizer what part of speech the word in question is: adjective, verb, etc
-def get_wordnet_pos(tag):
+def get_wordnet_pos(tag: str) -> str:
     if tag.startswith('J'):
         return wordnet.ADJ  # adjective
     elif tag.startswith('V'):
@@ -71,7 +71,7 @@ def get_wordnet_pos(tag):
     else:         
         return wordnet.NOUN # default to noun
        
-def lemmatize_tokens(filepath):
+def lemmatize_tokens(filepath:str) -> str:
     words = sw_filtered_tokens(filepath)
 
     # assign label to each word (adjective, verb, etc)
