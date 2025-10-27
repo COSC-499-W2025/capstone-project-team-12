@@ -17,8 +17,8 @@ MIN_TOKEN_LEN = 5
 # i.e exclude will remove certain subtypes of token types allowed by Include.
 # EXCLUDE HAS HIGHER PRIORITY
 #set values by using 'set_filters(...)' function defined below.
-Include = [tk.Comment, tk.Name,tk.Name.Function] #Default values for inclusion filter
-Exclude = [tk.Whitespace,tk.Punctuation,tk.Operator,tk.__builtins__,tk.Keyword] #Default value for exclusion filter
+Include: List[pygments.tokenoken] = [tk.Comment, tk.Name,tk.Name.Function] #Default values for inclusion filter
+Exclude: List[pygments.tokenoken] = [tk.Whitespace,tk.Punctuation,tk.Operator,tk.__builtins__,tk.Keyword] #Default value for exclusion filter
 
 #OOP method to get current state of filters. Returns none if Filters are not Intialized
 def get_code_filters()->List[List[pygments.token]]:
@@ -71,7 +71,7 @@ def code_preprocess(node_array: List[Node],asString:bool = True) -> List[List[py
         if tokenarray is not None: #If downstream error then will be none!
             codefile_tokenlist.append(tokenarray)
         else:
-            print("Failed to process code file:" + node)
+            print("Failed to process code file:" + str(node))
             continue
     if asString: #use helper function to convert pypi tokens to strings (for text_process)
         temp:List[List[str]] = []
@@ -109,8 +109,8 @@ def get_identifiers(node: Node) -> List[pygments.token]:
         print("Failed to get tokens from file")
         return None
     else:
-        temp = list(filter(filter_by_category,tokens)) #Use filter function that returns true or false to generate iterable of tokens
-        return list(temp)
+        tokens = list(filter(filter_by_category,tokens)) #Use filter function that returns true or false to generate iterable of tokens
+        return list(tokens)
 
 
 # Uses the global Include Exclude filters to return True or False
