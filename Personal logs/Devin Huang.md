@@ -1,5 +1,19 @@
 ## Devin Huang Personal Log (86828886)
 
+### Week 8
+- Refactored tree_processor from function-based to class-based implementation
+- Updated tests to reflect the change in the tree_processor file
+- Added getter methods to TreeProcessor: get_text_files(), get_code_files(), get_git_repos() to return file path arrays
+- Updated main.py to correctly instantiate TreeProcessor class instead of calling as function
+- Helped teammate running tests in the docker container
+- Contributed in team discussions talking about weekly tasks
+#### Next week
+- Plan a meeting to discuss the separation of tasks (might also change meeting dates so that it fits better with the checkin dates)
+
+
+<img width="964" height="504" alt="image" src="https://github.com/user-attachments/assets/320b78c1-5fd4-4191-990e-f31390bf7af5" />
+
+
 ### Week 7
 - Implemented tree processor component for file classification system alongside it's tests, which all passed
 - Updated tree processor component to import correctly the other members work (from file_classifier import getFileType)

@@ -37,3 +37,24 @@
 - Made new PR
 ![alt text](<imgs/Sithara Chari Week 7.png>)
 
+## Week 8 (10/20/2025 - 10/26/2025)
+
+### Work Done
+- attended team meeting, talked about how all our code fits with each others work and how to make it better 
+- refactored file_manager code according to notes from meeting
+- filled Lexi in on what she should do as she couldn't attend the meeting, and she needed to work off of my file_manager class
+- coordinated with other teammates about what my class returns and what their classes expect so that everything matches 
+- performed PR reviews 
+
+![alt text](<imgs/Sithara Chari Week 8.png>)
+
+
+### Review
+Overall this week we mainly focused on refactoring our existing code, so we have everything we need moving forward. I couldn't get all the refactoring done for this week, so more will be happing in the following sprint.
+
+### Future Plans
+- refactor the nodes further: instead of storing binary data in the nodes directly, store in an array and have the index in the node
+- add pytests for file_manager 
+
+
+
