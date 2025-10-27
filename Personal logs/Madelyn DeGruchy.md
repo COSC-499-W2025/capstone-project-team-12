@@ -9,7 +9,7 @@
 - We will be meeting on Monday to set out next week's issues, and to plan some additional issues to be assigned to be prepared for the coming weeks
 - Further research PyDriller to be prepared to begin the metadata analysis pipeline.
 
-![Peer Evaluation Response Week 8]()
+![Peer Evaluation Response Week 8](imgs/Madelyn%20DeGruchy%20Week%208.png)
 
 
 
