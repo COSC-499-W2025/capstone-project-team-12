@@ -21,7 +21,7 @@ Include: List[pygments.token] = [tk.Comment, tk.Name,tk.Name.Function] #Default 
 Exclude: List[pygments.token] = [tk.Whitespace,tk.Punctuation,tk.Operator,tk.__builtins__,tk.Keyword] #Default value for exclusion filter
 
 #OOP method to get current state of filters. Returns none if Filters are not Intialized
-def get_code_filters()->List[List[pygments.token]]:
+def get_code_filters()->List[List[pygments.token]]|None:
     global Include 
     global Exclude
     if Include is not None and Exclude is not None:
@@ -129,7 +129,7 @@ def normalize_identifier(ident:str)->List[str]:
 
 # Returns an array of Pygment token objects when provided with a filepath
 # Uses filepath to identify language, returns None if language not supported.
-def get_tokens(filepath:str) -> List[pygments.token]:
+def get_tokens(filepath:str) -> List[pygments.token]|None:
     with open(filepath, "r", encoding="utf-8") as file:
         code_string =  file.read()
         #Try to get appropriate lexer using the filepath and extension
@@ -144,8 +144,8 @@ def get_tokens(filepath:str) -> List[pygments.token]:
 
 # Given a anytree filenode with filename attribute, returns list of all valid tokens. 
 # For definition of valid token see filters.
-def get_identifiers(node: Node) -> List[pygments.token]:
-    tokens = get_tokens(node.filepath)
+def get_identifiers(node: Node) -> List[pygments.token]|None:
+    tokens = get_tokens(node.path)
     if tokens is None:
         print("Failed to get tokens from file")
         return None
@@ -179,7 +179,7 @@ def localtest(filepath:str):
     
     #Test Identifier Extraction:
     testNode: Node = Node("testingNode")
-    testNode.filepath = str(filepath)
+    testNode.path = str(filepath)
     nodelist: List[Node] = [testNode,testNode]
     
     #Test Primary output type
