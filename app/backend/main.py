@@ -15,7 +15,7 @@ def validate_path(filepath: str) -> Path:
         
         #helper method to find the total size of directory
         def _get_directory_size(path: Path) -> int:
-            total = 0
+            total: int = 0
             for file_path in path.rglob('*'):
                 if file_path.is_file():
                     total += file_path.stat().st_size
@@ -25,7 +25,7 @@ def validate_path(filepath: str) -> Path:
         filepath = filepath.strip().strip('"').strip("'")
 
         #to ensure that directory looks at paths absolutely
-        path = Path(filepath).expanduser().resolve()
+        path: Path = Path(filepath).expanduser().resolve()
 
         if not path.exists():
             raise FileNotFoundError(f"Path not found: {filepath}")
@@ -35,9 +35,9 @@ def validate_path(filepath: str) -> Path:
             raise ValueError(f"RAR files are not supported: {filepath}")
         
         if path.is_file():
-            size = path.stat().st_size
+            size: int = path.stat().st_size
             if size > max_size_bytes:
-                size_gb = size/(1024 ** 3)
+                size_gb: float = size/(1024 ** 3)
                 raise ValueError(f"File too large: {size_gb:.2f}GB (max 4GB)")
 
         #if path given is a directory    
@@ -45,7 +45,7 @@ def validate_path(filepath: str) -> Path:
             #helper method to get directory size
             total_size: int = _get_directory_size(path)
             if total_size > max_size_bytes:
-                size_gb = total_size / (1024 ** 3) 
+                size_gb: float = total_size / (1024 ** 3)
                 raise ValueError(f"Folder too large: {size_gb:.2f}GB (max 4GB)")   
         return path
     
@@ -82,7 +82,7 @@ def main() -> None:
                 file_manager: FileManager = FileManager()
                 
                 # fm_result type left as Dict[str, Any] because FileManager returns different structures depending on success/error
-                fm_result: Dict[str, Any] = file_manager.load_from_filepath(str(path))
+                fm_result: Dict[str, str | Node | None] = file_manager.load_from_filepath(str(path))
 
                 if fm_result["status"] == "success": # what is returned from load_from_filepath
                     print(f"File path loaded successfully in File Manager: {fm_result['message']}\n")
