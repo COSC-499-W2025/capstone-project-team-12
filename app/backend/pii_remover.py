@@ -4,6 +4,7 @@ from nltk.tokenize import word_tokenize
 from typing import List
 from anytree import Node
 from text_preprocessor import text_preprocess
+import re
 
 def remove_pii (processed_docs: list[list[str]]) -> list[list[str]]:
     """ Takes a list of tokens lists (processed text and code documents) and removes PII using Presidio.
@@ -25,15 +26,16 @@ def remove_pii (processed_docs: list[list[str]]) -> list[list[str]]:
 
         # anonymize the text
         anonymized_response = anonymizer.anonymize(text=text,
-                                                analyzer_results=results,
-                                                )
+                                                analyzer_results=results)
+        
+        # remove any leftover tags from redaction (ie <EMAIL>, <PERSON>)
+        clean_text = re.sub(r"<[^>]+>", "", anonymized_response.text)
 
         # convert anonymized text back to list of lists of tokens (this will be our BoW input for the ML model)
-        anonymized_tokens = word_tokenize(anonymized_response.text.lower())
+        anonymized_tokens = word_tokenize(clean_text.lower())
         bag_of_words.append(anonymized_tokens)
 
     return bag_of_words
-
 
 
 if __name__ == "__main__": # testing locally to show it works. unit tests to come. 
