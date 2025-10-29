@@ -1,0 +1,1 @@
+This is a repo intended to test the repo reading functionalities of UBCO COSC_499 Team 12's Capstone Project. This repo will be included as a submodule in our main repo. Find our main team repo here: [Main Repo](https://github.com/COSC-499-W2025/capstone-project-team-12)

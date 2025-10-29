@@ -1,0 +1,26 @@
+Name: Johnathan K. Meyers
+Email: john.meyers92@examplemail.com
+Phone: (604) 555-8273
+Address: 1457 W 10th Ave, Vancouver, BC, V6H 1J8
+Date of Birth: 1992-08-14
+SIN: 123-456-789
+Credit Card: 4111 1111 1111 1111
+IP Address: 192.168.0.45
+MAC Address: 00:1B:44:11:3A:B7
+Username: jm_dev92
+Password: Pa$$w0rd!23
+GitHub: https://github.com/jmeyers92
+LinkedIn: https://www.linkedin.com/in/johnkmeyers
+Twitter Handle: @johnmeyers_dev
+Email (work): john.meyers@ubc.ca
+Employee ID: UBC042317
+Passport Number: XJ4829134
+Driver’s License: D9823-756-45-923
+Health Card Number: 9876-543-210
+Bank Account: 00123456789
+Routing Number: 071000013
+
+Message Content:
+Hi Sarah, it was great meeting you at the UBCO Data Science Symposium last Thursday (Oct 17, 2024). 
+I’ll send the report to your email — sarah.lin@datasci.io — once the Git repo is cleaned.
+Let’s meet again at 10:30 AM next Monday in Room EME 2242. My cell is +1 (236) 555-0923 if anything changes.
