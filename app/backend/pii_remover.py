@@ -1,5 +1,8 @@
 from presidio_analyzer import AnalyzerEngine
-from presidio_anonymizer.operators import OperatorsFactory
+from presidio_anonymizer import AnonymizerEngine
+from nltk.tokenize import word_tokenize
+from text_processing import preprocess_text
+from typing import List
 
 def remove_pii (processed_docs: list[list[str]]) -> list[list[str]]:
     """ Takes a list of tokens lists (processed text and code documents) and removes PII using Presidio.
