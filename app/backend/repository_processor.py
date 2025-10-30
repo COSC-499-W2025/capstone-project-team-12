@@ -1,7 +1,7 @@
 from pathlib import Path
 import tempfile
 import shutil
-from anytree import Node, PreOrderIter
+from anytree import Node
 from typing import Any, Dict, List, Optional
 class RepositoryProcessor:
     def __init__(self, username: str, binary_data_array) -> None:
@@ -23,7 +23,6 @@ class RepositoryProcessor:
 
         finally:
             # Clean up temporary directories
-            #TODO: Ensure this works as expected and doesn't leave temp dirs behind
             self._cleanup_temp_dirs()
 
         return processed_data    
@@ -46,7 +45,8 @@ class RepositoryProcessor:
         git_path: Path = temp_path / ".git"
         git_path.mkdir(parents=True, exist_ok=True) # Create .git directory in temp location
 
-        self._rebuild_git_tree(git_node, git_path)
+
+        self._rebuild_git_tree(git_node, git_path) # recursive method to build all sub folder in .git for PyDriller
 
         return temp_path
 
@@ -91,4 +91,3 @@ class RepositoryProcessor:
                 print(f"Warning: Could not remove temporary directory {temp_dir}: {e}")
         
         self.temp_dirs = []
-        
