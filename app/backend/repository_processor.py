@@ -3,17 +3,18 @@ import tempfile
 import shutil
 from anytree import Node
 from typing import Any, Dict, List, Optional
+import orjson 
+
 class RepositoryProcessor:
     def __init__(self, username: str, binary_data_array) -> None:
         self.username: str = username
         self.binary_data_array: List[bytes] = binary_data_array
         self.temp_dirs: List[str] = []
 
-    def process_repositories(self, repo_nodes: List[Node]) -> List[Dict[str, Any]]:
+    def process_repositories(self, repo_nodes: List[Node]) -> bytes:
         # Analyzes each repository node and extracts relevant information
         # Currently returns List[Dict[str, Any]] where each dict contains relevant commit information
-        # This will be put into JSON format to be returned, I was hung up on how to best structure that
-        # TODO: Update this implementation to return JSON formatted data
+        # This will be put into JSON format to be returned
         processed_data: List[Dict[str, Any]] = []
         try:
             for repo_node in repo_nodes:
@@ -25,7 +26,8 @@ class RepositoryProcessor:
             # Clean up temporary directories
             self._cleanup_temp_dirs()
 
-        return processed_data    
+        json_data = orjson.dumps(processed_data, option=orjson.OPT_INDENT_2)
+        return json_data    
 
     def _extract_git_folder(self, repo_node: Node) -> Path:
         # In order for PyDriller to access the commits, this rebuilds the .git folder for each repository temporarily
@@ -44,8 +46,6 @@ class RepositoryProcessor:
         
         git_path: Path = temp_path / ".git"
         git_path.mkdir(parents=True, exist_ok=True) # Create .git directory in temp location
-
-
         self._rebuild_git_tree(git_node, git_path) # recursive method to build all sub folder in .git for PyDriller
 
         return temp_path
@@ -71,7 +71,7 @@ class RepositoryProcessor:
 
     def _analyze_repository(self, repo_node: Node, git_folder_path: Path) -> Dict[str, Any]:
         #Analyze a single repository using PyDriller.
-        #TODO: Implement full analysis logic and PyDriller
+        #TODO: Implement full analysis logic and PyDriller after debug
         # For now, return basic info to test that extraction works
         return {
             'repository_name': repo_node.name,

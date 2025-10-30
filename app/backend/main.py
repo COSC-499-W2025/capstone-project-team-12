@@ -108,10 +108,10 @@ def main() -> None:
                                 binary_data_array=fm_result["binary_data"]
                             )
 
-                        #TODO: define type for processed_git_repos once decided
-                            processed_git_repos = repo_processor.process_repositories(git_repos)
+                            processed_git_repos: bytes = repo_processor.process_repositories(git_repos)
                             if processed_git_repos:
-                                print(f"repos successfully processed {processed_git_repos}")
+                                json_str: str = processed_git_repos.decode('utf-8')
+                                print(f"repos successfully processed {json_str}")
 
                         else:
                             print("Skipping Git repository linking as no username was provided.\n")

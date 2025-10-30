@@ -5,4 +5,4 @@ pytest-mock == 3.15.1
 pygments == 2.19.2
 gensim == 4.4.0
 pydriller == 2.9
-orjson == 3.10
+orjson>=3.10,<4
