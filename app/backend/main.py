@@ -2,10 +2,11 @@ import os
 import sys
 import subprocess
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, List
 from anytree import Node
 from file_manager import FileManager
 from tree_processor import TreeProcessor
+from repository_processor import RepositoryProcessor
 
 def validate_path(filepath: str) -> Path:
         max_size_bytes: int = 4 * 1024 * 1024 * 1024  # 4gb limit
@@ -95,6 +96,26 @@ def main() -> None:
                     tree_processor: TreeProcessor = TreeProcessor()
                     processed_tree: Node = tree_processor.process_file_tree(file_tree) # send the tree to Tree Processor
                     print("Tree processed successfully in Tree Processor.\n") # end here for now until file classifier is refactored
+
+                    git_repos: List[Node] = tree_processor.get_git_repos() #check for git repos before processing repos
+
+                    if git_repos:
+                        # prompt user for github username to link repos, loops to ensure valid input
+                        github_username: str = input("Git repositories detected in the file tree. Please enter your GitHub username to link them. To skip this processing, please press enter: \n> ").strip()
+                        if github_username and github_username != "":
+                            repo_processor: RepositoryProcessor = RepositoryProcessor(
+                                username=github_username,
+                                binary_data_array=fm_result["binary_data"]
+                            )
+
+                        #TODO: define type for processed_git_repos once decided
+                            processed_git_repos = repo_processor.process_repositories(git_repos)
+                            if processed_git_repos:
+                                print(f"repos successfully processed {processed_git_repos}")
+
+                        else:
+                            print("Skipping Git repository linking as no username was provided.\n")
+
 
                 elif fm_result["status"] == "error":
                     print(f"There was an error loading the file to File Manager: {fm_result['message']}\n")
