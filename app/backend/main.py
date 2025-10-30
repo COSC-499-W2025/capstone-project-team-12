@@ -102,7 +102,7 @@ def main() -> None:
                     if git_repos:
                         # prompt user for github username to link repos, loops to ensure valid input
                         github_username: str = input("Git repositories detected in the file tree. Please enter your GitHub username to link them. To skip this processing, please press enter: \n> ").strip()
-                        if github_username and github_username != "":
+                        if github_username:
                             repo_processor: RepositoryProcessor = RepositoryProcessor(
                                 username=github_username,
                                 binary_data_array=fm_result["binary_data"]
