@@ -2,10 +2,7 @@ from anytree import Node
 
 def getFileType(node: Node) -> str:
     """Returns file classification string based on file extension"""
-    try:
-        if not isinstance(node, Node):
-            raise TypeError("Input must be a Node")
-        
+    try:        
         ext: str = _getExtension(node)
         if not ext:
             return "other"
