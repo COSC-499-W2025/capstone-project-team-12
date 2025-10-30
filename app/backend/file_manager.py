@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any, Dict, List, Tuple
 import zipfile
 import tempfile
 import shutil
@@ -6,30 +7,30 @@ from anytree import Node, RenderTree
 
 class FileManager:
     def __init__(self):
-        self.max_size_bytes = 4 * 1024 * 1024 * 1024  # 4GB
-        self.temp_extract_dir = None
-        self.file_tree = None
-        self.file_objects = []
-        self.binary_data_array = []
+        self.max_size_bytes: int = 4 * 1024 * 1024 * 1024  # 4GB
+        self.temp_extract_dir: str | None = None
+        self.file_tree: Node | None = None
+        self.file_objects: List[Dict[str, Any]] = []
+        self.binary_data_array: List[bytes] = []
 
-    def load_from_filepath(self, filepath):
+    def load_from_filepath(self, filepath: str | Path) -> Dict[str, Any]:
         try:
             self.file_objects = []
             self.binary_data_array = []
             self.file_tree = None
 
             # Accept both string and Path inputs
-            path = Path(filepath).resolve()
+            path: Path = Path(filepath).resolve()
 
             if not path.exists():
                 raise FileNotFoundError(f"Path not found: {path}")
 
             # Create root node
-            root_name = path.name if path.name else "root"
+            root_name: str = path.name if path.name else "root"
             self.file_tree = Node(
                 root_name,
                 type="directory",
-                path=str(path),
+                filepath=str(path),
                 is_repo_head=False
             )
 
@@ -56,7 +57,7 @@ class FileManager:
                 'error_type': type(e).__name__
             }
 
-    def _load_files(self, path, parent_node):
+    def _load_files(self, path: Path, parent_node: Node) -> None:
         # Handle single ZIP file directly
         if path.is_file() and path.suffix.lower() == '.zip':
             self._extract_and_load_zip(path, parent_node)
@@ -78,7 +79,7 @@ class FileManager:
 
         # Handle directories (now includes empty ones)
         elif path.is_dir():
-            folder_nodes = {str(path): parent_node}
+            folder_nodes: Dict[str, Node] = {str(path): parent_node}
 
             for subpath in sorted(path.rglob('*')):
                 # Ensure all subdirectories are represented, even if empty
@@ -94,7 +95,7 @@ class FileManager:
                     continue
 
                 # Create or get parent folder node
-                parent_folder_node = self._get_or_create_folder_nodes(
+                parent_folder_node: Node = self._get_or_create_folder_nodes(
                     subpath.parent, folder_nodes, path, parent_node
                 )
 
@@ -119,8 +120,14 @@ class FileManager:
 
 
 
-    def _get_or_create_folder_nodes(self, folder_path, folder_nodes, root_path, root_node):
-        folder_str = str(folder_path)
+    def _get_or_create_folder_nodes(
+        self,
+        folder_path: Path,
+        folder_nodes: Dict[str, Node],
+        root_path: Path,
+        root_node: Node,
+    ) -> Node:
+        folder_str: str = str(folder_path)
 
         if folder_str in folder_nodes:
             return folder_nodes[folder_str]
@@ -128,30 +135,32 @@ class FileManager:
         if folder_path == root_path:
             return root_node
 
-        parent_folder_node = self._get_or_create_folder_nodes(folder_path.parent, folder_nodes, root_path, root_node)
+        parent_folder_node: Node = self._get_or_create_folder_nodes(
+            folder_path.parent, folder_nodes, root_path, root_node
+        )
 
-        folder_node = Node(
+        folder_node: Node = Node(
             folder_path.name,
             parent=parent_folder_node,
             type="directory",
-            path=folder_str,
+            filepath=folder_str,
             is_repo_head=False
         )
         folder_nodes[folder_str] = folder_node
 
         return folder_node
 
-    def _load_single_file(self, file_path):
+    def _load_single_file(self, file_path: Path) -> Tuple[Dict[str, Any] | None, int | None]:
         try:
             with open(file_path, 'rb') as f:
-                binary_data = f.read()
+                binary_data: bytes = f.read()
 
-                binary_index = len(self.binary_data_array)
+                binary_index: int = len(self.binary_data_array)
                 self.binary_data_array.append(binary_data)
 
             file_obj = {
                 'filename': file_path.name,
-                'path': str(file_path.absolute()),
+                'filepath': str(file_path.absolute()),
                 'size_bytes': len(binary_data),
                 'extension': file_path.suffix.lower(),
                 'binary_index': binary_index
@@ -161,9 +170,9 @@ class FileManager:
             print(f"Warning: could not load {file_path}: {e}")
             return None, None
 
-    def _extract_and_load_zip(self, zip_path, parent_node):
+    def _extract_and_load_zip(self, zip_path: Path, parent_node: Node) -> None:
         self.temp_extract_dir = tempfile.mkdtemp()
-        temp_path = Path(self.temp_extract_dir)
+        temp_path: Path = Path(self.temp_extract_dir)
 
         try:
             with zipfile.ZipFile(zip_path, 'r') as zip_ref:
@@ -175,7 +184,7 @@ class FileManager:
                     zip_path.name,
                     parent=parent_node,
                     type="zip",
-                    path=str(zip_path),
+                    filepath=str(zip_path),
                     is_repo_head=False
                 )
             else:
@@ -193,7 +202,7 @@ class FileManager:
                 if file_path.stat().st_size > self.max_size_bytes:
                     continue
 
-                parent_folder_node = self._get_or_create_folder_nodes(
+                parent_folder_node: Node = self._get_or_create_folder_nodes(
                     file_path.parent, folder_nodes, temp_path, zip_node
                 )
 
@@ -218,17 +227,17 @@ class FileManager:
                 shutil.rmtree(self.temp_extract_dir)
 
 
-    def _is_rar_file(self, path):
+    def _is_rar_file(self, path: Path) -> bool:
         return path.suffix.lower() in ['.rar', '.r00', '.r01']
 
-    def print_tree(self):
+    def print_tree(self) -> None:
         if not self.file_tree:
             print("No tree loaded")
             return
 
         for pre, _, node in RenderTree(self.file_tree):
             if node.type == "file":
-                size_kb = node.file_data['size_bytes'] / 1024
+                size_kb : float = node.file_data['size_bytes'] / 1024
                 print(f"{pre}{node.name} ({size_kb:.1f} KB)")
             else:
                 print(f"{pre}{node.name}/")
