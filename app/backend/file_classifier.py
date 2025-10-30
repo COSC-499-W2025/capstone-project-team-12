@@ -1,21 +1,44 @@
-# file_name represents the node passed from tree_processor.py 
 from anytree import Node
 
 def getFileType(node: Node) -> str:
-    if _isCode(node):
-        return "code"
-    elif _isText(node):
-        return "text"
-    else:
+    """Returns file classification string based on file extension"""
+    try:
+        if not isinstance(node, Node):
+            raise TypeError("Input must be a Node")
+        
+        ext: str = _getExtension(node)
+        if not ext:
+            return "other"
+
+        if _isCode(ext):
+            return "code"
+        if _isText(ext):
+            return "text"
+        return "other"
+    
+    except Exception as e:
+        print(f"An error occurred in getFileType: {e}")
         return "other"
 
 def _getExtension(node: Node) -> str:
-    return node.extension.lower() if node.extension else ''
+    """Get file extension from node"""
+    try: 
+        ext: str = node.extension
+        return ext.lower() if isinstance(ext, str) else ''
+    except AttributeError:
+        print("Node does not have 'extension' attribute")
+        return ''
+    except Exception as e:
+        print(f"An error occurred in _getExtension: {e}")
+        return ''
+        
 
-def _isCode(node: Node) -> bool:
-    code_extensions: list[str] = ['.py', '.java', '.cpp', '.js', '.rb', '.go', '.cs', '.c', '.h', '.php', '.html', '.css', '.htm']
-    return _getExtension(node) in code_extensions
+def _isCode(ext: str) -> bool:
+    '''Check if extension is a code file extension'''
+    code_extensions: set[str] = {'.py', '.java', '.cpp', '.js', '.rb', '.go', '.cs', '.c', '.h', '.php', '.html', '.css', '.htm'}
+    return ext in code_extensions
 
-def _isText(node: Node) -> bool:
+def _isText(ext: str) -> bool:
+    '''Check if extension is a text file extension'''
     text_extensions: list[str] = ['.txt', '.md', '.rtf', '.pdf', '.doc', '.docx']
-    return _getExtension(node) in text_extensions
+    return ext in text_extensions
