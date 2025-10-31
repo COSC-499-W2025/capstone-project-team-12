@@ -27,22 +27,35 @@ def stopwords_init():
 def text_preprocess(node_array:List[Node]) ->List[List[str]]:
     preProcessed_doclist: List[List[str]] = []
     for node in node_array:
-        tokenarray: List[str] = lemmatize_tokens(node)
-        if tokenarray is not None: #If downstream error then will be none!
-            preProcessed_doclist.append(tokenarray)
-        else:
-            print("Failed to process text file:" + str(node))
+        try:
+            tokenarray: List[str] = lemmatize_tokens(node)
+            if tokenarray is not None: #If downstream error then will be none!
+                preProcessed_doclist.append(tokenarray)
+            else:
+                print("Failed to process text file:" + str(node))
+                continue
+        except Exception as e:
+            print(f"An error occurred in text_preprocess: {node}: {e}")
             continue
     return preProcessed_doclist
 
 #reads file and gets token, currently from local dir
 #TODO: rework to use binary array instead
 def get_tokens(node:Node) -> list[str]:
-    
-    # read and clean local text (with sithara's implementation can read file from file system)
-    file_path: str = node.filepath
-    with open(file_path, "r", encoding="utf-8") as f:
-        working_txt: str = f.read()
+    try:
+        # read and clean local text (with sithara's implementation can read file from file system)
+        file_path: str = node.filepath
+        with open(file_path, "r", encoding="utf-8") as f:
+            working_txt: str = f.read()
+    except AttributeError:
+        print("Node does not have 'filepath' attribute")
+        return []
+    except FileNotFoundError:
+        print(f"File not found: {file_path}")
+        return []
+    except Exception as e:
+        print(f"An error occurred while reading the file: {e}")
+        return []
 
     # cleaning whitespace and line breaks
     clean_txt: str = re.sub(r"\n", " ", working_txt)
@@ -63,17 +76,21 @@ def get_tokens(node:Node) -> list[str]:
     return reg_tokens
 
 def stopword_filtered_tokens(node: Node) -> list[str]:
-    # import tokens from text_tokenizer
-    tokens: list[str] = get_tokens(node)
-    global stop_words
-    
-    #only init stopwords if it has not be initalized
-    if stop_words is None:
-        stopwords_init()
-    
-    # remove English stopwords
-    filtered_tokens: list[str] = [word.lower() for word in tokens if word.lower() not in stop_words]
-    #print(f"Stopword filtered tokens: {filtered_tokens}")
+    try:
+        # import tokens from text_tokenizer
+        tokens: list[str] = get_tokens(node)
+        global stop_words
+        
+        #only init stopwords if it has not be initalized
+        if stop_words is None:
+            stopwords_init()
+        
+        # remove English stopwords
+        filtered_tokens: list[str] = [word.lower() for word in tokens if word.lower() not in stop_words]
+        #print(f"Stopword filtered tokens: {filtered_tokens}")
+    except Exception as e:
+        print(f"An error occurred in stopword_filtered_tokens: {e}")
+        return []
 
     return filtered_tokens
 
@@ -96,19 +113,22 @@ def get_wordnet_pos(tag: str) -> str:
         return wordnet.NOUN # default to noun
        
 def lemmatize_tokens(node:Node) -> List[str]:
-    
-    words: List[str] = stopword_filtered_tokens(node)
+    try:
+        words: List[str] = stopword_filtered_tokens(node)
 
-    # assign label to each word (adjective, verb, etc)
-    pos_tags: List[Tuple[str, str]] = pos_tag(words)
+        # assign label to each word (adjective, verb, etc)
+        pos_tags: List[Tuple[str, str]] = pos_tag(words)
 
-    # create instance of NTLK's lemmatizer, which converts words to their base lemma form, using dictionary knowledge
-    lemmatizer: WordNetLemmatizer = WordNetLemmatizer()
+        # create instance of NTLK's lemmatizer, which converts words to their base lemma form, using dictionary knowledge
+        lemmatizer: WordNetLemmatizer = WordNetLemmatizer()
 
-    # lemmatize each word
-    lemmatized_words: list[str] = [lemmatizer.lemmatize(word, get_wordnet_pos(tag)) for word, tag in pos_tags]
+        # lemmatize each word
+        lemmatized_words: list[str] = [lemmatizer.lemmatize(word, get_wordnet_pos(tag)) for word, tag in pos_tags]
 
-    return lemmatized_words
+        return lemmatized_words
+    except Exception as e: 
+        print(f"An error occurred in lemmatize_tokens: {e}")
+        return []
 
 
 # --------------------------
