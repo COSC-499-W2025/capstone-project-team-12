@@ -226,6 +226,27 @@ class FileManager:
             if self.temp_extract_dir and Path(self.temp_extract_dir).exists():
                 shutil.rmtree(self.temp_extract_dir)
 
+    def get_binary_array(self, filepath: str | Path | None = None ) -> list[bytes] | None:
+        try:
+            # if function is called with a filepath
+            if filepath:
+                load_result = self.load_from_filepath(filepath)
+                if load_result('status') != 'success':
+                    print(f"Error loading file(s): {load_result.get('message')}")
+                    return None
+            
+            # else check if binary array and tree are initialized. 
+            elif not self.binary_data_array or not self.file_tree:
+                print("Binary data not initialized. Please call load_from_filepath() first.")
+                return None
+
+            # success 
+            return self.binary_data_array
+
+        except Exception as e:
+            print(f"get_bin_array failed: {e}")
+            return None
+
 
     def _is_rar_file(self, path: Path) -> bool:
         return path.suffix.lower() in ['.rar', '.r00', '.r01']
@@ -268,6 +289,13 @@ if __name__ == "__main__":
 
         print("\n" + "-"*60)
         print(f"Total binary objects stored: {len(file_manager.binary_data_array)}")
+
+        get_binary_array_test = input("Would you like to retrieve the binary array? y/n")
+
+        if get_binary_array_test == "y":
+            result_array = file_manager.get_binary_array()
+            print(result_array)
+
 
     else:
         print(f"✗ Error: {result['message']}")
