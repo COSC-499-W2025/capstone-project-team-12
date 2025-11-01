@@ -142,22 +142,33 @@ def main() -> None:
                         git_repos: List[Node] = tree_processor.get_git_repos() #check for git repos before processing repos
 
                     if git_repos:
-                        # prompt user for github username to link repos, loops to ensure valid input
+                        # prompt user for github username to link repos
                         github_username: str = input("Git repositories detected in the file tree. Please enter your GitHub username to link them. To skip this processing, please press enter: \n> ").strip()
                         if github_username:
+                            # Validate binary data from FileManager before passing it on
+                            binary_data: List[bytes] = fm_result.get("binary_data")
+                            if not isinstance(binary_data, list):
+                                print("Warning: FileManager returned no binary data or in unexpected format. Proceeding with empty binary array.")
+                                binary_data = []
+
                             repo_processor: RepositoryProcessor = RepositoryProcessor(
                                 username=github_username,
-                                binary_data_array=fm_result["binary_data"]
+                                binary_data_array=binary_data
                             )
 
-                            processed_git_repos: bytes = repo_processor.process_repositories(git_repos)
-                            if processed_git_repos:
-                                json_str: str = processed_git_repos.decode('utf-8')
-                                print(f"repos successfully processed {json_str}")
+                            try:
+                                processed_git_repos: bytes = repo_processor.process_repositories(git_repos)
+                                if processed_git_repos:
+                                    json_str: str = processed_git_repos.decode('utf-8')
+                                    print(f"repos successfully processed {json_str}")
+                            except Exception as e:
+                                # Catch unexpected errors during repository processing so the app doesn't crash
+                                print(f"Repository processing failed: {e}")
+
 
                         else:
                             print("Skipping Git repository linking as no username was provided.\n")
-                            
+
                     elif fm_result["status"] == "error":
                         print(f"There was an error loading the file to File Manager: {fm_result.get('message', 'Unknown error')}\n")
 
