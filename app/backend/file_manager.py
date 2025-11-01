@@ -10,10 +10,12 @@ class FileManager:
         self.temp_extract_dir = None
         self.file_tree = None
         self.file_objects = []
+        self.binary_data_array = []
 
     def load_from_filepath(self, filepath):
         try:
             self.file_objects = []
+            self.binary_data_array = []
             self.file_tree = None
 
             # Accept both string and Path inputs
@@ -43,7 +45,8 @@ class FileManager:
             return {
                 'status': 'success',
                 'message': f'Loaded {len(self.file_objects)} file(s)',
-                'tree': self.file_tree
+                'tree': self.file_tree,
+                'binary_data': self.binary_data_array
             }
 
         except Exception as e:
@@ -60,12 +63,13 @@ class FileManager:
 
         # Handle single regular file
         elif path.is_file():
-            file_obj = self._load_single_file(path)
+            file_obj, binary_index = self._load_single_file(path)
             if file_obj:
                 Node(
                     file_obj['filename'],
                     parent=parent_node,
                     type="file",
+                    binary_index=binary_index,
                     file_data=file_obj,
                     classification=None,
                     extension=file_obj['extension']
@@ -100,12 +104,13 @@ class FileManager:
                     continue
 
                 # Load regular file
-                file_obj = self._load_single_file(subpath)
+                file_obj, binary_index  = self._load_single_file(subpath)
                 if file_obj:
                     Node(
                         file_obj['filename'],
                         parent=parent_folder_node,
                         type="file",
+                        binary_index=binary_index,
                         file_data=file_obj,
                         classification=None,
                         extension=file_obj['extension']
@@ -140,16 +145,21 @@ class FileManager:
         try:
             with open(file_path, 'rb') as f:
                 binary_data = f.read()
-            return {
+
+                binary_index = len(self.binary_data_array)
+                self.binary_data_array.append(binary_data)
+
+            file_obj = {
                 'filename': file_path.name,
                 'path': str(file_path.absolute()),
-                'binary_data': binary_data,
                 'size_bytes': len(binary_data),
-                'extension': file_path.suffix.lower()
+                'extension': file_path.suffix.lower(),
+                'binary_index': binary_index
             }
+            return file_obj, binary_index
         except Exception as e:
             print(f"Warning: could not load {file_path}: {e}")
-            return None
+            return None, None
 
     def _extract_and_load_zip(self, zip_path, parent_node):
         self.temp_extract_dir = tempfile.mkdtemp()
@@ -187,12 +197,13 @@ class FileManager:
                     file_path.parent, folder_nodes, temp_path, zip_node
                 )
 
-                file_obj = self._load_single_file(file_path)
+                file_obj, binary_index = self._load_single_file(file_path)
                 if file_obj:
                     Node(
                         file_obj['filename'],
                         parent=parent_folder_node,
                         type="file",
+                        binary_index=binary_index,
                         file_data=file_obj,
                         extension=file_obj['extension'],
                         classification=None
@@ -243,8 +254,12 @@ if __name__ == "__main__":
         print("Flat file list:")
         for file_obj in file_manager.file_objects:
             size_kb = file_obj['size_bytes'] / 1024
-            print(f"  • {file_obj['filename']} ({size_kb:.1f} KB)")
+            binary_index = file_obj.get('binary_index')
+            print(f"  • {file_obj['filename']} ({size_kb:.1f} KB) [binary_index={binary_index}]")
+
+        print("\n" + "-"*60)
+        print(f"Total binary objects stored: {len(file_manager.binary_data_array)}")
+
     else:
         print(f"✗ Error: {result['message']}")
     print("="*60)
-
