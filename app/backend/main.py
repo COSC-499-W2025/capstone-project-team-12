@@ -2,10 +2,14 @@ import os
 import sys
 import subprocess
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict
 from anytree import Node
 from file_manager import FileManager
 from tree_processor import TreeProcessor
+from typing import List,BinaryIO
+from anytree import Node
+
+file_data_list : List = []
 
 def validate_path(filepath: str) -> Path:
         max_size_bytes: int = 4 * 1024 * 1024 * 1024  # 4gb limit
@@ -63,10 +67,27 @@ def run_all_backend_tests() -> None:
     except Exception as e:
         print(f"Error running tests: {e}") # catches the error if something goes wrong instead of crashing program
 
+#pass entry by provided id from file_data_array
+def get_bin_data_by_Id(bin_Idx:int)->BinaryIO|None:
+    if file_data_list is None or len(file_data_list) == 0:
+        print("Empty List: Initialize by calling File")
+        return None
+    return file_data_list[bin_Idx]
+
+def get_bin_data_by_IdList(bin_Idx_list:List[int])->List[BinaryIO]:
+    #check if files are loaded
+    if file_data_list is None or len(file_data_list) == 0:
+        print("Empty List: Initialize by calling File")
+        return None
+    
+    #collect binaries    
+    response_List: List[BinaryIO|None] = []
+    for bin_Idx in bin_Idx_list:
+        response_List.append(get_bin_data_by_Id(bin_Idx))
+    return response_List
 
 def main() -> None:
     choice: str = input("Would you like to run all backend tests? (y/n) \n> ").strip().lower()
-
     if choice in ("y", "yes"):
         run_all_backend_tests()
         sys.exit(0)
@@ -74,7 +95,6 @@ def main() -> None:
     elif choice in ("n", "no"):
         while True: # looping so that prompts get asked until the user is successful or the user does not want to try again
             filepath: str = input("\nEnter a file path to process: \n>").strip()
-
             try:
                 path: Path = validate_path(filepath) # validate using method above
                 print("\nPath is valid. Loading file in File Manager...\n")
@@ -91,7 +111,7 @@ def main() -> None:
                         print("ERROR: FileManager did not return a tree.")
                         break
                     file_tree: Node = fm_result["tree"] # if successful, store the root node of the tree
-
+                    file_data_list = fm_result['binary_data']
                     tree_processor: TreeProcessor = TreeProcessor()
                     processed_tree: Node = tree_processor.process_file_tree(file_tree) # send the tree to Tree Processor
                     print("Tree processed successfully in Tree Processor.\n") # end here for now until file classifier is refactored
