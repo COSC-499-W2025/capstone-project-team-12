@@ -26,7 +26,10 @@ def add_mock_entry(name:str,content:str):
     
     #add entries to global Lists
     nodelist[name] = testNode
-    datalist.append(content)
+    if content is not None:
+        datalist.append(content)
+    else:
+        datalist.append('')
     return
 
 #Adds mockdata to global lists
@@ -103,19 +106,14 @@ def test_large_complex():
 
 def test_comprehensive(mocker):
     mocker.patch('text_preprocessor.get_data',return_value = datalist)
-    result: List[List[str]] = text_preprocess(nodelist)
-    assert type(result) is List[List[str]]
+    temp_nodelist: List[Node] = list(nodelist.values())
+    print(temp_nodelist)
+    result: List[List[str]] = text_preprocess(temp_nodelist)
+    for x in result:
+        print(x)
+    assert isinstance(result,List)
     assert len(result) == 6
-    assert all((type(sublist) is List)for sublist in result)
+    assert all(isinstance(sublist,List)for sublist in result)
     for sublist in result:
         assert all(isinstance(token,str)for token in sublist)
     
-        
-
-""" def test_empty_file():
-    lemma = lemmatize_tokens() # empty file has no tokens/lemmatized words
-    assertEqual(lemma, "")
-
-def test_keep_letter_accents(): # keep accents on letters
-    lemma = lemmatize_tokens(self.filepath)
-    self.assertIn("résumé", lemma) """

@@ -40,7 +40,8 @@ def text_preprocess(node_array:List[Node]) ->List[List[str]]:
     preProcessed_doclist: List[List[str]] = []
     
     text_data_list = get_data(node_array)
-    print(node_array)
+    #print(node_array)
+    #print(text_data_list)
     for i in range(len(node_array)):
         tokenarray: List[str]
         node = node_array[i]
@@ -119,31 +120,4 @@ def lemmatize_tokens(words:List[str]) -> List[str]:
     return lemmatized_words
 
 
-# --------------------------
-# RUN FILE
-# --------------------------
-if __name__ == "__main__":
-    def print_output(output):
-        for result in output:
-            print(str(result)+'\n')
-        return
-
-    def localtest(filepaths:List[str]):
-        nodelist: List[Node] = []
-        i = 0
-        #Test Identifier Extraction:
-        for filepath in filepaths:
-            testNode: Node = Node("testingNode {} ".format(i))
-            testNode.filepath = str(filepath)
-            nodelist.append(testNode)
-            
-        #Test output 
-        output = list(text_preprocess(nodelist))    
-        print("\n----RESULT----\n")
-        print_output(output)
-
-    if __name__ == "__main__":
-        pathlist: List[str] = []
-        pathlist.append("tests_backend/test_main_dir/textProcessor_testfile1.txt")
-        pathlist.append("tests_backend/test_main_dir/textProcessor_testfile2.txt")
-        localtest(pathlist)
+# If youre looking for the local test as there is comprehensive test in main testsuite under backend/tests_backend
