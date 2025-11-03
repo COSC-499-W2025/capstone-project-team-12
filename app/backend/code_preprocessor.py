@@ -20,8 +20,9 @@ MIN_TOKEN_LEN = 5
 Include: List[pygments.token] = [tk.Comment, tk.Name,tk.Name.Function] #Default values for inclusion filter
 Exclude: List[pygments.token] = [tk.Whitespace,tk.Punctuation,tk.Operator,tk.__builtins__,tk.Keyword] #Default value for exclusion filter
 
-#OOP method to get current state of filters. Returns none if Filters are not Intialized
+
 def get_code_filters()->List[List[pygments.token]]|None:
+    """OOP method to get current state of filters. Returns none if Filters are not Intialized"""
     global Include 
     global Exclude
     if Include is not None and Exclude is not None:
@@ -32,8 +33,9 @@ def get_code_filters()->List[List[pygments.token]]|None:
         return None
         
 
-# Sets values of code token type filters. Returns true on success, false on fail.
+
 def set_code_filters(include: List[pygments.token], exclude: List[pygments.token]) -> bool:
+    """Sets values of code token type filters. Returns true on success, false on fail."""
     try:
         global Include 
         global Exclude  
@@ -45,6 +47,7 @@ def set_code_filters(include: List[pygments.token], exclude: List[pygments.token
         return False        #Failed to set token filters
     
 def append_code_filters(include: List[pygments.token], exclude: List[pygments.token]):
+    """Appends parameter Lists's elements of code token type to filter lists. Returns true on success, false on fail."""
     try:
         global Include, Exclude
         Include = Include + include
@@ -55,7 +58,7 @@ def append_code_filters(include: List[pygments.token], exclude: List[pygments.to
         return False #Failed to add token filters
 
 
-# Primary function to be used by main.py, Receives node array and returns Array of Arrays consisting of user defined tokens.
+
 # Note there is a secondary function `normalized_preprocess(...)` below that returns a normalized version of the same output
 # For definition of normalization see `normalize_identifier(...)` function
 # Each sub array refers to Identifiers extracted from individual files
@@ -65,6 +68,7 @@ def append_code_filters(include: List[pygments.token], exclude: List[pygments.to
 #     ]
 #By default the above string version is followed, set asString to False and receive pygments tokens directly
 def code_preprocess(node_array: List[Node], asString:bool = True) -> List[List[pygments.token]] | List[List[str]]:
+    """# Primary function to be used by main.py, Receives node array and returns Array of Arrays consisting of user defined tokens."""
     
     #Output list that will be returned
     codefile_tokenlist:List[List[pygments.token]] = [] #typed list of list with pypi tokens.
@@ -79,7 +83,7 @@ def code_preprocess(node_array: List[Node], asString:bool = True) -> List[List[p
             print("Failed to process code file:" + str(node))
             continue
     
-    #use helper function to convert pygment tokens to strings (for text_processor)
+    #Helper function to convert pygment tokens to strings (for text_processor)
     #Is run by default
     if asString: 
         temp:List[List[str]] = []
@@ -88,17 +92,19 @@ def code_preprocess(node_array: List[Node], asString:bool = True) -> List[List[p
         codefile_tokenlist = temp
     return codefile_tokenlist
 
-#Helper for `code_preprocess(...)` to convert an array of pygment tokens to array of strings
+
 def pygmentToken_to_string(tokenarray: List[pygments.token]) -> List[str]:
+    """Helper for `code_preprocess(...)` to convert an array of pygment tokens to array of strings"""
     token_strList: List[str] = []
     for token in tokenarray:
         token_strList.append(token[1]) #gensim does not automatically lowercase tokens like Spacy
     return token_strList
 
-#Secondary output to be called externally, similar output to `code_preprocess(...)` function
+
 #Uses`normalize_identifier(...)` function to normalize all tokens in output
 #Uses `code_preprocess in execution`
 def normalized_preprocess(node_array: List[Node]) -> List[List[str]]:
+    """ Secondary output to be called externally, similar output to `code_preprocess(...)` function. Returns Normalized values"""
     unnormalized_doc_list:List[List[str]] = code_preprocess(node_array,True) #Input list
     output_list: List[List[str]] = []
     for token_list in unnormalized_doc_list:
@@ -108,8 +114,9 @@ def normalized_preprocess(node_array: List[Node]) -> List[List[str]]:
         output_list.append(temp_token_list)
     return output_list
 
-#Normalizes identifiers by eliminating camelCase/snake_case and splitting each word in identifier
+
 def normalize_identifier(ident:str)->List[str]:
+    """Normalizes identifiers by eliminating camelCase/snake_case and splitting each word in identifier"""
     #replace camelCase with consideration to Acronyms
     ident = re.sub(r"""((?<=[a-z])[A-Z]|(?<!\A)[A-Z](?=[a-z]))""", r' \1',ident)
 
@@ -145,7 +152,7 @@ def get_tokens(filepath:str) -> List[pygments.token]|None:
 # Given a anytree filenode with filename attribute, returns list of all valid tokens. 
 # For definition of valid token see filters.
 def get_identifiers(node: Node) -> List[pygments.token]|None:
-    tokens = get_tokens(node.path)
+    tokens = get_tokens(node.filepath)
     if tokens is None:
         print("Failed to get tokens from file")
         return None
@@ -179,7 +186,7 @@ def localtest(filepath:str):
     
     #Test Identifier Extraction:
     testNode: Node = Node("testingNode")
-    testNode.path = str(filepath)
+    testNode.filepath = str(filepath)
     nodelist: List[Node] = [testNode,testNode]
     
     #Test Primary output type
