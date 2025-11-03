@@ -7,12 +7,13 @@
 - Refactored file_classifier.py to use sets instead of lists, and altered inputs of isCode and isText
   - Updated file_classifier tests to match the new changes
 - Reviewed PRs
+
+All tasks assigned were completed this week
  
 <img width="702" height="517" alt="Screenshot 2025-11-02 at 6 39 14 PM" src="https://github.com/user-attachments/assets/38b592fb-2d4f-45e0-a8a2-9fe2d319d3e3" />
 
-
 ### Next week
-- Tasks to be discussed further in meeting on Monday, will likely move on to metadata extractor or text analysis
+- Implement metadata extractor and analyzer
 
 ## Week 8 (10/20/2025 - 10/26/2025)
 - Participated in team meeting and discussion regarding assigning tasks and code implementation updates
