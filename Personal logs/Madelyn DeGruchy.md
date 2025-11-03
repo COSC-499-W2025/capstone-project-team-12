@@ -1,4 +1,19 @@
 # Madelyn DeGruchy Personal Log (85064962 - maddydeg)
+## Week 9 (10/27/2025 - 11/02/2025)
+- Assisted with research for PII removal libraries
+- Researched PyDriller -> a library to allow for extraction of information within the .git folder.
+  - Main point of research related to how to use this library on the already parsed data to maintain the principle of least privilege. This is the reason that the repository processor currently rebuilds the .git file structure of each .git file being considered.
+- Implemented the Repository Processor
+  - Considers the List[nodes] of the Git Repositories that have been found in the tree processor to rebuild the .git folder structure and
+  - Includes where we will add a full implementation of the PyDriller commits_traverse() to complete the extraction of the specific commit information
+  - Added all relevant testing for this implementation
+- Participated in team meetings/discussions in regards to ongoing development decisions
+ 
+### For Next Week
+- There is currently a bug such that PyDriller cannot read the specific binary version being rebuilt in a way that allows for extraction. Though it appears all files are being recontsructed properly I have encountered issues when using the PyDriller Repository class. When implemeneted directly on the file it will work as expected so I am going to continue to work on this issue to ensure proper extraction.
+
+### Please note: peer evaluations were closed at 7:50am Sunday morning. As such, logs do not currently contain the necessary image of my response.
+
 ## Week 8 (10/20/2025 - 10/26/2025)
 - Refactored _isCode() and _isText() to match the refactor of the attributes structure of file nodes in the file manager
 - Added new helper method _getExtension() to retrieve the extension of the node passed from the tree processor
