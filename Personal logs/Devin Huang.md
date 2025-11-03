@@ -11,30 +11,9 @@
 #### Next week
 - Add more edge testing in regards of newly implemented error handling
 - Start researching and potentially working on text analysis component (transform bow into topic vectors)
----
-- [ ] System setup, administration, devops (related to server, network, operating systems, etc.)
-- [ ] Project planning
-- [ ] Assigning people to tasks
-- [ ] Deciding on task priorities
-- [ ] Researching / learning new things
-- [ ] Making design mocks
-- [x] Coding
-- [x] Reviewing teammate's code
-- [x] Testing for your code
-- [x] Testing teammate's code
-- [ ] Documenting your code
-- [ ] Writing class reports
-- [ ] Preparing and giving presentations
-- [ ] Watching other team's presentations
-- [ ] Making video demos
-- [ ] Watching other team's video demos
-- [x] Team meetings
-- [ ] Helping others with their work
-- [ ] Receiving help from others on my work
-- [ ] Figuring out a problem on my own (e.g., research, troubleshooting, approach to bug fix)
-- [ ] Something else (explain separately in "Other")
----
-*note: The peer evaluation quiz was not available when I tried to complete it this morning (10am), therefore I do not have the necessary image attached.
+
+<img width="968" height="495" alt="image" src="https://github.com/user-attachments/assets/ddb75aef-624d-4445-9ca4-a137cf166168" />
+
 
 ### Week 8
 - Refactored tree_processor from function-based to class-based implementation
