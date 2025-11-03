@@ -1,7 +1,4 @@
 # November 3rd Meeting Minutes
-## Meeting Discussions
-- When are we going to be adding the integration with the database
-  - Also will include storing the user configuration for their decisions to this db
 ## To Do This Week
 - Require User to give consent
   - Store this to the User Preferences database
@@ -18,3 +15,7 @@
 - An -> Meta data analysis
 - Devin -> Meta data analysis if needed, then work on cache for statistics and data. 
 - Sara ->  Finish Code Preprocess testing and update text preprocess testing to match new structure. Set up database for user consents 
+
+## Meeting Discussions
+- When are we going to be adding the integration with the database
+  - Also will include storing the user configuration for their decisions to this db
