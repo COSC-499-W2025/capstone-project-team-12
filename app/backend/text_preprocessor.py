@@ -75,16 +75,22 @@ def get_tokens(text:str) -> list[str]:
 
     return reg_tokens
 
-def stopword_filtered_tokens(tokens: List[str]) -> list[str]:
-    global stop_words
-    #only init stopwords if it has not be initalized
-    
-    if stop_words is None:
-        stopwords_init()
-    
-    # remove English stopwords
-    filtered_tokens: list[str] = [word.lower() for word in tokens if word.lower() not in stop_words]
-    #print(f"Stopword filtered tokens: {filtered_tokens}")
+def stopword_filtered_tokens(node: Node) -> list[str]:
+    try:
+        # import tokens from text_tokenizer
+        tokens: list[str] = get_tokens(node)
+        global stop_words
+        
+        #only init stopwords if it has not be initalized
+        if stop_words is None:
+            stopwords_init()
+        
+        # remove English stopwords
+        filtered_tokens: list[str] = [word.lower() for word in tokens if word.lower() not in stop_words]
+        #print(f"Stopword filtered tokens: {filtered_tokens}")
+    except Exception as e:
+        print(f"An error occurred in stopword_filtered_tokens: {e}")
+        return []
 
     return filtered_tokens
 
@@ -110,14 +116,23 @@ def lemmatize_tokens(words:List[str]) -> List[str]:
     
     # assign label to each word (adjective, verb, etc)
     pos_tags: List[Tuple[str, str]] = pos_tag(words)
+def lemmatize_tokens(node:Node) -> List[str]:
+    try:
+        words: List[str] = stopword_filtered_tokens(node)
 
-    # create instance of NTLK's lemmatizer, which converts words to their base lemma form, using dictionary knowledge
-    lemmatizer: WordNetLemmatizer = WordNetLemmatizer()
+        # assign label to each word (adjective, verb, etc)
+        pos_tags: List[Tuple[str, str]] = pos_tag(words)
 
-    # lemmatize each word
-    lemmatized_words: list[str] = [lemmatizer.lemmatize(word, get_wordnet_pos(tag)) for word, tag in pos_tags]
+        # create instance of NTLK's lemmatizer, which converts words to their base lemma form, using dictionary knowledge
+        lemmatizer: WordNetLemmatizer = WordNetLemmatizer()
 
-    return lemmatized_words
+        # lemmatize each word
+        lemmatized_words: list[str] = [lemmatizer.lemmatize(word, get_wordnet_pos(tag)) for word, tag in pos_tags]
+
+        return lemmatized_words
+    except Exception as e: 
+        print(f"An error occurred in lemmatize_tokens: {e}")
+        return []
 
 
 # If youre looking for the local test as there is comprehensive test in main testsuite under backend/tests_backend
