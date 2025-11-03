@@ -1,5 +1,19 @@
 # Lexi Loudiadis (93546844) Personal Log
 
+## Week 9 (10/27/2025 - 11/02/2025)
+
+- Researched for the PII Remover
+- Coded the PII Remover
+- Wrote local and unit tests for the PII remover
+- Reviewed teammates' PRs
+- Participated in team meetings 
+
+### What's Next
+- TBD but we will likely keep making progress on the metadata analysis pipeline that was started this week. Additionally some of us may also start working on the text analysis pipeline using a ML model. We also will have to make the corresponding changes to our main method to ensure that we can run our existing pipelines from it.
+
+![Type of tasks I worked on](imgs/Week%209%20Lexi.png)
+
+
 ## Week 8 (10/20/2025 - 10/26/2025)
 
 - Coded the main.py method
