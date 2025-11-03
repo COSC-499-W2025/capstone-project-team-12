@@ -8,7 +8,8 @@
   - Updated file_classifier tests to match the new changes
 - Reviewed PRs
  
-*peer eval is currently not available, will update with image later*
+<img width="702" height="517" alt="Screenshot 2025-11-02 at 6 39 14 PM" src="https://github.com/user-attachments/assets/38b592fb-2d4f-45e0-a8a2-9fe2d319d3e3" />
+
 
 ### Next week
 - Tasks to be discussed further in meeting on Monday, will likely move on to metadata extractor or text analysis
