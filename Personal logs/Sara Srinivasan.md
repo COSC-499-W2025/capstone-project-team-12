@@ -14,7 +14,7 @@
 - Involved in reviews, help and feedback
 - Led and provided crucial input in PII removal implementation
 
-Peer feedback image missing due to changed deadline issues. Will be added once issue is resolved
+![Week 9 Response](imgs/Sara%20Srinivasan%20Week%209.png)
 
 ### Review and future plans
 
@@ -41,7 +41,7 @@ Peer feedback image missing due to changed deadline issues. Will be added once i
   - Made all issues and project Tasks for the week (Mon)
   - Tracked and updated github project and timeline for team
 
-![Week 7 Response](imgs/Sara%20Srinivasan%20Week%208.png)
+![Week 8 Response](imgs/Sara%20Srinivasan%20Week%208.png)
 
 ### Review and Future Plans
 
