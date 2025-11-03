@@ -50,3 +50,8 @@ Filtered to only show Tasks with changes this week.
 - Begin text analysis and meta data analysis implementation
 - Assign further tasks for coming weeks to ensure MVP for end of November
 - Start ML implementation
+
+### Reflections
+- Encountered a bug while developing PyDriller that has caused some issues in that implementation. May continue to slow down that specific pipeline but am working towards the bug fix
+- Adding comprehensive type hints across moduleshas assisted in catching bugs early and making the codebase much easier to navigate for the entire team.
+- We are wanting to ensure that we are taking large enough steps through the week to ensure that we will be able to have the MVP by November 30 and will continue to have team discussions on how to prioritize work in the coming weeks
