@@ -1,5 +1,29 @@
 # Sara Srinivasan Personal Log (10801751)
 
+## Week 9
+
+### Work Done
+
+- Swapped Spacy based pipeline to gensim due to upstream errors
+  - Docker edits
+  - Text preprocessor edits
+  - Code preprocessor edits
+- Rework text pre process to use chaining instead of nested function calls
+- Implement comprehensive pytest testing for text preprocess
+- Made github tasks
+- Involved in reviews, help and feedback
+- Led and provided crucial input in PII removal implementation
+
+![Week 9 Response](imgs/Sara%20Srinivasan%20Week%209.png)
+
+### Review and future plans
+
+- New Sprint structure to accomodate Lexi's work styles
+- Bigger progress steps to have MVP before Nov 30
+- Finish Code preprocess testing early in week 10
+- Join Maddy in Github repo analysis
+- Start ML implementation
+
 ## Week 8
 
 ### Work Done
@@ -17,7 +41,7 @@
   - Made all issues and project Tasks for the week (Mon)
   - Tracked and updated github project and timeline for team
 
-![Week 7 Response](imgs/Sara%20Srinivasan%20Week%208.png)
+![Week 8 Response](imgs/Sara%20Srinivasan%20Week%208.png)
 
 ### Review and Future Plans
 

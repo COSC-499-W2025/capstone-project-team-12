@@ -1,5 +1,20 @@
 ## Devin Huang Personal Log (86828886)
 
+### Week 9
+#### This week
+- refactored tree_processor.py so that the getter functions return the nodes themselves instead of the file paths in the arrays
+- Added error handling for 'main.py' and 'tree_processor,py'
+  - Implemented safe key access, try-except blocks for processing and classification, and node traversal resilience
+  - Added handling of KeyboardInterrupt and unexpected exceptions for clean exits
+  - Made sure that previous tests remained passing
+ - Participated in team meetings
+#### Next week
+- Add more edge testing in regards of newly implemented error handling
+- Start researching and potentially working on text analysis component (transform bow into topic vectors)
+
+<img width="968" height="495" alt="image" src="https://github.com/user-attachments/assets/ddb75aef-624d-4445-9ca4-a137cf166168" />
+
+
 ### Week 8
 - Refactored tree_processor from function-based to class-based implementation
 - Updated tests to reflect the change in the tree_processor file

@@ -56,5 +56,24 @@ Overall this week we mainly focused on refactoring our existing code, so we have
 - refactor the nodes further: instead of storing binary data in the nodes directly, store in an array and have the index in the node
 - add pytests for file_manager 
 
+# Sithara Chari Personal Log (22066401)
+
+## Week 9
+
+### Work Done
+
+- Attended and participated in team meeting for plans for this week
+- Added types to all function parameters and return variables for easy error handling
+- Stored binary data in a separate array instead of in the nodes itself for lighter data 
+- added a function to be able to retrieve binary array without calling file manager again 
+- Reviewed and requested changes for peers' PRs
+- Refactored attribute names so they are consisten across class 
+
+![alt text](<imgs/Sithara Chari Week 9.png>)
+
+### Review and future plans
+
+- Was also supposed to do testing for file manager, but I was not able to get that done this week so it will probably be pushed to next week 
+- Next week we also make our own custom nodes separately, as it is now done in file_manager itself which is doesn't make much sense 
 
 
