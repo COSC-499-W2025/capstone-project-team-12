@@ -3,7 +3,8 @@ import tempfile
 import shutil
 from anytree import Node
 from typing import Any, Dict, List, Optional
-import orjson 
+import orjson
+from pydriller import Repository
 
 class RepositoryProcessor:
     def __init__(self, username: str, binary_data_array) -> None:
@@ -13,8 +14,6 @@ class RepositoryProcessor:
 
     def process_repositories(self, repo_nodes: List[Node]) -> bytes:
         # Analyzes each repository node and extracts relevant information
-        # Currently returns List[Dict[str, Any]] where each dict contains relevant commit information
-        # This will be put into JSON format to be returned
         processed_data: List[Dict[str, Any]] = []
         try:
             for repo_node in repo_nodes:
@@ -70,15 +69,45 @@ class RepositoryProcessor:
                     self._rebuild_git_tree(child, dir_path)
 
     def _analyze_repository(self, repo_node: Node, git_folder_path: Path) -> Dict[str, Any]:
-        #Analyze a single repository using PyDriller.
-        #TODO: Implement full analysis logic and PyDriller after debug
-        # For now, return basic info to test that extraction works
-        return {
-            'repository_name': repo_node.name,
-            'repository_path': str(git_folder_path),
-            'status': 'success',
-            'message': 'Git folder extracted successfully'
-        }
+        # Analyze a single repository using PyDriller to extract commit information
+        # TODO: Expand on this method to extract data specific to research needs
+        try:
+            repo = Repository(str(git_folder_path))
+            commits_data = []
+            
+            for commit in repo.traverse_commits():
+                commit_info = { # Current info being extracted is to ensure functionality. Will be further modified this week.
+                    'hash': commit.hash,
+                    'author': commit.author.name,
+                    'author_email': commit.author.email,
+                    'date': commit.author_date.isoformat(),
+                    'message': commit.msg,
+                    'modified_files': [
+                        {
+                            'filename': mod.filename,
+                            'change_type': mod.change_type.name,
+                            'added_lines': mod.added_lines,
+                            'deleted_lines': mod.deleted_lines
+                        }
+                        for mod in commit.modified_files
+                    ]
+                }
+                commits_data.append(commit_info)
+
+            return {
+                'repository_name': repo_node.name,
+                'repository_path': str(git_folder_path),
+                'status': 'success',
+                'commits': commits_data,
+                'commit_count': len(commits_data)
+            }
+        except Exception as e:
+            return {
+                'repository_name': repo_node.name,
+                'repository_path': str(git_folder_path),
+                'status': 'error',
+                'error_message': str(e)
+            }
 
 
     def _cleanup_temp_dirs(self) -> None:
