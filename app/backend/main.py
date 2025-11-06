@@ -2,11 +2,15 @@ import os
 import sys
 import subprocess
 from pathlib import Path
-from typing import Dict, List
 from anytree import Node
+from tree_processor import TreeProcessor
+from typing import List,BinaryIO, Dict
 from file_manager import FileManager
 from tree_processor import TreeProcessor
 from repository_processor import RepositoryProcessor
+
+
+file_data_list : List = []
 
 def validate_path(filepath: str) -> Path:
     max_size_bytes: int = 4 * 1024 * 1024 * 1024  # 4gb limit
@@ -94,6 +98,24 @@ def run_all_backend_tests() -> None:
     except Exception as e:
         print(f"Error running tests: {e}") # catches the error if something goes wrong instead of crashing program
 
+#pass entry by provided id from file_data_array
+def get_bin_data_by_Id(bin_Idx:int)->BinaryIO|None:
+    if file_data_list is None or len(file_data_list) == 0:
+        print("Empty List: Initialize by calling File")
+        return None
+    return file_data_list[bin_Idx]
+
+def get_bin_data_by_IdList(bin_Idx_list:List[int])->List[BinaryIO]:
+    #check if files are loaded
+    if file_data_list is None or len(file_data_list) == 0:
+        print("Empty List: Initialize by calling File")
+        return None
+    
+    #collect binaries    
+    response_List: List[BinaryIO|None] = []
+    for bin_Idx in bin_Idx_list:
+        response_List.append(get_bin_data_by_Id(bin_Idx))
+    return response_List
 
 def main() -> None:
     try:
