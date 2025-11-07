@@ -8,6 +8,7 @@ from typing import List,BinaryIO, Dict
 from file_manager import FileManager
 from tree_processor import TreeProcessor
 from repository_processor import RepositoryProcessor
+from bow_cache import get_or_build_bow
 
 
 file_data_list : List = []
@@ -145,6 +146,15 @@ def main() -> None:
                     if fm_result["status"] == "success": # what is returned from load_from_filepath
                         print(f"File path loaded successfully in File Manager: {fm_result.get('message', 'No message')}\n")
 
+                        # Store binary data globally for text preprocessing access
+                        global file_data_list
+                        file_data_list = fm_result.get("binary_data", [])
+                        if not file_data_list:
+                            print("FileManager returned no binary data. Text preprocessing may fail.")
+                        else:
+                            print(f"Loaded {len(file_data_list)} binary file(s) into global file_data_list.")
+
+
                         if "tree" not in fm_result or fm_result["tree"] is None:  # makes sure FileManager returns a tree
                             print("ERROR: FileManager did not return a tree.")
                             break
@@ -162,6 +172,19 @@ def main() -> None:
                             print(f"Error processing tree: {e}")
                             break
                         git_repos: List[Node] = tree_processor.get_git_repos() #check for git repos before processing repos
+
+                        # Run text preprocessing pipeline + store pipeline results in BoW Cache
+                        try:
+                            text_nodes: List[Node] = tree_processor.get_text_files()
+                            if text_nodes:
+                                print(f"Found {len(text_nodes)} text files. Running BoW pipeline...")
+                                final_bow = get_or_build_bow(text_nodes)
+                                print(f"Successfully built BoW for {len(final_bow)} documents. Ready for text analysis.\n")
+                            else:
+                                print("No text files found to preprocess.")
+                        except Exception as e:
+                            print(f"Error during text/PII processing: {e}")
+
 
                     if git_repos:
                         # prompt user for github username to link repos
