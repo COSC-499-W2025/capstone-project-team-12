@@ -6,8 +6,8 @@ from nltk.stem import WordNetLemmatizer
 from nltk.corpus import wordnet
 from nltk import word_tokenize, pos_tag
 from anytree import Node
-from main import get_bin_data_by_IdList
 from typing import BinaryIO
+import sys
 
 stop_words: set[str] = None
 
@@ -18,6 +18,16 @@ def stopwords_init():
 
 def get_data(node_array:List[Node])->List[BinaryIO|None]:
     # Get all the file data needed from main
+
+    try:
+        from main import get_bin_data_by_IdList
+    except ImportError:
+        # fallback stub for testing (pytest doesn't load main.py as __main__)
+        def get_bin_data_by_IdList(idx_list):
+            from main import file_data_list
+            return [file_data_list[i] for i in idx_list if i < len(file_data_list)]
+
+
     text_data_list: List[str] = []
     bin_Idx_list: List[int] = []
     for node in node_array:
@@ -75,10 +85,8 @@ def get_tokens(text:str) -> list[str]:
 
     return reg_tokens
 
-def stopword_filtered_tokens(node: Node) -> list[str]:
+def stopword_filtered_tokens(words: List[str]) -> list[str]:
     try:
-        # import tokens from text_tokenizer
-        tokens: list[str] = get_tokens(node)
         global stop_words
         
         #only init stopwords if it has not be initalized
@@ -86,7 +94,7 @@ def stopword_filtered_tokens(node: Node) -> list[str]:
             stopwords_init()
         
         # remove English stopwords
-        filtered_tokens: list[str] = [word.lower() for word in tokens if word.lower() not in stop_words]
+        filtered_tokens: list[str] = [word.lower() for word in words if word.lower() not in stop_words]
         #print(f"Stopword filtered tokens: {filtered_tokens}")
     except Exception as e:
         print(f"An error occurred in stopword_filtered_tokens: {e}")
@@ -112,14 +120,9 @@ def get_wordnet_pos(tag: str) -> str:
     else:         
         return wordnet.NOUN # default to noun
        
-def lemmatize_tokens(words:List[str]) -> List[str]:
-    
-    # assign label to each word (adjective, verb, etc)
-    pos_tags: List[Tuple[str, str]] = pos_tag(words)
-def lemmatize_tokens(node:Node) -> List[str]:
-    try:
-        words: List[str] = stopword_filtered_tokens(node)
 
+def lemmatize_tokens(words:List[str]) -> List[str]:
+    try:
         # assign label to each word (adjective, verb, etc)
         pos_tags: List[Tuple[str, str]] = pos_tag(words)
 
