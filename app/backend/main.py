@@ -8,7 +8,7 @@ from typing import List,BinaryIO, Dict
 from file_manager import FileManager
 from tree_processor import TreeProcessor
 from repository_processor import RepositoryProcessor
-from bow_cache import get_or_build_bow
+from bow_cache_pipeline import get_or_build_bow
 
 
 file_data_list : List = []
