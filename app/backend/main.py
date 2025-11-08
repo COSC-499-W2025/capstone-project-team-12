@@ -73,7 +73,9 @@ def validate_path(filepath: str) -> Path:
 
 def run_all_backend_tests() -> None:
     print("\nRunning all backend tests\n")
-    tests_path: str = "app/backend/tests_backend"
+
+    backend_root = Path(__file__).resolve().parent
+    tests_path = backend_root / "tests_backend"
     
     # Check if tests directory exists
     if not Path(tests_path).exists():
@@ -88,6 +90,9 @@ def run_all_backend_tests() -> None:
             text=True,
             timeout=300  # 5 minute timeout
         )
+
+        print(result.stdout)
+        
        # check=False means don't crash if pytest fails - we will handle the error ourselves
         if result.returncode == 0: # 0 if all tests passed
             print("\nAll tests passed.")
