@@ -249,7 +249,7 @@ class TestTreeProcessor:
         assert git_file not in processor.text_files
 
     def test_multiple_git_repos(self):
-        # est handling of multiple git repositories in tree
+        # test handling of multiple git repositories in tree
         # Add another git repo at root level
         git_files = [
             Node("config", type="file", path="/project/.git/config", 
