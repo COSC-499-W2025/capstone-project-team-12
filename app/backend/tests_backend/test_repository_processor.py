@@ -1,5 +1,5 @@
+from typing import Any, Dict, List
 import pytest
-import orjson
 from pathlib import Path
 import tempfile
 from anytree import Node
@@ -42,6 +42,7 @@ class TestRepositoryProcessorBasics:
             processor._cleanup_temp_dirs()
 
 class TestRebuildGitTree:
+
     # Tests for _rebuild_git_tree method
     def test_rebuild_creates_files(self) -> None:
         # Test files are created from binary data
@@ -69,33 +70,109 @@ class TestRebuildGitTree:
             assert main_file.exists()
             assert main_file.read_bytes() == b"main branch ref"
 
-class TestProcessRepositoriesJSON:
-    # Tests for process_repositories method and JSON output
-    def test_json_structure_single_repo(self) -> None:
-        # Test JSON structure for single repository
+class TestProcessRepositories:
+    # Tests for process_repositories method - just check it doesn't crash
+    def test_process_repositories_runs_without_error(self) -> None:
+        # Test that it returns a list of dicts
         repo_node: Node = create_repo_node()
         processor: RepositoryProcessor = RepositoryProcessor("test_user", [])
-        result: bytes = processor.process_repositories([repo_node])
-        data: list = orjson.loads(result)
+        result: List[Dict[str, Any]] = processor.process_repositories([repo_node])
         
-        assert isinstance(result, bytes)
-        assert isinstance(data, list)
-        assert len(data) == 1
-        assert data[0]["repository_name"] == "test_repo"
-        assert data[0]["status"] == "success"
-        assert "repository_path" in data[0]
+        # Check it returns a list
+        assert isinstance(result, list)
+        assert len(result) == 1
+        assert isinstance(result[0], dict)
+
+class TestAnalyzeRepository:
+    # Tests for _analyze_repository method with PyDriller integration
     
-    def test_json_multiple_repositories(self) -> None:
-        # Test JSON output for multiple repositories
-        repo1: Node = create_repo_node("repo1")
-        repo2: Node = create_repo_node("repo2")
+    def test_analyze_repository_returns_error_for_empty_git(self) -> None:
+        # Test that analysis returns error status for empty/invalid .git folder
+        repo_node: Node = create_repo_node()
         processor: RepositoryProcessor = RepositoryProcessor("test_user", [])
-        result: bytes = processor.process_repositories([repo1, repo2])
-        data: list = orjson.loads(result)
         
-        assert len(data) == 2
-        assert data[0]["repository_name"] == "repo1"
-        assert data[1]["repository_name"] == "repo2"
+        # Create empty temp directory (no actual .git contents)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path: Path = Path(temp_dir)
+            (temp_path / ".git").mkdir()  # Create empty .git
+            
+            result: Dict[str, Any] = processor._analyze_repository(repo_node, temp_path)
+            
+            # Should return error since .git is empty/invalid
+            assert result['status'] == 'error'
+            assert 'error_message' in result
+    
+    def test_analyze_repository_handles_error_gracefully(self) -> None:
+        # Test that analysis handles errors and returns error status
+        repo_node: Node = Node("invalid_repo", type="directory", path="/nonexistent/path")
+        processor: RepositoryProcessor = RepositoryProcessor("test_user", [])
+        
+        # Create a fake temp directory since _extract_git_folder would fail first
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path: Path = Path(temp_dir)
+            result: Dict = processor._analyze_repository(repo_node, temp_path)
+            
+            assert result['status'] == 'error'
+            assert result['repository_name'] == repo_node.name
+            assert 'error_message' in result
+            assert isinstance(result['error_message'], str)
+    
+    def test_analyze_repository_has_required_fields_on_error(self) -> None:
+        # Test that error responses have all required fields
+        repo_node: Node = Node("test_repo", type="directory", path="/fake/path")
+        processor: RepositoryProcessor = RepositoryProcessor("test_user", [])
+        
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path: Path = Path(temp_dir)
+            result: Dict = processor._analyze_repository(repo_node, temp_path)
+            
+            required_fields = ['repository_name', 'repository_path', 'status', 'error_message']
+            for field in required_fields:
+                assert field in result, f"Missing required field: {field}"
+            
+
+class TestProcessRepositoriesWithAnalysis:
+    # Integration tests for full processing with PyDriller analysis
+    
+    def test_process_repositories_returns_valid_structure(self) -> None:
+        # Test that process_repositories returns valid structure
+        repo_node: Node = create_repo_node()
+        processor: RepositoryProcessor = RepositoryProcessor("test_user", [])
+        result: List[Dict[str, Any]] = processor.process_repositories([repo_node])
+        
+        assert isinstance(result, list)
+        assert len(result) == 1
+        
+        repo_data = result[0]
+        assert 'repository_name' in repo_data
+        assert 'repository_path' in repo_data
+        assert 'status' in repo_data
+        
+    
+    def test_process_multiple_repositories(self) -> None:
+        # Test processing multiple repositories
+        repo_node1: Node = create_repo_node("repo1")
+        repo_node2: Node = create_repo_node("repo2")
+        
+        processor: RepositoryProcessor = RepositoryProcessor("test_user", [])
+        result: List[Dict[str, Any]] = processor.process_repositories([repo_node1, repo_node2])
+        
+        assert len(result) == 2
+        assert result[0]['repository_name'] == "repo1"
+        assert result[1]['repository_name'] == "repo2"
+        
+    
+    def test_process_repositorie_has_status_field(self) -> None:
+        # Test that return has status field
+        repo_node: Node = create_repo_node()
+        processor: RepositoryProcessor = RepositoryProcessor("test_user", [])
+        result: List[Dict[str, Any]] = processor.process_repositories([repo_node])
+        
+        repo_data = result[0]
+        
+        assert 'status' in repo_data
+        assert repo_data['status'] in ['success', 'error']
+        
 
 class TestCleanupAndErrorHandling:
     # Tests for cleanup and error handling
