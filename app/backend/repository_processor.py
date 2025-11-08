@@ -3,7 +3,6 @@ import tempfile
 import shutil
 from anytree import Node
 from typing import Any, Dict, List, Optional
-import orjson
 from pydriller import Repository
 
 class RepositoryProcessor:
@@ -12,7 +11,7 @@ class RepositoryProcessor:
         self.binary_data_array: List[bytes] = binary_data_array
         self.temp_dirs: List[str] = []
 
-    def process_repositories(self, repo_nodes: List[Node]) -> bytes:
+    def process_repositories(self, repo_nodes: List[Node]) -> List[Dict[str, Any]]:
         # Analyzes each repository node and extracts relevant information
         processed_data: List[Dict[str, Any]] = []
         try:
@@ -25,8 +24,7 @@ class RepositoryProcessor:
             # Clean up temporary directories
             self._cleanup_temp_dirs()
 
-        json_data = orjson.dumps(processed_data, option=orjson.OPT_INDENT_2)
-        return json_data    
+        return processed_data
 
     def _extract_git_folder(self, repo_node: Node) -> Path:
         # In order for PyDriller to access the commits, this rebuilds the .git folder for each repository temporarily
@@ -76,26 +74,27 @@ class RepositoryProcessor:
             commits_data = []
             
             for commit in repo.traverse_commits():
-                commit_info = { # Current info being extracted is to ensure functionality. Will be further modified this week.
-                    'hash': commit.hash,
-                    'author': commit.author.name,
-                    'author_email': commit.author.email,
-                    'date': commit.author_date.isoformat(),
-                    'message': commit.msg,
+                # Safely extract author information with fallbacks
+                commit_info = {
+                    'hash': commit.hash if commit.hash else "Unknown",
+                    'author': commit.author.name if commit.author and commit.author.name else "Unknown",
+                    'author_email': commit.author.email if commit.author and commit.author.email else "unknown@unknown.com",
+                    'date': commit.author_date.isoformat() if commit.author_date else "Unknown",
+                    'message': commit.msg if commit.msg else "",
                     'modified_files': [
                         {
-                            'filename': mod.filename,
-                            'change_type': mod.change_type.name,
-                            'added_lines': mod.added_lines,
-                            'deleted_lines': mod.deleted_lines
+                            'filename': mod.filename if mod.filename else "Unknown",
+                            'change_type': mod.change_type.name if mod.change_type else "UNKNOWN",
+                            'added_lines': mod.added_lines if mod.added_lines is not None else 0,
+                            'deleted_lines': mod.deleted_lines if mod.deleted_lines is not None else 0
                         }
-                        for mod in commit.modified_files
+                        for mod in (commit.modified_files or [])
                     ]
                 }
                 commits_data.append(commit_info)
 
             return {
-                'repository_name': repo_node.name,
+                'repository_name': repo_node.name if repo_node.name else "Unknown",
                 'repository_path': str(git_folder_path),
                 'status': 'success',
                 'commits': commits_data,
