@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional
 #subject to change once other components are implemented
 def collect_stats(
         *,
-        metadata_stats: Optional[dict[str, Any]] = None,
+        metadata_stats: Optional[Dict[str, Dict[str, Any]]] = None,
         text_analysis: Optional[dict[str, Any]] = None,
         project_analysis: Optional[dict[str, Any]] = None,
     ) -> str:
