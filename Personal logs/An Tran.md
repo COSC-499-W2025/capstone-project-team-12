@@ -1,5 +1,16 @@
 # An Tran Personal Log (79499364)
 
+## Week 10 (11/03/2025 - 11/09/2025)
+### Tasks
+- Implement metadata extractor and metadata analyzer
+
+### Completed
+- Participated in team meeting and discussion regarding assigning tasks and code implementation updates
+- Implement the base of metadata extractor and included tests
+
+### Left to do
+- Continue implementing metadata extractor (author for docx) and metadata analyzer
+
 ## Week 9 (10/27/2025 - 11/02/2025)
 - Participated in team meeting and discussion regarding assigning tasks and code implementation updates
 - Refactored file_classifier.py and text_preprocessor.py by adding variable and function input and output typings
