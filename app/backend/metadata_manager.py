@@ -169,7 +169,7 @@ class MetadataManager:
             
             metadata['checksum'] = self._calculate_checksum(path)
             
-            mime_type = mimetypes.guess_type(str(path))
+            mime_type, encoding = mimetypes.guess_type(str(path))
             metadata['mime_type'] = mime_type or "application/octet-stream"
             
         except (OSError, AttributeError):
