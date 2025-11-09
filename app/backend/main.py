@@ -4,10 +4,11 @@ import subprocess
 from pathlib import Path
 from anytree import Node
 from tree_processor import TreeProcessor
-from typing import List,BinaryIO, Dict
+from typing import List,BinaryIO, Dict, Any
 from file_manager import FileManager
 from tree_processor import TreeProcessor
 from repository_processor import RepositoryProcessor
+from metadata_manager import MetadataManager
 
 
 file_data_list : List = []
@@ -161,6 +162,22 @@ def main() -> None:
                         except Exception as e:
                             print(f"Error processing tree: {e}")
                             break
+
+                        binary_data: List[bytes] = fm_result.get("binary_data")
+                        if not isinstance(binary_data, list):
+                            print("Warning: FileManager returned no binary data or in unexpected format. Proceeding with empty binary array.")
+                            binary_data = []
+                        
+                        metadata_manager: MetadataManager = MetadataManager()
+                        metadata_results: Dict[str, Dict[str, Any]] = metadata_manager.extract_all_metadata(processed_tree, binary_data)
+                        
+                        print("Metadata extracted successfully in Metadata Manager.\n")
+                        
+                        total_files: int = len(metadata_results)
+                        if total_files > 0:
+                            print(f"   Processed metadata for {total_files} files")
+                        
+
                         git_repos: List[Node] = tree_processor.get_git_repos() #check for git repos before processing repos
 
                     if git_repos:
@@ -168,10 +185,7 @@ def main() -> None:
                         github_username: str = input("Git repositories detected in the file tree. Please enter your GitHub username to link them. To skip this processing, please press enter: \n> ").strip()
                         if github_username:
                             # Validate binary data from FileManager before passing it on
-                            binary_data: List[bytes] = fm_result.get("binary_data")
-                            if not isinstance(binary_data, list):
-                                print("Warning: FileManager returned no binary data or in unexpected format. Proceeding with empty binary array.")
-                                binary_data = []
+                            
 
                             repo_processor: RepositoryProcessor = RepositoryProcessor(
                                 username=github_username,
