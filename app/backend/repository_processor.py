@@ -16,7 +16,7 @@ class RepositoryProcessor:
         processed_data: List[Dict[str, Any]] = []
         try:
             for repo_node in repo_nodes:
-                git_folder_path = self._extract_git_folder(repo_node) # This path is to the temporary .git folder that was rebuilt
+                git_folder_path: Path = self._extract_git_folder(repo_node) # This path is to the temporary .git folder that was rebuilt
                 analysis: Dict[str, Any] = self._analyze_repository(repo_node, git_folder_path) # May change from Dict[str, Any] 
                 processed_data.append(analysis)
 
@@ -70,12 +70,12 @@ class RepositoryProcessor:
         # Analyze a single repository using PyDriller to extract commit information
         # TODO: Expand on this method to extract data specific to research needs
         try:
-            repo = Repository(str(git_folder_path))
-            commits_data = []
+            repo: Repository = Repository(str(git_folder_path))
+            commits_data: List[Dict[str, Any]] = []
             
             for commit in repo.traverse_commits():
                 # Safely extract author information with fallbacks
-                commit_info = {
+                commit_info: Dict[str, Any] = {
                     'hash': commit.hash if commit.hash else "Unknown",
                     'author': commit.author.name if commit.author and commit.author.name else "Unknown",
                     'author_email': commit.author.email if commit.author and commit.author.email else "unknown@unknown.com",
