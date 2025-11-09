@@ -32,19 +32,13 @@ def collect_stats(
         raise RuntimeError("An unexpected error occurred while collecting stats") from e
 #convert non-JSON-serializable types like sets and tuples into lists since orjson can't serialize sets or tuples
 def _to_serializable(obj: Any) -> Any:
-    try:
-        #recusively goes through structures
-        if isinstance(obj, dict):
-            return {k: _to_serializable(v) for k, v in obj.items()}
-        elif isinstance(obj, list):
-            return [_to_serializable(item) for item in obj]
-        #if set, frozen set or tuple, make it a list
-        elif isinstance(obj, (set, frozenset, tuple)):
-            return list(obj)
-        else:
-            return obj
-    except RecursionError as e:
-        raise ValueError(f"Data structure contains circular references: {e}") from e
-    
-    except Exception as e:
-        raise TypeError(f"Cannot serialize object of type {type(obj).__name__}: {e}") from e
+    #recusively goes through structures
+    if isinstance(obj, dict):
+        return {k: _to_serializable(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [_to_serializable(item) for item in obj]
+    #if set, frozen set or tuple, make it a list
+    elif isinstance(obj, (set, frozenset, tuple)):
+        return list(obj)
+    else:
+        return obj
