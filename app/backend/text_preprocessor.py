@@ -8,8 +8,6 @@ from nltk import word_tokenize, pos_tag
 from anytree import Node
 from typing import BinaryIO
 import sys
-import sys
-main_module = sys.modules.get("__main__")
 
 
 stop_words: set[str] = None
@@ -20,19 +18,7 @@ def stopwords_init():
     return
 
 def get_data(node_array:List[Node])->List[BinaryIO|None]:
-    # Get all the file data needed from main
-    if main_module and hasattr(main_module, "get_bin_data_by_IdList"):
-        get_bin_data_by_IdList = getattr(main_module, "get_bin_data_by_IdList")
-    else:
-        try:
-            from main import get_bin_data_by_IdList
-        except ImportError:
-            # Fallback stub for testing (pytest doesn't load main.py as __main__)
-            def get_bin_data_by_IdList(idx_list):
-                from main import file_data_list
-                return [file_data_list[i] for i in idx_list if i < len(file_data_list)]
-
-
+    
     text_data_list: List[str] = []
     bin_Idx_list: List[int] = []
     for node in node_array:
