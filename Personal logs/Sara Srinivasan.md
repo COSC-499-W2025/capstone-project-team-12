@@ -1,4 +1,14 @@
 # Sara Srinivasan Personal Log (10801751)
+## Week 10
+### Work Done
+
+- PR reviews
+- Helped address tech issues of team members
+- started work on code preproccessor testing
+
+### Review and plans
+
+Not a great week for me between midterms and mental health concerns. Hopefully I can make up for it over reading break.
 
 ## Week 9
 
