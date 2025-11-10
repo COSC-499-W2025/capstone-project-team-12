@@ -77,3 +77,21 @@ Overall this week we mainly focused on refactoring our existing code, so we have
 - Next week we also make our own custom nodes separately, as it is now done in file_manager itself which is doesn't make much sense 
 
 
+## Week 10
+## TODOs
+- File manager testing (issue #92)
+- get consent from user to access their files
+- start processing bag of words (BOW) to generate topic vectors with pyLDAvis ML model 
+
+### Work Done 
+- Participated in team meeting, prioritized taks to complete with a more focused path towards milestone 1
+- Wrote pytests for file_manager.py (issue #92)
+- Edited file_manager.py to reflect new changes that came out during testng process 
+- Reviewed teamates PRs
+- Researched how to use pyLDAvis for our exact purposes
+
+![alt text](<imgs/Sithara Chari Week 10.png>)
+
+### Review and future plans 
+- This week I was really busy with my midterms, so I only was able to do the file manager testing and not any of the other work I was supposed to do 
+- I will finish the ML implementation, and keep working on our anaysis pipeline. 
