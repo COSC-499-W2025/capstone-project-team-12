@@ -193,6 +193,82 @@ class TestTreeProcessor:
         
         assert orphan_node.parent is None # Still no parent
 
+    def test_git_files_classified_as_git(self):
+        # Test that files within .git are classified as git
+        git_file = Node( # a file within .git
+            "config",
+            type="file",
+            path="/project/.git/config",
+            classification=None,
+            is_repo_head=False,
+            parent=self.git,
+            extension=''
+        )
+        
+        processor = TreeProcessor()
+        result = processor.process_file_tree(self.root)
+        
+        # ensure it gets classified as a git file
+        assert git_file.classification == "git", "Files within .git should be classified as git"
+
+    def test_nested_git_files_classified_as_git(self):
+        # Test that files within nested .git are classified as git
+        subproject = Node(
+            "subproject", 
+            type="directory",
+            path="/project/src/subproject",
+            classification=None,
+            is_repo_head=False,
+            parent=self.src
+        )
+        git_sub = Node(
+            ".git", 
+            type="directory",
+            path="/project/src/subproject/.git",
+            classification=None,
+            is_repo_head=False,
+            parent=subproject
+        )
+        git_file = Node( # a file within nested .git
+            "HEAD",
+            type="file",
+            path="/project/src/subproject/.git/HEAD",
+            classification=None,
+            is_repo_head=False,
+            parent=git_sub,
+            extension=''
+        )
+        
+        processor = TreeProcessor()
+        result = processor.process_file_tree(self.root)
+        
+        # ensure it gets classified as a git file
+        assert git_file.classification == "git", "Files within nested .git should be classified as git"
+        # ensures this file does not classified as anything else
+        assert git_file not in processor.code_files 
+        assert git_file not in processor.text_files
+
+    def test_multiple_git_repos(self):
+        # test handling of multiple git repositories in tree
+        # Add another git repo at root level
+        git_files = [
+            Node("config", type="file", path="/project/.git/config", 
+                 classification=None, is_repo_head=False, parent=self.git, extension=""),
+            Node("HEAD", type="file", path="/project/.git/HEAD",
+                 classification=None, is_repo_head=False, parent=self.git, extension=""),
+            Node("description", type="file", path="/project/.git/description",
+                 classification=None, is_repo_head=False, parent=self.git, extension=""),
+        ]
+        
+        processor = TreeProcessor()
+        processor.process_file_tree(self.root)
+        
+        for git_file in git_files:
+            assert git_file.classification == "git", f"{git_file.name} should be classified as 'git'"
+            assert git_file not in processor.get_text_files()
+            assert git_file not in processor.get_code_files()
+
+            
 class TestTreeProcessorErrorHandling:
     """Tests for error handling in tree_processor.py"""
 
