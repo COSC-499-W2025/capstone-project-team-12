@@ -5,10 +5,12 @@ import tempfile
 from anytree import Node
 from repository_processor import RepositoryProcessor
 
-# Helper function to create a basic repo node
-def create_repo_node(name: str ="test_repo") -> Node:
-    repo_node: Node = Node(name, type="directory")
-    Node(".git", parent=repo_node, type="directory")
+# Helper function to create a basic repo node pointing to real test repo
+def create_repo_node(name: str = "capstone_team12_testrepo") -> Node:
+    # Point to the actual test repo in your project
+    test_repo_path = Path("/app/backend/tests_backend/test_main_dir/capstone_team12_testrepo")
+    repo_node: Node = Node(name, type="directory", path=str(test_repo_path))
+    Node(".git", parent=repo_node, type="directory", path=str(test_repo_path / ".git"))
     return repo_node
 
 
@@ -17,14 +19,14 @@ class TestRepositoryProcessorBasics:
     
     def test_initialization(self) -> None:
         # Test processor initializes with correct attributes
-        processor:RepositoryProcessor = RepositoryProcessor("test_user", [b"data1", b"data2"])
+        processor: RepositoryProcessor = RepositoryProcessor("test_user", [b"data1", b"data2"])
         assert processor.username == "test_user"
         assert len(processor.binary_data_array) == 2
         assert processor.temp_dirs == []
     
     def test_extract_git_folder_missing_git_node(self) -> None:
         # Test error when .git folder is missing
-        repo_node: Node = Node("test_repo", type="directory")
+        repo_node: Node = Node("test_repo", type="directory", path="/fake/path")
         processor: RepositoryProcessor = RepositoryProcessor("test_user", [])
         with pytest.raises(ValueError, match="No .git folder found"):
             processor._extract_git_folder(repo_node)
@@ -178,10 +180,13 @@ class TestCleanupAndErrorHandling:
     # Tests for cleanup and error handling
     def test_cleanup_on_error(self) -> None:
         # Test temp directories are cleaned up even on error
-        repo_node: Node = Node("bad_repo", type="directory")
+        repo_node: Node = Node("bad_repo", type="directory", path="/nonexistent")
         processor: RepositoryProcessor = RepositoryProcessor("test_user", [])
-        with pytest.raises(ValueError):
+        
+        with pytest.raises(ValueError, match="No .git folder found"):
             processor.process_repositories([repo_node])
+        
+        # Verify cleanup happened (temp_dirs should still be cleaned up in finally block)
         assert len(processor.temp_dirs) == 0
     
     def test_cleanup_removes_directories(self) -> None:
