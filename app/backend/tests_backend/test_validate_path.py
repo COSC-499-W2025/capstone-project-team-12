@@ -3,6 +3,7 @@ import tempfile
 import os
 from pathlib import Path
 from main import validate_path
+from unittest.mock import patch, MagicMock, mock_open
 
 
 # test if basic text file is validated
@@ -90,3 +91,40 @@ def test_strip_quotes(tmp_path):
     
     assert validate_path(quoted_path) == file.resolve()
     assert validate_path(double_quoted_path) == file.resolve()
+
+def test_empty_path():
+    """test that empty filepaths raises valueErrors"""
+    with pytest.raises(ValueError, match= "Filepath cannot be empty"):
+        validate_path("")
+
+    with pytest.raises(ValueError, match= "Filepath cannot be empty"):
+        validate_path("                 ")
+
+    with pytest.raises(ValueError, match= "Filepath cannot be empty"):
+        validate_path("\t\n")
+
+def test_invalid_path_resolution():
+    """Test that path resolution errors are caught and converted to ValueError"""
+    with patch('pathlib.Path.expanduser') as mock_expand:
+        # create mock path object
+        mock_path = MagicMock()
+        mock_path.resolve.side_effect = OSError("Invalid path")
+        mock_expand.return_value = mock_path
+
+        with pytest.raises(ValueError, match = "Invalid file path"):
+            validate_path("/some/path")
+
+def test_file_persmission_error(tmp_path):
+    """Test that permission errors are caught and converted"""
+    # create a temporary directory 
+    test_dir = tmp_path / "test_dir"
+    test_dir.mkdir()
+    
+    # simulate PermissionError
+    def mock_rglob(*args):
+        raise PermissionError("Cannot access directory")
+    
+    # patch Path.rglob so that any call to rglob inside validate_path will raise the PermissionError.
+    with patch.object(Path, 'rglob', side_effect=mock_rglob):
+        with pytest.raises(ValueError, match="Cannot access directory"):
+            validate_path(str(test_dir))

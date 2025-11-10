@@ -193,24 +193,57 @@ class TestTreeProcessor:
         
         assert orphan_node.parent is None # Still no parent
 
-    # def test_drop_invalid_node(self):
-    #     # test that invalid file is dropped from tree
-    #     assert self.invalid_file.parent == self.src
-    #     assert self.invalid_invalid in self.src.children
+class TestTreeProcessorErrorHandling:
+    """Tests for error handling in tree_processor.py"""
 
-    #     result = _drop_invalid_node(self.invalid_file)
+    def test_none_root_raises_error(self):
+        """Tests that passing None as root raises error"""
+        processor = TreeProcessor()
+        with pytest.raises(ValueError, match = "Root node cannot be None"):
+            processor.process_file_tree(None)
 
-    #     assert self.invalid_file.parent is None
-    #     assert self.invalid_invalid not in self.src.children
 
-    # def test_drop_invalid_node_no_parent(self):
-    #     # test that dropping a node with no parent does not raise error
-    #     orphan_node = Node("orphan_file", type="file")
-    #     assert orphan_node.parent is None
+    def test_invalid_root_type_raises_error(self):
+        """Tests that passing an non object arigument raises typeError"""
+        processor = TreeProcessor()
+        with pytest.raises(TypeError, match = "Expected Node object"):
+            processor.process_file_tree("WAAAAAA")
+        with pytest.raises(TypeError, match = "Expected Node object"):
+            processor.process_file_tree(2412412414241241)
+        with pytest.raises(TypeError, match = "Expected Node object"):
+            processor.process_file_tree([])
+        with pytest.raises(TypeError, match = "Expected Node object"):
+            processor.process_file_tree({'Key': 'value'})
 
-    #     result = _drop_invalid_node(orphan_node)
+    def test_multiple_bad_nodes_keep_processing(self):
+        """tests that problematic nodes wont stop the tree from being processed"""
+        
+        #create mock tree for test
+        root = Node(
+            "root",
+            type="directory",
+            path="/root",
+            classification=None,
+            is_repo_head=False
+        )
+        Node(".git", type="directory", path="/root/.git",
+             classification=None, is_repo_head=False, parent=root)
+        #good file
+        Node("file1.js", type="file", path="/root/file1.js",
+             classification=None, is_repo_head=False, parent=root, extension='.js')
+        #bad file
+        Node("bad.txt", type="file", path="/root/bad.txt",
+             classification=None, is_repo_head=False, parent=root)
+        #good file
+        Node("file2.py", type="file", path="/root/file2.py",
+             classification=None, is_repo_head=False, parent=root, extension='.py')
+        processor = TreeProcessor()
+        result = processor.process_file_tree(root)
+        
+        assert len(processor.get_code_files()) >= 2
+        assert len(processor.get_git_repos()) >= 1
 
-    #     assert orphan_node.parent is None  # still no parent
+        
 
 
 if __name__ == "__main__":
