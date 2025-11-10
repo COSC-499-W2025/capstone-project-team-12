@@ -213,7 +213,7 @@ class TestTreeProcessorErrorHandling:
         with pytest.raises(TypeError, match = "Expected Node object"):
             processor.process_file_tree([])
         with pytest.raises(TypeError, match = "Expected Node object"):
-            processor.process_file_tree({'Key': 'valeu'})
+            processor.process_file_tree({'Key': 'value'})
 
     def test_multiple_bad_nodes_keep_processing(self):
         """tests that problematic nodes wont stop the tree from being processed"""
