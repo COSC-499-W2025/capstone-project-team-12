@@ -64,6 +64,15 @@ class FileManager:
 
         # Handle single regular file
         elif path.is_file():
+            if self._is_rar_file(path): #added line to deal with user uploading single rar file 
+                return
+
+            # Skip large single files and mark as invalid
+            if path.stat().st_size > self.max_size_bytes:
+                print(f"Skipping {path.name}: exceeds max file size limit ({self.max_size_bytes} bytes)")
+                return
+
+
             file_obj, binary_index = self._load_single_file(path)
             if file_obj:
                 Node(
@@ -82,6 +91,10 @@ class FileManager:
             folder_nodes: Dict[str, Node] = {str(path): parent_node}
 
             for subpath in sorted(path.rglob('*')):
+                # added this to skip MAC artifacts when extracing zip files made with a mac
+                if self._is_mac_artifact(subpath):
+                    continue
+
                 # Ensure all subdirectories are represented, even if empty
                 if subpath.is_dir():
                     self._get_or_create_folder_nodes(subpath, folder_nodes, path, parent_node)
@@ -170,15 +183,19 @@ class FileManager:
             print(f"Warning: could not load {file_path}: {e}")
             return None, None
 
+
     def _extract_and_load_zip(self, zip_path: Path, parent_node: Node) -> None:
-        self.temp_extract_dir = tempfile.mkdtemp()
-        temp_path: Path = Path(self.temp_extract_dir)
+
+        # Create a temporary directory for extraction
+        temp_extract_dir = tempfile.mkdtemp()
+        temp_path: Path = Path(temp_extract_dir)
 
         try:
+            # Extract the ZIP
             with zipfile.ZipFile(zip_path, 'r') as zip_ref:
                 zip_ref.extractall(temp_path)
 
-            # don't create duplicate ZIP node if it’s already root
+            # Create a ZIP node (unless parent_node is already the ZIP root)
             if parent_node.name != zip_path.name:
                 zip_node = Node(
                     zip_path.name,
@@ -190,22 +207,34 @@ class FileManager:
             else:
                 zip_node = parent_node
 
+            # Keep track of folder nodes in this ZIP extraction
             folder_nodes = {str(temp_path): zip_node}
 
+            # Walk through all files and folders
             for file_path in sorted(temp_path.rglob('*')):
-                if not file_path.is_file():
-                    continue
+                if self._is_mac_artifact(file_path):
+                    continue  # skip macOS artifacts (when zip files are created on MAC there are also metadata files created which we want to ignore)
+
+                if file_path.is_dir():
+                    continue  # directories handled when creating folder nodes
 
                 if self._is_rar_file(file_path):
-                    continue
+                    continue  # skip RAR files
 
                 if file_path.stat().st_size > self.max_size_bytes:
-                    continue
+                    continue  # skip oversized files
 
+                # Ensure parent folder node exists
                 parent_folder_node: Node = self._get_or_create_folder_nodes(
                     file_path.parent, folder_nodes, temp_path, zip_node
                 )
 
+                # Handle nested ZIP recursively
+                if file_path.suffix.lower() == '.zip':
+                    self._extract_and_load_zip(file_path, parent_folder_node)
+                    continue
+
+                # Load regular file
                 file_obj, binary_index = self._load_single_file(file_path)
                 if file_obj:
                     Node(
@@ -223,8 +252,10 @@ class FileManager:
             raise ValueError(f"Invalid or corrupted ZIP file: {zip_path}")
 
         finally:
-            if self.temp_extract_dir and Path(self.temp_extract_dir).exists():
-                shutil.rmtree(self.temp_extract_dir)
+            # Clean up the temporary extraction folder
+            if Path(temp_extract_dir).exists():
+                shutil.rmtree(temp_extract_dir)
+
 
     def get_binary_array(self, filepath: str | Path | None = None ) -> list[bytes] | None:
         try:
@@ -250,6 +281,13 @@ class FileManager:
 
     def _is_rar_file(self, path: Path) -> bool:
         return path.suffix.lower() in ['.rar', '.r00', '.r01']
+
+    # Helper method to determine if file is a mac artifact
+    def _is_mac_artifact(self, path: Path) -> bool:
+        return (
+            path.parts[0] == "__MACOSX"
+            or path.name.startswith("._")
+        )
 
     def print_tree(self) -> None:
         if not self.file_tree:
@@ -300,4 +338,3 @@ if __name__ == "__main__":
     else:
         print(f"✗ Error: {result['message']}")
     print("="*60)
-
