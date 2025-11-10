@@ -58,7 +58,7 @@ def text_preprocess(node_array:List[Node]) ->List[List[str]]:
 
 #reads file and gets token, currently from local dir
 #TODO: rework to use binary array instead
-def get_tokens(text:str) -> list[str]:
+def get_tokens(text:str) -> List[str]:
     
     clean_txt:str
     # cleaning whitespace and line breaks
@@ -75,10 +75,9 @@ def get_tokens(text:str) -> list[str]:
 
     return reg_tokens
 
-def stopword_filtered_tokens(node: Node) -> list[str]:
+def stopword_filtered_tokens(tokens: List[str]) -> List[str]:
     try:
         # import tokens from text_tokenizer
-        tokens: list[str] = get_tokens(node)
         global stop_words
         
         #only init stopwords if it has not be initalized
@@ -113,9 +112,9 @@ def get_wordnet_pos(tag: str) -> str:
         return wordnet.NOUN # default to noun
        
 def lemmatize_tokens(words:List[str]) -> List[str]:
-    
     # assign label to each word (adjective, verb, etc)
     pos_tags: List[Tuple[str, str]] = pos_tag(words)
+
 def lemmatize_tokens(node:Node) -> List[str]:
     try:
         words: List[str] = stopword_filtered_tokens(node)

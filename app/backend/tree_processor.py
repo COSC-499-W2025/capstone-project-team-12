@@ -31,6 +31,11 @@ class TreeProcessor:
                     # Classify files (update the existing classification attribute)
                     if hasattr(node, 'type') and node.type == "file":
                         try:
+                            # SKIP CLASSIFICATION OF GIT FILES -> this takes place here to follow SRP
+                            if '.git' in [ancestor.name for ancestor in node.ancestors]:
+                                node.classification = "git"
+                                continue
+
                             classification: str = getFileType(node)
                             if classification == "other": #drop if invalid file type
                                 self._drop_invalid_node(node)

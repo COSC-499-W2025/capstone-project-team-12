@@ -193,24 +193,133 @@ class TestTreeProcessor:
         
         assert orphan_node.parent is None # Still no parent
 
-    # def test_drop_invalid_node(self):
-    #     # test that invalid file is dropped from tree
-    #     assert self.invalid_file.parent == self.src
-    #     assert self.invalid_invalid in self.src.children
+    def test_git_files_classified_as_git(self):
+        # Test that files within .git are classified as git
+        git_file = Node( # a file within .git
+            "config",
+            type="file",
+            path="/project/.git/config",
+            classification=None,
+            is_repo_head=False,
+            parent=self.git,
+            extension=''
+        )
+        
+        processor = TreeProcessor()
+        result = processor.process_file_tree(self.root)
+        
+        # ensure it gets classified as a git file
+        assert git_file.classification == "git", "Files within .git should be classified as git"
 
-    #     result = _drop_invalid_node(self.invalid_file)
+    def test_nested_git_files_classified_as_git(self):
+        # Test that files within nested .git are classified as git
+        subproject = Node(
+            "subproject", 
+            type="directory",
+            path="/project/src/subproject",
+            classification=None,
+            is_repo_head=False,
+            parent=self.src
+        )
+        git_sub = Node(
+            ".git", 
+            type="directory",
+            path="/project/src/subproject/.git",
+            classification=None,
+            is_repo_head=False,
+            parent=subproject
+        )
+        git_file = Node( # a file within nested .git
+            "HEAD",
+            type="file",
+            path="/project/src/subproject/.git/HEAD",
+            classification=None,
+            is_repo_head=False,
+            parent=git_sub,
+            extension=''
+        )
+        
+        processor = TreeProcessor()
+        result = processor.process_file_tree(self.root)
+        
+        # ensure it gets classified as a git file
+        assert git_file.classification == "git", "Files within nested .git should be classified as git"
+        # ensures this file does not classified as anything else
+        assert git_file not in processor.code_files 
+        assert git_file not in processor.text_files
 
-    #     assert self.invalid_file.parent is None
-    #     assert self.invalid_invalid not in self.src.children
+    def test_multiple_git_repos(self):
+        # test handling of multiple git repositories in tree
+        # Add another git repo at root level
+        git_files = [
+            Node("config", type="file", path="/project/.git/config", 
+                 classification=None, is_repo_head=False, parent=self.git, extension=""),
+            Node("HEAD", type="file", path="/project/.git/HEAD",
+                 classification=None, is_repo_head=False, parent=self.git, extension=""),
+            Node("description", type="file", path="/project/.git/description",
+                 classification=None, is_repo_head=False, parent=self.git, extension=""),
+        ]
+        
+        processor = TreeProcessor()
+        processor.process_file_tree(self.root)
+        
+        for git_file in git_files:
+            assert git_file.classification == "git", f"{git_file.name} should be classified as 'git'"
+            assert git_file not in processor.get_text_files()
+            assert git_file not in processor.get_code_files()
 
-    # def test_drop_invalid_node_no_parent(self):
-    #     # test that dropping a node with no parent does not raise error
-    #     orphan_node = Node("orphan_file", type="file")
-    #     assert orphan_node.parent is None
+            
+class TestTreeProcessorErrorHandling:
+    """Tests for error handling in tree_processor.py"""
 
-    #     result = _drop_invalid_node(orphan_node)
+    def test_none_root_raises_error(self):
+        """Tests that passing None as root raises error"""
+        processor = TreeProcessor()
+        with pytest.raises(ValueError, match = "Root node cannot be None"):
+            processor.process_file_tree(None)
 
-    #     assert orphan_node.parent is None  # still no parent
+
+    def test_invalid_root_type_raises_error(self):
+        """Tests that passing an non object arigument raises typeError"""
+        processor = TreeProcessor()
+        with pytest.raises(TypeError, match = "Expected Node object"):
+            processor.process_file_tree("WAAAAAA")
+        with pytest.raises(TypeError, match = "Expected Node object"):
+            processor.process_file_tree(2412412414241241)
+        with pytest.raises(TypeError, match = "Expected Node object"):
+            processor.process_file_tree([])
+        with pytest.raises(TypeError, match = "Expected Node object"):
+            processor.process_file_tree({'Key': 'value'})
+
+    def test_multiple_bad_nodes_keep_processing(self):
+        """tests that problematic nodes wont stop the tree from being processed"""
+        
+        #create mock tree for test
+        root = Node(
+            "root",
+            type="directory",
+            path="/root",
+            classification=None,
+            is_repo_head=False
+        )
+        Node(".git", type="directory", path="/root/.git",
+             classification=None, is_repo_head=False, parent=root)
+        #good file
+        Node("file1.js", type="file", path="/root/file1.js",
+             classification=None, is_repo_head=False, parent=root, extension='.js')
+        #bad file
+        Node("bad.txt", type="file", path="/root/bad.txt",
+             classification=None, is_repo_head=False, parent=root)
+        #good file
+        Node("file2.py", type="file", path="/root/file2.py",
+             classification=None, is_repo_head=False, parent=root, extension='.py')
+        processor = TreeProcessor()
+        result = processor.process_file_tree(root)
+        
+        assert len(processor.get_code_files()) >= 2
+        assert len(processor.get_git_repos()) >= 1
+
+        
 
 
 if __name__ == "__main__":

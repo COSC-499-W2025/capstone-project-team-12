@@ -8,6 +8,7 @@ from typing import List,BinaryIO, Dict, Any
 from file_manager import FileManager
 from tree_processor import TreeProcessor
 from repository_processor import RepositoryProcessor
+from bow_cache_pipeline import get_or_build_bow
 from metadata_manager import MetadataManager
 
 
@@ -73,7 +74,9 @@ def validate_path(filepath: str) -> Path:
 
 def run_all_backend_tests() -> None:
     print("\nRunning all backend tests\n")
-    tests_path: str = "app/backend/tests_backend"
+
+    backend_root = Path(__file__).resolve().parent
+    tests_path = backend_root / "tests_backend"
     
     # Check if tests directory exists
     if not Path(tests_path).exists():
@@ -88,6 +91,9 @@ def run_all_backend_tests() -> None:
             text=True,
             timeout=300  # 5 minute timeout
         )
+
+        print(result.stdout)
+        
        # check=False means don't crash if pytest fails - we will handle the error ourselves
         if result.returncode == 0: # 0 if all tests passed
             print("\nAll tests passed.")
@@ -146,6 +152,15 @@ def main() -> None:
                     if fm_result["status"] == "success": # what is returned from load_from_filepath
                         print(f"File path loaded successfully in File Manager: {fm_result.get('message', 'No message')}\n")
 
+                        # Store binary data globally for text preprocessing access
+                        global file_data_list
+                        file_data_list = fm_result.get("binary_data", [])
+                        if not file_data_list:
+                            print("FileManager returned no binary data. Text preprocessing may fail.")
+                        else:
+                            print(f"Loaded {len(file_data_list)} binary file(s) into global file_data_list.")
+
+
                         if "tree" not in fm_result or fm_result["tree"] is None:  # makes sure FileManager returns a tree
                             print("ERROR: FileManager did not return a tree.")
                             break
@@ -179,6 +194,19 @@ def main() -> None:
                         
 
                         git_repos: List[Node] = tree_processor.get_git_repos() #check for git repos before processing repos
+
+                        # Run text preprocessing pipeline + store pipeline results in BoW Cache
+                        try:
+                            text_nodes: List[Node] = tree_processor.get_text_files()
+                            if text_nodes:
+                                print(f"Found {len(text_nodes)} text files. Running BoW pipeline...")
+                                final_bow = get_or_build_bow(text_nodes)
+                                print(f"Successfully built BoW for {len(final_bow)} documents. Ready for text analysis.\n")
+                            else:
+                                print("No text files found to preprocess.")
+                        except Exception as e:
+                            print(f"Error during text/PII processing: {e}")
+
 
                     if git_repos:
                         # prompt user for github username to link repos
