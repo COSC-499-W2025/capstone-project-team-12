@@ -17,8 +17,7 @@ services:
     depends_on: 
       - backend_db
     volumes:
-    - ../tests:/app/tests
-
+      - ./backend/configs:/app/configs 
   backend_db:
     build:
       dockerfile: db.dockerfile
@@ -27,5 +26,5 @@ services:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
     volumes:
-      - ./database/pgdata:/var/lib/postgresql/18/data
+      - ./database/pgdata:/var/lib/postgresql/18/data 
 
