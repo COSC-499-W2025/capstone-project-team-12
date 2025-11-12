@@ -1,5 +1,30 @@
 ## Devin Huang Personal Log (86828886)
 
+### Week 10
+#### This week
+- Implemented a basic version of the statistics and data cache (https://github.com/COSC-499-W2025/capstone-project-team-12/pull/136)
+  - Currently supports any type of dict formatted data since previous components are not fully implemented.
+  - This module bundles the results of the metadata analysis, project analysis and text analysis together to make it easier later to process all of this in later components
+  - It serializes structures that aren't supported by JSON (converts sets, tuples, and frozensets to lists)
+  - Handles nested data structures recursively to ensure deep conversion
+  - Includes error handling for serialization failures and unexpected errors
+  - Returns formatted, alphabetically-sorted JSON strings ready for database storage
+- Wrote testing for the statistics and data cache (https://github.com/COSC-499-W2025/capstone-project-team-12/pull/136)
+- Wrote testing for the error handling for tree_processor.py (https://github.com/COSC-499-W2025/capstone-project-team-12/pull/122)
+- Collaborated with team members on integration
+
+#### Next week
+- Finalize the statistics and data cache wiht stricker error hanlding once the other componenets have been fully implemented
+- Add more testing as this module gets more and more complete
+- Start looking at how to implement the insight generator
+- Make the statistic and data cache actually save the bundle to database
+
+#### Reflection
+- The main issue I had this week for the implementation of the statistic and data cache was that teh previous components were not fully implemented yet, making it difficult to know exactly what was going to be inputed as arguments.
+  - To address this, I implemented a flexible, generic design that accepts any dictionary structure.
+
+<img width="956" height="495" alt="image" src="https://github.com/user-attachments/assets/47209ef8-4509-4dd9-9d4f-6d454b513f58" />
+
 ### Week 9
 #### This week
 - refactored tree_processor.py so that the getter functions return the nodes themselves instead of the file paths in the arrays

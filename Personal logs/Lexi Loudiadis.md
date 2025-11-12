@@ -1,5 +1,23 @@
 # Lexi Loudiadis (93546844) Personal Log
 
+## Week 10 (11/03/2025 - 11/09/2025)
+
+- Implemented the BoW Cache, which stores and retrieves tokenized text before text analysis, given a hash key
+- Implemented unit tests for the BoW Cache
+- Investigated problems with path and environment configurations that was causing tests to fail and unexpected output
+- Did code reviews for my teammates' PRs
+- Took part in team meetings to discuss our work for the coming week and to talk more about our upcoming Milestone 1
+
+### What's Next
+- There ended up being a logic error in with my hash key, in which the current repo_id is derived only from the file path, which means that updates to files aren't detected if the file location doesn't change (and therefore the system reuses outdated cached data). Tentatively the plan to fix this is to incorporate something like a file modification timestamp or something that might require our fully functional metadata extractor, but at the very least I will look into a solid bug fix next week.
+- We did not manage to get our text analysis pipleine with an ML model done this week, but I am hoping we will get it done next week so that we can start moving onto our analysis ASAP. And now that I am done the BoW Cache (minus the bug) I can lend a hand to the teammate who was assigned to work on it this week 
+
+### Reflection
+- My assigned tasks this week were implementing the BoW Cache and testing the BoW cache, which I completed
+
+![Type of tasks I worked on](imgs/Week%2010%20Lexi.png)
+
+
 ## Week 9 (10/27/2025 - 11/02/2025)
 
 - Researched for the PII Remover

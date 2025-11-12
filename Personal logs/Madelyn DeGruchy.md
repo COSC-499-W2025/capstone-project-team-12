@@ -1,4 +1,28 @@
 # Madelyn DeGruchy Personal Log (85064962 - maddydeg)
+## Week 10 (11/03/2025 - 11/09/2025)
+- Resolved bug that was preventing system from properly reconstructing .git folders
+  - Made changes to tree_processor.py to prevent files in .git folder from being dropped as invalid nodes
+- Slight refactor of repository_processor.py to return List[Dict[str, Any]] instead of the JSON formatted version for consistency with other pipelines. Previous implementation was due to misunderstanding so reverted to the more basic version.
+- Began implementation of extraction of key statistics from .git folder. Notes on PR indicate that this is not the final version, since I want to ensure we are covering all necessary statistics to meet Milestone 1 Requirements. Current implementation is very strong start and covers the majority of what needs to be considered.
+- Implemented testing to ensure .git files are not dropped in error in the future
+- Implemented testing to check the return from the Repository Processor
+- Took part in code reviews for team mates work
+- Took part in team meetings to discuss upcoming plans for this project to prepare for milestone 1
+
+### In Progress / For Next Week
+- Finalize commit statistics to be extracted (very quick)
+- Complete implementation of the extraction of relevant package/framework information from these repositories.
+  - Currently furthering my understanding of how we can access these stats directly from Git, or if the only way will be by parsing through import statements.
+  - Once this is finalized, both these statistics + commit specific statistics will be forwarded to the data cache.
+- Implement further testing to ensure values are being returned properly for these statistics, as well as testing the edge cases where certain statstics cannot be returned
+- Implement testing for the package specific extractions.
+
+### Reflection
+- Locating the bug was the primary issue for this week, as it was critical to being able to further any of this implementation.
+- Though I do think that the currently extracted information from the commits covers most if not all of what is needed for the milestone's. I do want to check in with the team in this coming week to ensure that we are all on the same page for what will be needed. This past week was very busy for everyone with lots of midterms before reading week, so we are planning to regroup and check in this coming week now that it is easier to align schedules.
+
+![Peer Evaluation Week 10](imgs/Madelyn%20DeGruchy%20Week%2010.png)
+
 ## Week 9 (10/27/2025 - 11/02/2025)
 - Assisted with research for PII removal libraries
 - Researched PyDriller -> a library to allow for extraction of information within the .git folder.
