@@ -69,7 +69,7 @@ class LLMAPIClient:
         response.raise_for_status()
         return response.json()
     
-    def generate_short_summary(self, data_bundle: str) -> str:
+    def online_generate_short_summary(self, data_bundle: str) -> str:
         """
         Generate a short resume ready summary
         
@@ -87,13 +87,13 @@ Use action-oriented, professional language that is easy to scan. No extra text, 
         response = self.send_request(prompt=prompt, data_bundle=data_bundle)
         return response["choices"][0]["message"]["content"].strip()
     
-    def generate_summary(self, data_bundle: str) -> str:
+    def online_generate_summary(self, data_bundle: str) -> str:
         """
-        Generate a standard resume ready professional summary (4-5 bullet points)
+        Generate a standard resume ready professional summary
         
         Args:
             data_bundle: JSON string from stats_cache.collect_stats()
-            
+        
         Returns:
             Standard summary string with 4-5 bullet points
         """
@@ -107,13 +107,13 @@ Use strong action verbs (e.g., "spearheaded", "developed", "optimized"), maintai
         response = self.send_request(prompt=prompt, data_bundle=data_bundle)
         return response["choices"][0]["message"]["content"].strip()
     
-    def generate_long_summary(self, data_bundle: str) -> str:
+    def online_generate_long_summary(self, data_bundle: str) -> str:
         """
-        Generate a comprehensive LinkedIn-ready professional summary (5-7 bullet points)
+        Generate a comprehensive resume ready summary
         
         Args:
             data_bundle: JSON string from stats_cache.collect_stats()
-            
+        
         Returns:
             Long summary string with 5-7 bullet points
         """
@@ -127,69 +127,3 @@ Maintain an active, confident, growth-oriented tone, tailor for LinkedIn, avoid 
         
         response = self.send_request(prompt=prompt, data_bundle=data_bundle)
         return response["choices"][0]["message"]["content"].strip()
-
-
-#MOCK TESTS
-if __name__ == "__main__":
-    from stats_cache import collect_stats
-    
-    #initialize client
-    client = LLMAPIClient()
-    
-    #mock data bundle
-    metadata_stats = {
-        "main.py": {
-            "size": 2048,
-            "mime_type": "text/x-python",
-            "lines": 150
-        },
-        "utils.py": {
-            "size": 1024,
-            "mime_type": "text/x-python",
-            "lines": 75
-        }
-    }
-    
-    text_analysis = {
-        "keywords": ["Python", "Docker", "PostgreSQL", "NLTK", "Flask"],
-        "topics": "web development, database management, NLP",
-        "total_files": 45,
-        "code_files": 30
-    }
-    
-    project_analysis = {
-        "languages": {
-            "Python": 25,
-            "JavaScript": 10
-        },
-        "total_commits": 150,
-        "contributors": 3
-    }
-    
-    #bundle them together
-    example_bundle = collect_stats(
-        metadata_stats=metadata_stats,
-        text_analysis=text_analysis,
-        project_analysis=project_analysis
-    )
-    
-    print("=== GENERATED BUNDLE ===")
-    print(example_bundle[:500] + "...\n")
-    
-    #get outputs for all generation functions
-    print("=== SHORT SUMMARY` ===")
-    print(client.generate_short_summary(example_bundle))
-    
-    print("\n=== STANDARD SUMMARY ===")
-    print(client.generate_summary(example_bundle))
-    
-    print("\n=== LONG SUMMARY ===")
-    print(client.generate_long_summary(example_bundle))
-    
-    #try custom request
-    print("\n=== CUSTOM REQUEST ===")
-    custom_response = client.send_request(
-        prompt="List the top 3 technical skills from this project",
-        data_bundle=example_bundle
-    )
-    print(custom_response["choices"][0]["message"]["content"])
