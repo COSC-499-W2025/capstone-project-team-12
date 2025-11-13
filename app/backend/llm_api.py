@@ -1,4 +1,5 @@
 import os
+import time
 import requests
 from typing import Dict, Any, Optional
 
@@ -8,12 +9,13 @@ from typing import Dict, Any, Optional
 #cmd: set OPENROUTER_API_KEY=sk-or-your-key
 class LLMAPIClient:
     
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: Optional[str] = None, max_retries: int = 3):
         """
         Initialize the LLM API client
         
         Args:
             api_key: OpenRouter API key (reads from env if not given)
+            max_retries: Maximum number of retry attempts (default: 3)
         """
         self.api_key = api_key or os.getenv("OPENROUTER_API_KEY")
         
@@ -25,6 +27,7 @@ class LLMAPIClient:
         
         self.base_url = "https://openrouter.ai/api/v1"
         self.model = "openai/gpt-4o-mini"
+        self.max_retries = max_retries
     
     def send_request(
         self, 
@@ -32,7 +35,7 @@ class LLMAPIClient:
         data_bundle: str
     ) -> Dict[str, Any]:
         """
-        Send prompt + data bundle to LLM API and return response
+        Send prompt + data bundle to LLM API and return response with automatic retry
         Args:
             prompt: The instruction/question to send
             data_bundle: JSON string from stats_cache.collect_stats()
@@ -45,8 +48,6 @@ class LLMAPIClient:
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
-            "HTTP-Referer": "https://github.com/capstone-project-team-12",
-            "X-Title": "Resume Insight Generator"
         }
         
         #construct user message
@@ -65,17 +66,41 @@ class LLMAPIClient:
             ]
         }
         
-        response = requests.post(url, headers=headers, json=payload, timeout=30)#wait 30 max
-        response.raise_for_status()
+        #retry loop with exponential backoff
+        last_exception = None
+        for attempt in range(self.max_retries):
+            try:
+                response = requests.post(url, headers=headers, json=payload, timeout=30)
+                response.raise_for_status()
+                
+                #validate response structure
+                resp_json = response.json()
+                try:
+                    content = resp_json["choices"][0]["message"]["content"]
+                except (KeyError, IndexError, TypeError) as e:
+                    raise ValueError(f"Unexpected API response structure: {resp_json}") from e
+                
+                return resp_json
+                
+            except requests.Timeout as e:
+                last_exception = requests.RequestException(f"Request timed out after 30 seconds")
+            except requests.ConnectionError as e:
+                last_exception = requests.RequestException(f"Connection error: {e}")
+            except requests.HTTPError as e:
+                #don't retry on 4xx client errors (except 429 rate limit)
+                if 400 <= response.status_code < 500 and response.status_code != 429:
+                    raise requests.RequestException(f"HTTP error {response.status_code}: {response.text}")
+                last_exception = requests.RequestException(f"HTTP error {response.status_code}: {response.text}")
+            except requests.RequestException as e:
+                last_exception = requests.RequestException(f"Request failed: {e}")
+            
+            #if not last attempt, wait with exponential backoff (doubles each time)
+            if attempt < self.max_retries - 1:
+                wait_time = 2 ** attempt 
+                print(f"Retry attempt {attempt + 1}/{self.max_retries} after {wait_time}s...")
+                time.sleep(wait_time)
         
-        #validate response structure
-        resp_json = response.json()
-        try:
-            content = resp_json["choices"][0]["message"]["content"]
-        except (KeyError, IndexError, TypeError) as e:
-            raise ValueError(f"Unexpected API response structure: {resp_json}") from e
-        
-        return resp_json
+        raise last_exception
     
     def online_generate_short_summary(self, data_bundle: str) -> str:
         """
