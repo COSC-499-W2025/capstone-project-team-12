@@ -67,7 +67,15 @@ class LLMAPIClient:
         
         response = requests.post(url, headers=headers, json=payload, timeout=30)#wait 30 max
         response.raise_for_status()
-        return response.json()
+        
+        #validate response structure
+        resp_json = response.json()
+        try:
+            content = resp_json["choices"][0]["message"]["content"]
+        except (KeyError, IndexError, TypeError) as e:
+            raise ValueError(f"Unexpected API response structure: {resp_json}") from e
+        
+        return resp_json
     
     def online_generate_short_summary(self, data_bundle: str) -> str:
         """
