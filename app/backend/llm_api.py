@@ -36,6 +36,7 @@ class LLMAPIClient:
     ) -> Dict[str, Any]:
         """
         Send prompt + data bundle to LLM API and return response with automatic retry
+        
         Args:
             prompt: The instruction/question to send
             data_bundle: JSON string from stats_cache.collect_stats()
@@ -83,24 +84,37 @@ class LLMAPIClient:
                 return resp_json
                 
             except requests.Timeout as e:
-                last_exception = requests.RequestException(f"Request timed out after 30 seconds")
+                last_exception = e
+                print(f"Request timed out (attempt {attempt + 1}/{self.max_retries})")
+                
             except requests.ConnectionError as e:
-                last_exception = requests.RequestException(f"Connection error: {e}")
+                last_exception = e
+                print(f"Connection error (attempt {attempt + 1}/{self.max_retries}): {e}")
+                
             except requests.HTTPError as e:
                 #don't retry on 4xx client errors (except 429 rate limit)
-                if 400 <= response.status_code < 500 and response.status_code != 429:
-                    raise requests.RequestException(f"HTTP error {response.status_code}: {response.text}")
-                last_exception = requests.RequestException(f"HTTP error {response.status_code}: {response.text}")
+                if e.response is not None and 400 <= e.response.status_code < 500 and e.response.status_code != 429:
+                    #client error, wait for raising
+                    raise
+                last_exception = e
+                print(f"HTTP error {e.response.status_code if e.response else 'unknown'} (attempt {attempt + 1}/{self.max_retries})")
+                
             except requests.RequestException as e:
-                last_exception = requests.RequestException(f"Request failed: {e}")
+                last_exception = e
+                print(f"Request failed (attempt {attempt + 1}/{self.max_retries}): {e}")
             
-            #if not last attempt, wait with exponential backoff (doubles each time)
+            #if not last attempt, wait with exponential backoff
             if attempt < self.max_retries - 1:
                 wait_time = 2 ** attempt 
-                print(f"Retry attempt {attempt + 1}/{self.max_retries} after {wait_time}s...")
+                print(f"Retrying after {wait_time}s...")
                 time.sleep(wait_time)
         
-        raise last_exception
+
+        if last_exception:
+            raise last_exception
+        else:
+            #would probably never reach here, but just in case
+            raise requests.RequestException("All retry attempts failed with unknown error")
     
     def online_generate_short_summary(self, data_bundle: str) -> str:
         """
