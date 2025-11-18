@@ -126,3 +126,38 @@ class RepositoryAnalyzer:
             'duration_days': duration.days,
             'duration_seconds': int(duration.total_seconds())
         }
+    
+    
+    # This method may move in later implementation but is included to ensure overall functionality
+    def create_chronological_project_list(self, all_repo_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        # TODO: determine what parts of a project should be displayed on the timeline
+        # ^ This will determine what needs to be returned here
+
+        projects: List[Dict[str, Any]] = []
+
+        for repo in all_repo_data:
+            if repo.get('status') != 'success':
+                continue
+            
+            start_date = repo.get('start_date')
+            if not start_date:
+                continue
+            
+            project_info = {
+                'name': repo.get('repository_name', 'Unknown'),
+                'start_date': start_date,
+                'end_date': repo.get('end_date'),
+                'duration_days': repo.get('duration_days', 0),
+                'commit_count': repo.get('commit_count', 0),
+                'is_collaborative': repo.get('is_collaborative', False),
+                'total_lines_added': repo.get('statistics', {}).get('total_lines_added', 0),
+                'total_lines_deleted': repo.get('statistics', {}).get('total_lines_deleted', 0),
+                'files_modified': repo.get('statistics', {}).get('total_files_modified', 0)
+            }
+
+            projects.append(project_info)
+
+        # Sort all projects by the start date
+        projects.sort(key = lambda x: x['start_date'], reverse = True)
+
+        return projects
