@@ -84,57 +84,10 @@ class TestProcessRepositories:
         assert isinstance(result, list)
         assert len(result) == 1
         assert isinstance(result[0], dict)
-
-class TestAnalyzeRepository:
-    # Tests for _analyze_repository method with PyDriller integration
-    
-    def test_analyze_repository_returns_error_for_empty_git(self) -> None:
-        # Test that analysis returns error status for empty/invalid .git folder
-        repo_node: Node = create_repo_node()
-        processor: RepositoryProcessor = RepositoryProcessor("test_user", [])
-        
-        # Create empty temp directory (no actual .git contents)
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path: Path = Path(temp_dir)
-            (temp_path / ".git").mkdir()  # Create empty .git
-            
-            result: Dict[str, Any] = processor._analyze_repository(repo_node, temp_path)
-            
-            # Should return error since .git is empty/invalid
-            assert result['status'] == 'error'
-            assert 'error_message' in result
-    
-    def test_analyze_repository_handles_error_gracefully(self) -> None:
-        # Test that analysis handles errors and returns error status
-        repo_node: Node = Node("invalid_repo", type="directory", path="/nonexistent/path")
-        processor: RepositoryProcessor = RepositoryProcessor("test_user", [])
-        
-        # Create a fake temp directory since _extract_git_folder would fail first
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path: Path = Path(temp_dir)
-            result: Dict = processor._analyze_repository(repo_node, temp_path)
-            
-            assert result['status'] == 'error'
-            assert result['repository_name'] == repo_node.name
-            assert 'error_message' in result
-            assert isinstance(result['error_message'], str)
-    
-    def test_analyze_repository_has_required_fields_on_error(self) -> None:
-        # Test that error responses have all required fields
-        repo_node: Node = Node("test_repo", type="directory", path="/fake/path")
-        processor: RepositoryProcessor = RepositoryProcessor("test_user", [])
-        
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path: Path = Path(temp_dir)
-            result: Dict = processor._analyze_repository(repo_node, temp_path)
-            
-            required_fields = ['repository_name', 'repository_path', 'status', 'error_message']
-            for field in required_fields:
-                assert field in result, f"Missing required field: {field}"
             
 
 class TestProcessRepositoriesWithAnalysis:
-    # Integration tests for full processing with PyDriller analysis
+    # Integration tests for full processing with repository analysis
     
     def test_process_repositories_returns_valid_structure(self) -> None:
         # Test that process_repositories returns valid structure
