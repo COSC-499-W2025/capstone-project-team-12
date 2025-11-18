@@ -10,6 +10,7 @@ from tree_processor import TreeProcessor
 from repository_processor import RepositoryProcessor
 from bow_cache_pipeline import get_or_build_bow
 from metadata_manager import MetadataManager
+from repository_analyzer import RepositoryAnalyzer
 
 
 file_data_list : List = []
@@ -213,18 +214,18 @@ def main() -> None:
                         github_username: str = input("Git repositories detected in the file tree. Please enter your GitHub username to link them. To skip this processing, please press enter: \n> ").strip()
                         if github_username:
                             # Validate binary data from FileManager before passing it on
-                            
-
                             repo_processor: RepositoryProcessor = RepositoryProcessor(
                                 username=github_username,
                                 binary_data_array=binary_data
                             )
-
                             try:
                                 processed_git_repos: bytes = repo_processor.process_repositories(git_repos)
                                 if processed_git_repos:
-                                    json_str: str = processed_git_repos.decode('utf-8')
-                                    print(f"repos successfully processed {json_str}")
+                                    print(f"repos successfully processed {processed_git_repos}")
+                                    analyzer = RepositoryAnalyzer(github_username)
+                                    timeline = analyzer.create_chronological_project_list(processed_git_repos)
+                                    for project in timeline:
+                                        print(f"{project['name']}: {project['start_date']} - {project['end_date']}")
                             except Exception as e:
                                 # Catch unexpected errors during repository processing so the app doesn't crash
                                 print(f"Repository processing failed: {e}")
