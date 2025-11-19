@@ -14,7 +14,7 @@ Results(
 
 CREATE TABLE IF NOT EXISTS 
 Tracked_Data(
-    dataID uuid DEFAULT uuid_generate_v4() PRIMARY KEY,
+    data_id uuid DEFAULT uuid_generate_v4() PRIMARY KEY,
     result_id uuid REFERENCES Results(result_id) NOT NULL,
     bow_cache JSON,
     project_data JSON,
@@ -23,3 +23,5 @@ Tracked_Data(
 );
 
 
+CREATE DATABASE test_db 
+WITH TEMPLATE "user";
