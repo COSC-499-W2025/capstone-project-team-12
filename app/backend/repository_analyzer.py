@@ -2,7 +2,7 @@ from pathlib import Path
 from pydriller import Repository
 from pydriller.domain.commit import Commit
 from anytree import Node
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Set
 from datetime import datetime
 
 class RepositoryAnalyzer:
@@ -20,6 +20,7 @@ class RepositoryAnalyzer:
             commits_data: List[Dict[str, Any]] = []
             all_commits_total: int = 0
             user_dates: List[datetime] = []
+            unique_authors: Set[str] = set()
 
             # Initialize statistic accumulators
             total_files_modified: int = 0
@@ -33,6 +34,9 @@ class RepositoryAnalyzer:
             # Traverse commits here to ensure only a single pass
             for commit in repo.traverse_commits():
                 all_commits_total+=1
+
+                commit_email: str = commit.author.email.lower() if commit.author and commit.author.email else ""
+                unique_authors.add(commit_email)
 
                 # Will return the Github privacy email with username so extract username (ex: 12345+yourusername@users.noreply.github.com)
                 commit_username: str = commit.author.email.split('@')[0].split('+')[-1].lower()
@@ -56,8 +60,9 @@ class RepositoryAnalyzer:
                         if mod.change_type:
                             change_types.add(mod.change_type.name)
 
-            # Calculate date metrics
+            # Calculate metrics
             date_range: Dict[str, Any] = self._calculate_date_range(user_dates)
+            is_collaborative: bool = len(unique_authors) > 1 if unique_authors else len(commits_data) < all_commits_total
 
             return {
                 # Basic Information for the repository
@@ -68,7 +73,7 @@ class RepositoryAnalyzer:
                 # Project type (individual vs collaborative)
                 'commits': commits_data if commits_data else "Unknown",
                 'commit_count': len(commits_data) if commits_data else 0,
-                'is_collaborative': len(commits_data) < all_commits_total if commits_data and all_commits_total else False, # evaluates to bool
+                'is_collaborative': is_collaborative,
 
                 # Use date_range Dict[str, Any] found from helper method
                 **date_range,
@@ -140,7 +145,8 @@ class RepositoryAnalyzer:
                 continue
             
             start_date = repo.get('start_date')
-            if not start_date:
+
+            if not start_date or not isinstance(start_date, str):
                 continue
             
             project_info = {
@@ -158,6 +164,7 @@ class RepositoryAnalyzer:
             projects.append(project_info)
 
         # Sort all projects by the start date
-        projects.sort(key = lambda x: x['start_date'], reverse = True)
+        if start_date is not None:
+            projects.sort(key = lambda x: x['start_date'], reverse = True)
 
         return projects
