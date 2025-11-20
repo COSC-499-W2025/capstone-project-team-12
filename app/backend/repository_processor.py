@@ -3,21 +3,23 @@ import tempfile
 import shutil
 from anytree import Node
 from typing import Any, Dict, List, Optional
-from pydriller import Repository
+from repository_analyzer import RepositoryAnalyzer
 
 class RepositoryProcessor:
-    def __init__(self, username: str, binary_data_array) -> None:
-        self.username: str = username
+    def __init__(self, username: str, binary_data_array: List[bytes]) -> None:
+        self.username: str = username.lower()
         self.binary_data_array: List[bytes] = binary_data_array
         self.temp_dirs: List[str] = []
 
     def process_repositories(self, repo_nodes: List[Node]) -> List[Dict[str, Any]]:
         # Analyzes each repository node and extracts relevant information
         processed_data: List[Dict[str, Any]] = []
+        analyzer = RepositoryAnalyzer(self.username)
+        
         try:
             for repo_node in repo_nodes:
                 git_folder_path: Path = self._extract_git_folder(repo_node) # This path is to the temporary .git folder that was rebuilt
-                analysis: Dict[str, Any] = self._analyze_repository(repo_node, git_folder_path) # May change from Dict[str, Any] 
+                analysis: Dict[str, Any] = analyzer.analyze_repository(repo_node, git_folder_path)
                 processed_data.append(analysis)
 
         finally:
@@ -52,7 +54,8 @@ class RepositoryProcessor:
         for child in git_node.children:
             if hasattr(child, 'type'):
                 if child.type == 'file':
-
+                    if not hasattr(child, 'binary_index'):
+                        raise ValueError(f"File node '{child.name}' missing binary_index attribute")
                     #Write file from binary data
                     file_path: Path = current_path / child.name
                     binary_index: int = child.binary_index
@@ -65,49 +68,6 @@ class RepositoryProcessor:
                     dir_path: Path = current_path / child.name
                     dir_path.mkdir(parents=True, exist_ok=True)
                     self._rebuild_git_tree(child, dir_path)
-
-    def _analyze_repository(self, repo_node: Node, git_folder_path: Path) -> Dict[str, Any]:
-        # Analyze a single repository using PyDriller to extract commit information
-        # TODO: Expand on this method to extract data specific to research needs
-        try:
-            repo: Repository = Repository(str(git_folder_path))
-            commits_data: List[Dict[str, Any]] = []
-            
-            for commit in repo.traverse_commits():
-                # Safely extract author information with fallbacks
-                commit_info: Dict[str, Any] = {
-                    'hash': commit.hash if commit.hash else "Unknown",
-                    'author': commit.author.name if commit.author and commit.author.name else "Unknown",
-                    'author_email': commit.author.email if commit.author and commit.author.email else "unknown@unknown.com",
-                    'date': commit.author_date.isoformat() if commit.author_date else "Unknown",
-                    'message': commit.msg if commit.msg else "",
-                    'modified_files': [
-                        {
-                            'filename': mod.filename if mod.filename else "Unknown",
-                            'change_type': mod.change_type.name if mod.change_type else "UNKNOWN",
-                            'added_lines': mod.added_lines if mod.added_lines is not None else 0,
-                            'deleted_lines': mod.deleted_lines if mod.deleted_lines is not None else 0
-                        }
-                        for mod in (commit.modified_files or [])
-                    ]
-                }
-                commits_data.append(commit_info)
-
-            return {
-                'repository_name': repo_node.name if repo_node.name else "Unknown",
-                'repository_path': str(git_folder_path),
-                'status': 'success',
-                'commits': commits_data,
-                'commit_count': len(commits_data)
-            }
-        except Exception as e:
-            return {
-                'repository_name': repo_node.name,
-                'repository_path': str(git_folder_path),
-                'status': 'error',
-                'error_message': str(e)
-            }
-
 
     def _cleanup_temp_dirs(self) -> None:
         for temp_dir in self.temp_dirs:
