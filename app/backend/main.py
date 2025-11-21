@@ -8,9 +8,12 @@ from typing import List,BinaryIO, Dict, Any
 from file_manager import FileManager
 from tree_processor import TreeProcessor
 from repository_processor import RepositoryProcessor
-from bow_cache_pipeline import get_or_build_bow
 from metadata_manager import MetadataManager
 from repository_analyzer import RepositoryAnalyzer
+from text_preprocessor import text_preprocess
+from pii_remover import remove_pii
+from cache.bow_cache import BoWCache, BoWCacheKey
+import hashlib
 
 
 file_data_list : List = []
@@ -113,7 +116,10 @@ def get_bin_data_by_Id(bin_Idx:int)->BinaryIO|None:
         return None
     return file_data_list[bin_Idx]
 
+
 def get_bin_data_by_IdList(bin_Idx_list:List[int])->List[BinaryIO]:
+    """ Takes a list of binary indexes and fetches the binary data. Returns a list of BinaryIO or 
+        None if not found."""
     #check if files are loaded
     if file_data_list is None or len(file_data_list) == 0:
         print("Empty List: Initialize by calling File")
@@ -124,6 +130,16 @@ def get_bin_data_by_IdList(bin_Idx_list:List[int])->List[BinaryIO]:
     for bin_Idx in bin_Idx_list:
         response_List.append(get_bin_data_by_Id(bin_Idx))
     return response_List
+
+def convert_binary_to_text(node_array:List[Node])->List[BinaryIO|None]:
+    """ Converts binary data to text strings for text preprocessing """
+    text_data_list: List[str] = []
+    bin_Idx_list: List[int] = []
+    for node in node_array:
+        bin_Id = node.file_data['binary_index']
+        bin_Idx_list.append(bin_Id)
+    text_data_list = [str(x) for x in get_bin_data_by_IdList(bin_Idx_list)]
+    return text_data_list
 
 def main() -> None:
     try:
@@ -201,12 +217,54 @@ def main() -> None:
                             text_nodes: List[Node] = tree_processor.get_text_files()
                             if text_nodes:
                                 print(f"Found {len(text_nodes)} text files. Running BoW pipeline...")
-                                final_bow = get_or_build_bow(text_nodes)
-                                print(f"Successfully built BoW for {len(final_bow)} documents. Ready for text analysis.\n")
+
+                                # with the current setup, we assume all text files use the same preprocessing steps
+                                preprocess_signature = {
+                                    "lemmatizer": True,
+                                    "stopwords": "nltk_english_default",
+                                    "pii_removal": True,
+                                    "filters": ["text"]
+                                }
+
+                                # build repo_id by hashing joined file paths
+                                file_paths = [getattr(text_file, "filepath", str(text_file.name)) for text_file in text_nodes]
+                                joined_paths = "|".join(file_paths)
+                                repo_id = hashlib.md5(joined_paths.encode()).hexdigest()
+
+                                # no git commit info for text files
+                                head_commit = None
+
+                                # initialize cache and key
+                                key = BoWCacheKey(repo_id, head_commit, preprocess_signature)
+                                cache = BoWCache()
+
+                                # check cache for existing BoW
+                                if cache.has(key):
+                                    print(f"Cache hit for BoW (repo_id={repo_id})")
+                                    cached = cache.get(key)
+                                    if cached is not None:
+                                        return cached # return cached BoW
+                                    print("Cache corrupted or unreadable - regenerating...")
+
+                                # if we reach here, we have a cache miss
+                                print("Cache miss - running text preprocessing pipeline...")
+
+                                # convert binary data to text data to use in for preprocessing
+                                text_data: List[str] = convert_binary_to_text(text_nodes)
+                                
+                                # run text preprocessing
+                                processed_docs = text_preprocess(text_data)
+                                anonymized_docs = remove_pii(processed_docs)
+                                final_bow: list[list[str]] = anonymized_docs
+
+                                # save to cache
+                                cache.set(key, final_bow)
+
+                                print(f"Successfully built BoW for {len(final_bow)} document(s) and saved it to Cache. Ready for text analysis.\n")
                             else:
                                 print("No text files found to preprocess.")
                         except Exception as e:
-                            print(f"Error during text/PII processing: {e}")
+                            print(f"Error during text processing: {e}")
 
 
                     if git_repos:
