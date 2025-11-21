@@ -23,6 +23,8 @@ class TestRepositoryAnalyzer:
         assert analyzer.username == "test_user"
     
     def test_build_commit_info(self) -> None:
+        # Uses mock commit object to test _build_commit_info
+        
         analyzer: RepositoryAnalyzer = RepositoryAnalyzer("testuser")
         commit: Mock = Mock()
         commit.hash = "abc123"
