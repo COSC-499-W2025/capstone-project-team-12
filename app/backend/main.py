@@ -10,6 +10,7 @@ from tree_processor import TreeProcessor
 from repository_processor import RepositoryProcessor
 from bow_cache_pipeline import get_or_build_bow
 from metadata_manager import MetadataManager
+from topic_vectors import generate_topic_vectors
 
 
 file_data_list : List = []
@@ -202,6 +203,15 @@ def main() -> None:
                                 print(f"Found {len(text_nodes)} text files. Running BoW pipeline...")
                                 final_bow = get_or_build_bow(text_nodes)
                                 print(f"Successfully built BoW for {len(final_bow)} documents. Ready for text analysis.\n")
+
+                                print("Running topic modeling...")
+
+                                lda_model, doc_topic_vectors, topic_term_vectors = generate_topic_vectors(final_bow)
+
+                                print("Successfully generated topic vectors.")
+                                print(f"- Number of documents: {len(doc_topic_vectors)}")
+                                print(f"- Number of topics: {len(topic_term_vectors)}")
+                                print("Text analysis complete.\n")
                             else:
                                 print("No text files found to preprocess.")
                         except Exception as e:
