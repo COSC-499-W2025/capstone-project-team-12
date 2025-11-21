@@ -132,7 +132,38 @@ class RepositoryAnalyzer:
             'duration_seconds': int(duration.total_seconds())
         }
     
+    def rank_importance_of_projects(self, projects: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """ Ranks project importance based on the number of commits from a user, the number of lines added by the user, and the
+        duration of the project """
+
+        for project in projects:
+            commits = project.get('commit_count', 0)
+            lines = project.get('total_lines_added', 0)
+            duration = project.get('duration_days', 0)
+
+            min_commits = min(commits)
+            max_commits = max(max_commits)
+            min_lines = min (lines)
+            max_lines = max(lines)
+            min_duration = min(duration)
+            max_duration = max(duration)
+
+            norm_commits = normalize_for_rankings(commits, max_commits, min_commits)
+            norm_lines_added = normalize_for_rankings(lines, max_lines, min_lines)
+            norm_duration = normalize_for_rankings(duration, max_duration, min_duration)
+
+            project['importance'] = norm_commits + norm_lines_added + norm_duration
+
+        projects.sort(key = lambda x: x['importance'], reverse = True)
+
     
+    def normalize_for_rankings (x, x_max, x_min):
+        """ normalize project contribution measures so large scale projects don't override smaller ones """
+        if x_max - x_min == 0:
+            return 0
+        return (x - x_min) / (x_max - x_min)
+
+
     # This method may move in later implementation but is included to ensure overall functionality
     def create_chronological_project_list(self, all_repo_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         # TODO: determine what parts of a project should be displayed on the timeline
