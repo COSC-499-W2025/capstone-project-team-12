@@ -83,7 +83,7 @@ class TestRepositoryAnalyzer:
         if not TEST_REPO_PATH.exists() or not (TEST_REPO_PATH / ".git").exists():
             pytest.skip("Test repository not found")
         
-        analyzer: RepositoryAnalyzer = RepositoryAnalyzer("eveline36") # Just looking at initial commits so using eveline36
+        analyzer: RepositoryAnalyzer = RepositoryAnalyzer("maddydeg") # Just looking at initial commits so using maddydeg
         repo_node: Node = create_repo_node()
         result: Dict[str, Any] = analyzer.analyze_repository(repo_node, TEST_REPO_PATH)
         
