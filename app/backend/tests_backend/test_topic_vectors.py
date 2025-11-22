@@ -103,3 +103,57 @@ def test_topic_term_vectors_match_vocab_size():
 
     for vec in topic_vecs:
         assert len(vec) == vocab_size
+
+def test_invalid_document_structure():
+    #documents must be list[list[str]]
+    bad_inputs = [
+        "not a list",
+        [123, 456],
+        [["valid"], "oops"],
+        None,
+    ]
+
+    for bad in bad_inputs:
+        try:
+            generate_topic_vectors(bad, num_topics=2)
+        except Exception as e:
+            assert isinstance(e, (TypeError, ValueError))
+        else:
+            assert False, f"Expected an exception for input: {bad}"
+
+def test_documents_with_empty_token_lists():
+    docs = [[], ["hello"], []]
+
+    lda_model, doc_vecs, topic_vecs = generate_topic_vectors(docs, num_topics = 2)
+
+    assert len(doc_vecs) == 1
+    assert len(doc_vecs) == 1
+    assert len(doc_vecs[0]) == 2
+    assert abs(sum(doc_vecs[0]) - 1.0) < 1e-6
+
+    #vocab size should be 1 (only "hello")
+    for vec in topic_vecs:
+        assert len(vec) == 1
+
+def test_all_documents_empty():
+    docs = [[], [], []]
+
+    lda, doc_vecs, topic_vecs = generate_topic_vectors(docs, num_topics=3)
+
+    assert lda is None
+    assert doc_vecs == []
+    assert len(topic_vecs) == 3
+    assert all(vec == [] for vec in topic_vecs)
+
+def test_invalid_num_topics():
+    docs = [["apple", "banana"]]
+
+    for bad_topics in [0, -1, -5]:
+        try:
+            generate_topic_vectors(docs, num_topics=bad_topics)
+        except Exception as e:
+            assert isinstance(e, ValueError)
+        else:
+            assert False, f"Expected ValueError for num_topics={bad_topics}"
+
+
