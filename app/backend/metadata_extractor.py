@@ -147,7 +147,7 @@ class MetadataExtractor:
                 author = core.author
                 return author if author else "unknown_author"
 
-        except Exception:
+        except Exception as e:
             print(f"Error extracting author metadata for {filepath}: {e}")
             return "unknown_author"
 
