@@ -1,12 +1,11 @@
 FROM ollama/ollama:latest
 
-# Set working directory
 WORKDIR /app
 
-# Expose Ollama API port
+
 EXPOSE 11434
 
-# Create a startup script that ensures model is available
+#startup script to launch ollama and pull model
 RUN echo '#!/bin/bash\n\
 set -e\n\
 echo "Starting Ollama service..."\n\
@@ -23,6 +22,6 @@ wait $OLLAMA_PID' > /app/start.sh && chmod +x /app/start.sh
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:11434/api/tags || exit 1
 
-# Run the startup script with bash
+
 ENTRYPOINT ["/bin/bash"]
 CMD ["/app/start.sh"]
