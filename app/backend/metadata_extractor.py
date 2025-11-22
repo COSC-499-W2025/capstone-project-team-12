@@ -7,8 +7,12 @@ import mimetypes
 import tempfile
 import re
 from anytree import Node
+from pypdf import PdfReader 
+from docx import Document
+from io import BytesIO
 
-class MetadataManager:
+
+class MetadataExtractor:
     """
     Manages metadata extraction for file nodes in a directory tree
     """
@@ -16,8 +20,7 @@ class MetadataManager:
     def __init__(self) -> None:
         mimetypes.init()
 
-        # TODO: figure out a way to deal with files with same name in different directories
-        self.metadata_store: Dict[str, Dict[str, Any]] = {} # filename -> metadata dict for now
+        self.metadata_store: Dict[str, Dict[str, Any]] = {} # filepath -> metadata
         
     
     def extract_all_metadata(self, file_tree: Node, binary_data_array: List[bytes] = None) -> Dict[str, Dict[str, Any]]:
@@ -34,14 +37,15 @@ class MetadataManager:
             # extract metadata for each file node
             for node in file_nodes:
                 try:
-                    filename: str = node.name
+                    filepath: str = node.file_data['filepath']
                     metadata: Dict[str, Any] = self._extract_single_file_metadata(node, binary_data_array)
-                    self.metadata_store[filename] = metadata
+                    self.metadata_store[filepath] = metadata
                 except Exception:
                     # if extraction fails, store error info in metadata store but continue processing
-                    self.metadata_store[node.name] = {
+                    self.metadata_store[filepath] = {
                         'error': 'Metadata extraction failed',
-                        'filename': node.name
+                        'filename': node.name,
+                        'filepath': filepath
                     }
                     
         except Exception:
@@ -104,10 +108,51 @@ class MetadataManager:
             # no file and no binary data
             self._extract_fallback_metadata(metadata)
         
-        # TODO: retrieve author metadata from pdf, docx, etc. files
-        metadata['author'] = 'unknown_author'
-        
+        # Extract author metadata (PDF, DOCX)
+        metadata['author'] = self._extract_author_metadata(
+            filepath=path if file_exists else None,
+            binary_data=binary_data,
+            ext=file_data.get('extension', '')
+        )
         return metadata
+    
+    def _extract_author_metadata(self, filepath: Optional[Path], binary_data: Optional[bytes], ext: str) -> str:
+        """
+        Extract author metadata from PDF or DOCX.
+        """
+        try:
+            # for pdf
+            if ext == ".pdf":
+                if filepath and filepath.exists():
+                    reader = PdfReader(str(filepath))
+                elif binary_data:
+                    reader = PdfReader(BytesIO(binary_data))
+                else:
+                    return "unknown_author"
+
+                info = reader.metadata or {}
+                author = getattr(info, "author", None) or info.get("/Author")
+                return author or "unknown_author"
+
+            # for docx
+            if ext == ".docx":
+                if filepath and filepath.exists():
+                    doc = Document(str(filepath))
+                elif binary_data:
+                    doc = Document(BytesIO(binary_data))
+                else:
+                    return "unknown_author"
+
+                core = doc.core_properties
+                author = core.author
+                return author if author else "unknown_author"
+
+        except Exception:
+            print(f"Error extracting author metadata for {filepath}: {e}")
+            return "unknown_author"
+
+        return "unknown_author"
+
     
     def _extract_metadata_from_binary_data(self, binary_data: bytes, filepath: str, metadata: Dict[str, Any]) -> None:
         """
@@ -266,11 +311,11 @@ class MetadataManager:
         except (OSError, IOError):
             return "unknown_checksum"
     
-    def get_metadata_by_filename(self, filename: str) -> Optional[Dict[str, Any]]:
+    def get_metadata_by_filepath(self, filepath: str) -> Optional[Dict[str, Any]]:
         """
         Get metadata for a specific filename
         """
-        return self.metadata_store.get(filename)
+        return self.metadata_store.get(filepath)
     
     def get_all_metadata(self) -> Dict[str, Dict[str, Any]]:
         """
@@ -289,7 +334,7 @@ if __name__ == "__main__":
     try:
         # Create a simple node structure for testing
         class TestNode:
-            def __init__(self, name, filepath, file_data):
+            def __init__(self, name, file_data):
                 self.name = name
                 self.file_data = file_data
                 self.type = "file"
@@ -298,7 +343,6 @@ if __name__ == "__main__":
         # create test node
         test_node = TestNode(
             name="test_file.txt",
-            filepath=test_file,
             file_data={
                 'filepath': test_file,
                 'extension': '.txt',
@@ -308,8 +352,8 @@ if __name__ == "__main__":
         )
         
         # test metadata extraction
-        metadata_manager = MetadataManager()
-        metadata = metadata_manager._extract_single_file_metadata(test_node)
+        metadata_extractor = MetadataExtractor()
+        metadata = metadata_extractor._extract_single_file_metadata(test_node)
         
         print("Metadata Extraction Test")
         for key, value in metadata.items():
