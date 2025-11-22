@@ -143,8 +143,7 @@ class RepositoryAnalyzer:
         # builds the basic info for individual commits
         return {
             'hash': commit.hash if commit.hash else "Unknown",
-            'date': commit.author_date.isoformat() if commit.author_date else "Unknown", 
-            'message': commit.msg if commit.msg else "",
+            'date': commit.author_date.isoformat() if commit.author_date else "Unknown",
             'modified_files': [
                 {
                     'filename': mod.filename if mod.filename else "Unknown",
