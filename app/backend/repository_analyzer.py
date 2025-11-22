@@ -138,7 +138,7 @@ class RepositoryAnalyzer:
 
         # extract all values into lists
         commits_vals = [p.get('commit_count', 0) for p in projects]
-        lines_vals = [p.get('total_lines_added', 0) for p in projects]
+        lines_vals = [p.get('statistics', {}).get('total_lines_added', 0) for p in projects]
         duration_vals = [p.get('duration_days', 0) for p in projects]
 
         # find min and max for each measure
@@ -151,7 +151,7 @@ class RepositoryAnalyzer:
 
         for project in projects:
             commits = project.get('commit_count', 0)
-            lines = project.get('total_lines_added', 0)
+            lines = project.get('statistics', {}).get('total_lines_added', 0)
             duration = project.get('duration_days', 0)
 
             norm_commits = self.normalize_for_rankings(commits, max_commits, min_commits)
@@ -212,7 +212,7 @@ class RepositoryAnalyzer:
             projects.append(project_info)
 
         # Sort all projects by the start date
-        if start_date is not None:
+        if projects:
             projects.sort(key = lambda x: x['start_date'], reverse = True)
 
         return projects
