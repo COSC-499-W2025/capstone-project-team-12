@@ -7,11 +7,11 @@ from typing import Dict, Any, Optional
 #to add it as env var:
 #powershell: $env:OPENROUTER_API_KEY = "sk-or-your-key"
 #cmd: set OPENROUTER_API_KEY=sk-or-your-key
-class LLMAPIClient:
+class OnlineLLMClient:
     
     def __init__(self, api_key: Optional[str] = None, max_retries: int = 3):
         """
-        Initialize the LLM API client
+        Initialize the Online LLM API client
         
         Args:
             api_key: OpenRouter API key (reads from env if not given)
@@ -116,7 +116,7 @@ class LLMAPIClient:
             #would probably never reach here, but just in case
             raise requests.RequestException("All retry attempts failed with unknown error")
     
-    def online_generate_short_summary(self, data_bundle: str) -> str:
+    def generate_short_summary(self, data_bundle: str) -> str:
         """
         Generate a short resume ready summary
         
@@ -140,7 +140,7 @@ Use action-oriented, professional language that is easy to scan. No extra text, 
         response = self.send_request(prompt=prompt, data_bundle=data_bundle)
         return response["choices"][0]["message"]["content"].strip()
     
-    def online_generate_summary(self, data_bundle: str) -> str:
+    def generate_summary(self, data_bundle: str) -> str:
         """
         Generate a standard resume ready professional summary
         
@@ -167,7 +167,7 @@ Use strong action verbs (e.g., "developed", "optimized", "designed"), maintain a
         response = self.send_request(prompt=prompt, data_bundle=data_bundle)
         return response["choices"][0]["message"]["content"].strip()
     
-    def online_generate_long_summary(self, data_bundle: str) -> str:
+    def generate_long_summary(self, data_bundle: str) -> str:
         """
         Generate a comprehensive resume ready summary
         
