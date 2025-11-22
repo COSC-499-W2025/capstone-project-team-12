@@ -169,6 +169,16 @@ class RepositoryAnalyzer:
         if x_max - x_min == 0:
             return 0
         return (x - x_min) / (x_max - x_min)
+    
+    def get_most_important_projects(self, all_repo_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """ Returns info about the top 3 project from a list of projects based on the 'importance' key """
+        if not all_repo_data:
+            return []
+        
+        projects = self.create_chronological_project_list(all_repo_data)
+        ranked_projects = self.rank_importance_of_projects(projects)
+
+        return ranked_projects[:3] if ranked_projects else []
 
 
     # This method may move in later implementation but is included to ensure overall functionality
