@@ -136,29 +136,35 @@ class RepositoryAnalyzer:
         """ Ranks project importance based on the number of commits from a user, the number of lines added by the user, and the
         duration of the project """
 
+        # extract all values into lists
+        commits_vals = [p.get('commit_count', 0) for p in projects]
+        lines_vals = [p.get('total_lines_added', 0) for p in projects]
+        duration_vals = [p.get('duration_days', 0) for p in projects]
+
+        # find min and max for each measure
+        min_commits = min(commits_vals)
+        max_commits = max(commits_vals)
+        min_lines = min (lines_vals)
+        max_lines = max(lines_vals)
+        min_duration = min(duration_vals)
+        max_duration = max(duration_vals)
+
         for project in projects:
             commits = project.get('commit_count', 0)
             lines = project.get('total_lines_added', 0)
             duration = project.get('duration_days', 0)
 
-            min_commits = min(commits)
-            max_commits = max(max_commits)
-            min_lines = min (lines)
-            max_lines = max(lines)
-            min_duration = min(duration)
-            max_duration = max(duration)
-
-            norm_commits = normalize_for_rankings(commits, max_commits, min_commits)
-            norm_lines_added = normalize_for_rankings(lines, max_lines, min_lines)
-            norm_duration = normalize_for_rankings(duration, max_duration, min_duration)
+            norm_commits = self.normalize_for_rankings(commits, max_commits, min_commits)
+            norm_lines_added = self.normalize_for_rankings(lines, max_lines, min_lines)
+            norm_duration = self.normalize_for_rankings(duration, max_duration, min_duration)
 
             project['importance'] = norm_commits + norm_lines_added + norm_duration
 
         projects.sort(key = lambda x: x['importance'], reverse = True)
 
-    
+    @staticmethod
     def normalize_for_rankings (x, x_max, x_min):
-        """ normalize project contribution measures so large scale projects don't override smaller ones """
+        """ normalize project contribution measures from 0-1 so large scale projects don't override smaller ones """
         if x_max - x_min == 0:
             return 0
         return (x - x_min) / (x_max - x_min)
