@@ -32,10 +32,17 @@ def _getExtension(node: Node) -> str:
 
 def _isCode(ext: str) -> bool:
     '''Check if extension is a code file extension'''
-    code_extensions: set[str] = {'.py', '.java', '.cpp', '.js', '.rb', '.go', '.cs', '.c', '.h', '.php', '.html', '.css', '.htm'}
+    code_extensions: set[str] = {
+    '.py', '.java', '.cpp', '.js', '.rb', '.go', '.cs', '.c', '.h', '.php',
+    '.html', '.htm', '.css', '.ts', '.jsx', '.tsx', '.vue',
+    '.kt', '.swift', '.m', '.dart', '.xml', '.gradle',
+    '.ipynb', '.r', '.rmd',
+    '.dockerfile', '.yml', '.yaml', '.sh', '.bash', '.env', '.ini', '.cfg',
+    '.sql', '.db', '.sqlite'
+}
     return ext in code_extensions
 
 def _isText(ext: str) -> bool:
     '''Check if extension is a text file extension'''
-    text_extensions: set[str] = {'.txt', '.md', '.rtf', '.pdf', '.doc', '.docx'}
+    text_extensions: set[str] = {'.txt', '.md', '.rtf', '.pdf', '.doc', '.docx', '.tex'}
     return ext in text_extensions

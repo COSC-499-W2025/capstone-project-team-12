@@ -2,11 +2,13 @@ import pytest
 from anytree import Node
 import tempfile
 import os
-from metadata_manager import MetadataManager
+from metadata_extractor import MetadataExtractor
+from pypdf import PdfWriter
+from docx import Document
 
-class TestMetadataManager:
+class TestMetadataExtractor:
     def setup_method(self):
-        self.metadata_manager = MetadataManager()
+        self.metadata_extractor = MetadataExtractor()
 
     def create_test_node(self, name: str, filepath: str, extension: str, size_bytes: int, binary_index: int = None) -> Node:
         """Helper to create test file nodes with required attributes"""
@@ -27,20 +29,10 @@ class TestMetadataManager:
         root = Node("root", type="directory")
         
         # Create test files
-        file1 = self.create_test_node(
-            "test.py", 
-            "/fake/path/test.py", 
-            ".py", 
-            100
-        )
+        file1 = self.create_test_node("test.py", "/fake/path/test.py", ".py", 100)
         file1.parent = root
         
-        file2 = self.create_test_node(
-            "document.txt", 
-            "/fake/path/document.txt", 
-            ".txt", 
-            200
-        )
+        file2 = self.create_test_node("document.txt", "/fake/path/document.txt", ".txt", 200)
         file2.parent = root
         
         return root
@@ -48,10 +40,10 @@ class TestMetadataManager:
     def test_extract_all_metadata_empty_tree(self):
         """Test extraction with empty tree"""
         empty_root = Node("empty", type="directory")
-        result = self.metadata_manager.extract_all_metadata(empty_root)
+        result = self.metadata_extractor.extract_all_metadata(empty_root)
         
         assert result == {}
-        assert self.metadata_manager.metadata_store == {}
+        assert self.metadata_extractor.metadata_store == {}
     
     def test_extract_all_metadata_with_files(self):
         """Test metadata extraction for multiple files"""
@@ -68,32 +60,24 @@ class TestMetadataManager:
             # create test tree with real files
             root = Node("root", type="directory")
             
-            file1 = self.create_test_node(
-                "test_script.py",
-                test_file1,
-                ".py",
-                os.path.getsize(test_file1)
-            )
+            file1 = self.create_test_node("test_script.py", test_file1, ".py", os.path.getsize(test_file1))
             file1.parent = root
             
-            file2 = self.create_test_node(
-                "document.txt", 
-                test_file2,
-                ".txt", 
-                os.path.getsize(test_file2)
-            )
+            file2 = self.create_test_node("document.txt", test_file2, ".txt", os.path.getsize(test_file2))
+            os.path.getsize(test_file2)
+            
             file2.parent = root
             
             # extract metadata
-            result = self.metadata_manager.extract_all_metadata(root)
+            result = self.metadata_extractor.extract_all_metadata(root)
             
             # verify results
             assert len(result) == 2
-            assert "test_script.py" in result
-            assert "document.txt" in result
+            assert test_file1 in result
+            assert test_file2 in result
             
             # check basic metadata fields
-            py_metadata = result["test_script.py"]
+            py_metadata = result[test_file1]
             assert py_metadata['filename'] == "test_script.py"
             assert py_metadata['file_extension'] == ".py"
             assert py_metadata['file_size'] > 0
@@ -103,7 +87,6 @@ class TestMetadataManager:
             assert py_metadata['line_count'] == 2
             assert py_metadata['word_count'] > 0
             assert py_metadata['character_count'] > 0
-            assert py_metadata['author'] == 'unknown_author'
             
         finally:
             # cleanup
@@ -117,20 +100,18 @@ class TestMetadataManager:
         
         root = Node("root", type="directory")
         
-        file_node = self.create_test_node(
-            "zipped_file.txt",
+        file_node = self.create_test_node("zipped_file.txt",
             "/tmp/nonexistent/zipped_file.txt",  # file doesn't exist on disk
-            ".txt",
-            len(test_content),
+            ".txt", len(test_content),
             binary_index=0  # points to our test content in binary_data_array
         )
         file_node.parent = root
         
         # extract metadata using binary data
-        result = self.metadata_manager.extract_all_metadata(root, binary_data_array)
+        result = self.metadata_extractor.extract_all_metadata(root, binary_data_array)
         
         # verify binary data was used
-        metadata = result["zipped_file.txt"]
+        metadata = result["/tmp/nonexistent/zipped_file.txt"]
         assert metadata['creation_date'] == 'unknown_date'
         assert metadata['last_modified_date'] == 'unknown_date'
         assert metadata['line_count'] == 3
@@ -142,18 +123,15 @@ class TestMetadataManager:
         """Test fallback metadata when no file and no binary data"""
         root = Node("root", type="directory")
         
-        file_node = self.create_test_node(
-            "missing_file.txt",
+        file_node = self.create_test_node("missing_file.txt",
             "/nonexistent/path/missing_file.txt",  # doesn't exist
-            ".txt",
-            0,
-            binary_index=999  # invalid index
+            ".txt", 0, binary_index=999  # invalid index
         )
         file_node.parent = root
         
-        result = self.metadata_manager.extract_all_metadata(root, [])
+        result = self.metadata_extractor.extract_all_metadata(root, [])
         
-        metadata = result["missing_file.txt"]
+        metadata = result["/nonexistent/path/missing_file.txt"]
         assert metadata['creation_date'] == 'unknown_date'
         assert metadata['last_modified_date'] == 'unknown_date'
         assert metadata['checksum'] == 'unknown_checksum'
@@ -164,16 +142,10 @@ class TestMetadataManager:
 
     def test_node_without_file_data(self):
         """Test handling of nodes without file_data attribute"""
-        root = Node("root", type="directory")
+        bad_node = Node("bad_file.txt", filepath="/test/path/bad_file.txt", type="file")  # no file_data
         
-        bad_node = Node("bad_file.txt", type="file")  # no file_data
-        bad_node.parent = root
-        
-        result = self.metadata_manager.extract_all_metadata(root)
-        
-        # should store error information
-        assert "bad_file.txt" in result
-        assert result["bad_file.txt"]['error'] == 'Metadata extraction failed'
+        with pytest.raises(ValueError, match=r"has no file_data"):
+            self.metadata_extractor._extract_single_file_metadata(bad_node)
 
     def test_content_metrics_calculation(self):
         """Test accurate calculation of line count, word count, character count"""
@@ -185,16 +157,11 @@ class TestMetadataManager:
         
         try:
             root = Node("root", type="directory")
-            file_node = self.create_test_node(
-                "test_content.txt",
-                test_file,
-                ".txt",
-                len(test_content)
-            )
+            file_node = self.create_test_node("test_content.txt", test_file, ".txt", len(test_content))
             file_node.parent = root
             
-            result = self.metadata_manager.extract_all_metadata(root)
-            metadata = result["test_content.txt"]
+            result = self.metadata_extractor.extract_all_metadata(root)
+            metadata = result[test_file]
             
             assert metadata['line_count'] == 3
             assert metadata['word_count'] == 9  # Hello, world, This, is, a, test, Third, line, here
@@ -213,16 +180,11 @@ class TestMetadataManager:
         
         try:
             root = Node("root", type="directory")
-            file_node = self.create_test_node(
-                "checksum_test.txt",
-                test_file,
-                ".txt",
-                len(test_content)
-            )
+            file_node = self.create_test_node("checksum_test.txt", test_file, ".txt", len(test_content))
             file_node.parent = root
             
-            result = self.metadata_manager.extract_all_metadata(root)
-            metadata = result["checksum_test.txt"]
+            result = self.metadata_extractor.extract_all_metadata(root)
+            metadata = result[test_file]
             
             # checksum should be a valid MD5 hash
             assert metadata['checksum'] != 'unknown_checksum'
@@ -242,16 +204,11 @@ class TestMetadataManager:
         
         try:
             root = Node("root", type="directory")
-            file_node = self.create_test_node(
-                "encoding_test.txt",
-                test_file,
-                ".txt",
-                len(test_content)
-            )
+            file_node = self.create_test_node("encoding_test.txt", test_file, ".txt", len(test_content))
             file_node.parent = root
             
-            result = self.metadata_manager.extract_all_metadata(root)
-            metadata = result["encoding_test.txt"]
+            result = self.metadata_extractor.extract_all_metadata(root)
+            metadata = result[test_file]
             
             assert metadata['encoding'] == 'UTF-8'
             
@@ -266,24 +223,58 @@ class TestMetadataManager:
         
         try:
             root = Node("root", type="directory")
-            file_node = self.create_test_node(
-                "mime_test.py",
-                test_file,
-                ".py",
-                os.path.getsize(test_file)
-            )
+            file_node = self.create_test_node("mime_test.py", test_file, ".py", os.path.getsize(test_file))
             file_node.parent = root
             
-            result = self.metadata_manager.extract_all_metadata(root)
-            metadata = result["mime_test.py"]
+            result = self.metadata_extractor.extract_all_metadata(root)
+            metadata = result[test_file]
             
             # should detect Python MIME type
             assert 'text/x-python' in metadata['mime_type'] or 'application/octet-stream' == metadata['mime_type']
             
         finally:
             os.unlink(test_file)
+    
+    def test_author_extraction(self):
+        """Test author metadata extraction for PDF and DOCX files"""
 
-    def test_get_metadata_by_filename(self):
+        # Create a test pdf file with author metadata
+        pdf_path = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False).name
+        writer = PdfWriter()
+        writer.add_blank_page(width=72, height=72)
+        writer.add_metadata({'/Author': 'Test Author'})
+        with open(pdf_path, 'wb') as f:
+            writer.write(f)
+        
+        # Create a test docx file with author metadata
+        docx_path = tempfile.NamedTemporaryFile(suffix='.docx', delete=False).name
+        doc = Document()
+        doc.core_properties.author = 'Docx Author'
+        doc.add_paragraph("Sample content")
+        doc.save(docx_path)
+        
+        try:
+            root = Node("root", type="directory")
+            
+            pdf_node = self.create_test_node("test_pdf.pdf", pdf_path, ".pdf", os.path.getsize(pdf_path))
+            pdf_node.parent = root
+            
+            docx_node = self.create_test_node("test_docx.docx", docx_path, ".docx", os.path.getsize(docx_path))
+            docx_node.parent = root
+            
+            result = self.metadata_extractor.extract_all_metadata(root)
+            
+            pdf_metadata = result[pdf_path]
+            assert pdf_metadata['author'] == 'Test Author'
+            
+            docx_metadata = result[docx_path]
+            assert docx_metadata['author'] == 'Docx Author'
+            
+        finally:
+            os.unlink(pdf_path)
+            os.unlink(docx_path)
+
+    def test_get_metadata_by_filepath(self):
         """Test retrieving metadata for specific filename"""
         # setup  test metadata
         test_metadata = {
@@ -291,30 +282,30 @@ class TestMetadataManager:
             'filepath': '/path/test.py',
             'file_size': 100
         }
-        self.metadata_manager.metadata_store = {'test.py': test_metadata}
+        self.metadata_extractor.metadata_store = {'/path/test.py': test_metadata}
         
-        result = self.metadata_manager.get_metadata_by_filename('test.py')
+        result = self.metadata_extractor.get_metadata_by_filepath('/path/test.py')
         assert result == test_metadata
         
         # test non-existent file
-        result = self.metadata_manager.get_metadata_by_filename('nonexistent.py')
+        result = self.metadata_extractor.get_metadata_by_filepath('/path/nonexistent.py')
         assert result is None
 
     def test_get_all_metadata(self):
         """Test retrieving all metadata"""
         test_data = {
-            'file1.py': {'filename': 'file1.py', 'size': 100},
-            'file2.txt': {'filename': 'file2.txt', 'size': 200}
+            '/path/file1.py': {'filename': 'file1.py', 'size': 100},
+            '/path/file2.txt': {'filename': 'file2.txt', 'size': 200}
         }
-        self.metadata_manager.metadata_store = test_data
+        self.metadata_extractor.metadata_store = test_data
         
-        result = self.metadata_manager.get_all_metadata()
+        result = self.metadata_extractor.get_all_metadata()
         assert result == test_data
         
         # verify it returns a copy, not the original
-        assert result is not self.metadata_manager.metadata_store
-        result['new_file.py'] = {'filename': 'new_file.py'}  # should not affect internal store
-        assert 'new_file.py' not in self.metadata_manager.metadata_store
+        assert result is not self.metadata_extractor.metadata_store
+        result['/path/new_file.py'] = {'filename': 'new_file.py'}  # should not affect internal store
+        assert '/path/new_file.py' not in self.metadata_extractor.metadata_store
 
     def test_empty_file_handling(self):
         """Test metadata extraction for empty files"""
@@ -324,16 +315,11 @@ class TestMetadataManager:
         
         try:
             root = Node("root", type="directory")
-            file_node = self.create_test_node(
-                "empty.txt",
-                test_file,
-                ".txt",
-                0
-            )
+            file_node = self.create_test_node("empty.txt", test_file, ".txt", 0)
             file_node.parent = root
             
-            result = self.metadata_manager.extract_all_metadata(root)
-            metadata = result["empty.txt"]
+            result = self.metadata_extractor.extract_all_metadata(root)
+            metadata = result[test_file]
             
             assert metadata['line_count'] == 0
             assert metadata['word_count'] == 0
@@ -353,16 +339,11 @@ class TestMetadataManager:
         
         try:
             root = Node("root", type="directory")
-            file_node = self.create_test_node(
-                "special_chars.txt",
-                test_file,
-                ".txt",
-                len(test_content.encode('utf-8'))
-            )
+            file_node = self.create_test_node("special_chars.txt", test_file, ".txt", len(test_content.encode('utf-8')))
             file_node.parent = root
             
-            result = self.metadata_manager.extract_all_metadata(root)
-            metadata = result["special_chars.txt"]
+            result = self.metadata_extractor.extract_all_metadata(root)
+            metadata = result[test_file]
             
             # should handle special characters without crashing
             assert metadata['line_count'] == 2
