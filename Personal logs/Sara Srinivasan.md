@@ -15,6 +15,8 @@
 - Attended weekly meeting
 - Helped team decide on ways to deepen analysis
 - Discussed with Devin details regarding local llm implementation
+- Added Start and End Dates to many issues that were not properly configured in Github Project
+- Tested and Commented on Team Member's PRs
 
 ### Quiz Response
 
