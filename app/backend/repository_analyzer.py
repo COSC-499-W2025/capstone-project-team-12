@@ -160,7 +160,8 @@ class RepositoryAnalyzer:
 
             project['importance'] = norm_commits + norm_lines_added + norm_duration
 
-        projects.sort(key = lambda x: x['importance'], reverse = True)
+        return sorted(projects, key=lambda x: x['importance'], reverse=True)
+    
 
     @staticmethod
     def normalize_for_rankings (x, x_max, x_min):
