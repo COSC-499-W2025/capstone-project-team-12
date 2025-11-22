@@ -2,21 +2,43 @@ from gensim.corpora import Dictionary
 from gensim.models import LdaModel
 
 def generate_topic_vectors(documents: list[list[str]], num_topics: int = 5):
+    if documents is None:
+        raise TypeError("Documents must be a list.")
+
     if not documents:
         return None, [], [[] for _ in range(num_topics)]
+
+    #ensure all docs are lists
+    if any(not isinstance(doc, list) for doc in documents):
+        raise TypeError("Each document must be a list of tokens.")
+
+    #filter empty token lists
+    documents = [doc for doc in documents if doc]
+    if not documents:
+        return None, [], [[] for _ in range(num_topics)]
+
+    if num_topics <= 0:
+        raise ValueError("num_topics must be greater than 0")
+
+
 
     #build dictionary and corpus
     dictionary = Dictionary(documents)
     #what pii remover returns is a token list, so we have to convert it to a BOW (where each. vectors corresponds to the frequencey of the word in the doc)
     corpus = [dictionary.doc2bow(doc) for doc in documents]
 
-    #train LDA model 
-    lda_model = LdaModel(
-        corpus = corpus,
-        id2word = dictionary,
-        num_topics = num_topics,
-        random_state = 42 #seed value 
-    )
+    try: 
+        #train LDA model 
+        lda_model = LdaModel(
+            corpus = corpus,
+            id2word = dictionary,
+            num_topics = num_topics,
+            random_state = 42 #seed value 
+        )
+    except Exception as e:
+        #gensim can fail due to very small vocab lists or too many topics
+        raise RuntimeError(f"LDA training failed: {e}")
+
 
     #dense topic vectors: basically topics per document
     doc_topic_vectors = [
