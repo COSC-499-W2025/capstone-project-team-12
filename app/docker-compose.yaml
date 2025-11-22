@@ -18,6 +18,8 @@ services:
       - backend_db
     volumes:
       - ./backend/configs:/app/configs 
+    env_file:
+    - ./database/db_conn.env
   backend_db:
     build:
       dockerfile: db.dockerfile
