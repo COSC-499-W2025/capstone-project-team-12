@@ -177,6 +177,46 @@ class RepositoryAnalyzer:
             'duration_seconds': int(duration.total_seconds())
         }
     
+    def _calculate_contribution_rank(self, all_authors_stats: Dict[str, Dict[str, int]], user_email: str | None) -> Dict[str,Any]:
+        # Calculate the user's contribution rank among all authors
+        if not user_email or user_email not in all_authors_stats:
+            return {
+                'contribution_level': 'Unknown',
+                'rank_by_commits': None,
+                'percentile': None,
+            }
+
+        # Sort authors by number of commits
+        sorted_by_commits = sorted(
+            all_authors_stats.items(),
+            key=lambda item: item[1]['commits'],
+            reverse=True
+        )
+
+        # Pull out just the emails in sorted order
+        sorted_emails = [email for email, stats in sorted_by_commits]
+        rank: int = sorted_emails.index(user_email) + 1  if user_email in sorted_emails else None
+
+        total_authors: int = len(all_authors_stats)
+        percentile: float = ((total_authors - rank) / total_authors) * 100 if rank else None
+
+        # Determine contribution level based on rank
+        if total_authors == 1:
+            contribution_level = 'Sole Contributor'
+        elif rank == 1:
+            contribution_level = 'Top Contributor'
+        elif percentile and percentile >= 75:
+            contribution_level = 'Major Contributor'
+        elif percentile and percentile >= 50:
+            contribution_level = 'Significant Contributor'
+        else:
+            contribution_level = 'Contributor'
+        
+        return {
+            'contribution_level': contribution_level,
+            'rank_by_commits': rank,
+            'percentile': round(percentile, 2) if percentile is not None else None,
+        }
     
     # This method may move in later implementation but is included to ensure overall functionality
     def create_chronological_project_list(self, all_repo_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
