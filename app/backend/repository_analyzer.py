@@ -218,6 +218,44 @@ class RepositoryAnalyzer:
             'percentile': round(percentile, 2) if percentile is not None else None,
         }
     
+    def _calculate_code_test_ratio(self, commits_data: List[Dict[str, Any]]) -> Dict[str, Any]:
+        # Calculate the ratio of code to test files modified
+        test_files: int = 0
+        code_files: int = 0
+        test_lines_added: int = 0
+        code_lines_added: int = 0
+
+        # Potential code patterns, can be expanded later
+        test_patterns = ['test_', '_test', 'tests/', '/tests/', '/test/','test/','spec_', '_spec', 'specs/', '/specs/', 'spec.', '.spec']
+
+        for commit in commits_data:
+            for mod in commit.get('modified_files', []):
+                filename: str = mod.get('filename', '').lower()
+                added_lines: int = mod.get('added_lines', 0)
+
+                if any(pattern in filename for pattern in test_patterns):
+                    test_files += 1
+                    test_lines_added += added_lines
+                else:
+                    code_files += 1
+                    code_lines_added += added_lines
+
+        total_files: int = test_files + code_files
+        total_lines: int = test_lines_added + code_lines_added
+
+        testing_percentage: float = (test_files / total_files * 100) if total_files > 0 else 0.0
+        testing_lines_percentage: float = (test_lines_added / total_lines * 100) if total_lines > 0 else 0.0
+
+        return {
+            'test_files_modified': test_files,
+            'code_files_modified': code_files,
+            'testing_percentage_files': round(testing_percentage, 2),
+            'test_lines_added': test_lines_added,
+            'code_lines_added': code_lines_added,
+            'testing_percentage_lines': round(testing_lines_percentage, 2),
+            'has_tests': test_files > 0
+        }
+    
     # This method may move in later implementation but is included to ensure overall functionality
     def create_chronological_project_list(self, all_repo_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         # TODO: determine what parts of a project should be displayed on the timeline
