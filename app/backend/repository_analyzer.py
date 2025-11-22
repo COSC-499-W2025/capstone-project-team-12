@@ -164,7 +164,7 @@ class RepositoryAnalyzer:
             projects.append(project_info)
 
         # Sort all projects by the start date
-        if start_date is not None:
+        if projects:
             projects.sort(key = lambda x: x['start_date'], reverse = True)
 
         return projects
