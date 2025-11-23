@@ -1,4 +1,15 @@
 # Madelyn DeGruchy Personal Log (85064962 - maddydeg)
+## Week 11 & 12 (11/10/2025-11/23/2025)
+- Completed the extraction of Git contribution metrics, and removed potential pieces that could include PII (commit messages)
+  - Includes a refactor to move the analysis portion to a new file repository_analyzer.py
+  - Added testing for Git Contribution extraction
+- Implement method to create a timeline of all project repositories from the user
+- Implement analysis to find the rank of a user in a project
+  - Labels their contribution level, overall rank in the project by commits, and what percentile of contributors they are in
+- Calculate code vs test ratio
+  - Find overall # of code files, test files, lines of code, lines of tests, and percentages to compare files and lines of code vs tests. Also includes boolean to check if the user wrote any tests in a project
+- Update analyze_repository.py to return the new insights from above
+
 ## Week 10 (11/03/2025 - 11/09/2025)
 - Resolved bug that was preventing system from properly reconstructing .git folders
   - Made changes to tree_processor.py to prevent files in .git folder from being dropped as invalid nodes
