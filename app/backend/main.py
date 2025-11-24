@@ -8,7 +8,9 @@ from typing import List,BinaryIO, Dict, Any
 from file_manager import FileManager
 from tree_processor import TreeProcessor
 from repository_processor import RepositoryProcessor
-from metadata_manager import MetadataManager
+from bow_cache_pipeline import get_or_build_bow
+from metadata_extractor import MetadataExtractor
+from metadata_analyzer import MetadataAnalyzer
 from repository_analyzer import RepositoryAnalyzer
 from text_preprocessor import text_preprocess
 from pii_remover import remove_pii
@@ -117,10 +119,7 @@ def get_bin_data_by_Id(bin_Idx:int)->BinaryIO|None:
         return None
     return file_data_list[bin_Idx]
 
-
 def get_bin_data_by_IdList(bin_Idx_list:List[int])->List[BinaryIO]:
-    """ Takes a list of binary indexes and fetches the binary data. Returns a list of BinaryIO or 
-        None if not found."""
     #check if files are loaded
     if file_data_list is None or len(file_data_list) == 0:
         print("Empty List: Initialize by calling File")
@@ -131,16 +130,6 @@ def get_bin_data_by_IdList(bin_Idx_list:List[int])->List[BinaryIO]:
     for bin_Idx in bin_Idx_list:
         response_List.append(get_bin_data_by_Id(bin_Idx))
     return response_List
-
-def convert_binary_to_text(node_array:List[Node])->List[BinaryIO|None]:
-    """ Converts binary data to text strings for text preprocessing """
-    text_data_list: List[str] = []
-    bin_Idx_list: List[int] = []
-    for node in node_array:
-        bin_Id = node.file_data['binary_index']
-        bin_Idx_list.append(bin_Id)
-    text_data_list = [str(x) for x in get_bin_data_by_IdList(bin_Idx_list)]
-    return text_data_list
 
 def main() -> None:
     try:
@@ -201,15 +190,18 @@ def main() -> None:
                             print("Warning: FileManager returned no binary data or in unexpected format. Proceeding with empty binary array.")
                             binary_data = []
                         
-                        metadata_manager: MetadataManager = MetadataManager()
-                        metadata_results: Dict[str, Dict[str, Any]] = metadata_manager.extract_all_metadata(processed_tree, binary_data)
+                        metadata_extractor: MetadataExtractor = MetadataExtractor()
+                        metadata_results: Dict[str, Dict[str, Any]] = metadata_extractor.extract_all_metadata(processed_tree, binary_data)
                         
                         print("Metadata extracted successfully in Metadata Manager.\n")
                         
                         total_files: int = len(metadata_results)
                         if total_files > 0:
                             print(f"   Processed metadata for {total_files} files")
-                        
+
+                        metadata_analyzer: MetadataAnalyzer = MetadataAnalyzer(metadata_results)
+                        analysis_results = metadata_analyzer.analyze_all()
+                        print("Metadata analysis completed successfully in Metadata Analyzer.\n")
 
                         git_repos: List[Node] = tree_processor.get_git_repos() #check for git repos before processing repos
 
@@ -275,7 +267,7 @@ def main() -> None:
                             else:
                                 print("No text files found to preprocess.")
                         except Exception as e:
-                            print(f"Error during text processing: {e}")
+                            print(f"Error during text/PII processing: {e}")
 
 
                     if git_repos:
