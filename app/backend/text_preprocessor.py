@@ -6,7 +6,6 @@ from nltk.stem import WordNetLemmatizer
 from nltk.corpus import wordnet
 from nltk import word_tokenize, pos_tag
 from anytree import Node
-from main import get_bin_data_by_IdList
 from typing import BinaryIO
 
 stop_words: set[str] = None
@@ -15,16 +14,6 @@ def stopwords_init():
     global stop_words
     stop_words = set(stopwords.words('english'))
     return
-
-def get_data(node_array:List[Node])->List[BinaryIO|None]:
-    # Get all the file data needed from main
-    text_data_list: List[str] = []
-    bin_Idx_list: List[int] = []
-    for node in node_array:
-        bin_Id = node.file_data['binary_index']
-        bin_Idx_list.append(bin_Id)
-    text_data_list = [str(x) for x in get_bin_data_by_IdList(bin_Idx_list)]
-    return text_data_list
 
 # Primary function for external use of module. 
 # Each sub array refers to tokens extracted from individual text files
@@ -35,29 +24,24 @@ def get_data(node_array:List[Node])->List[BinaryIO|None]:
 # Note should only be called on array of text files, i.e Should not be called on array of codefile nodes
 # Instead call `codepreprocess_entrypoint(...)` and add the results pf both functions together
 # Before forwarding PII removal and eventually to analysis step
-def text_preprocess(node_array:List[Node]) ->List[List[str]]:
+def text_preprocess(text_data_array:List[str]) ->List[List[str]]:
     #declare output list
     preProcessed_doclist: List[List[str]] = []
     
-    text_data_list = get_data(node_array)
-    #print(node_array)
-    #print(text_data_list)
-    for i in range(len(node_array)):
+    for i in range(len(text_data_array)):
         tokenarray: List[str]
-        node = node_array[i]
-        text = text_data_list[i]
+        text = text_data_array[i]
         if text is not None: #If downstream error then will be none!
             tokenarray = get_tokens(text)
             tokenarray = stopword_filtered_tokens(tokenarray)
             tokenarray = lemmatize_tokens(tokenarray)
             preProcessed_doclist.append(tokenarray)
         else:
-            print("Failed to process text file:" + str(node))
+            print("Failed to process text file:" + text_data_array[i])
             continue
     return preProcessed_doclist
 
 #reads file and gets token, currently from local dir
-#TODO: rework to use binary array instead
 def get_tokens(text:str) -> List[str]:
     
     clean_txt:str
@@ -86,7 +70,7 @@ def stopword_filtered_tokens(tokens: List[str]) -> List[str]:
         
         # remove English stopwords
         filtered_tokens: list[str] = [word.lower() for word in tokens if word.lower() not in stop_words]
-        #print(f"Stopword filtered tokens: {filtered_tokens}")
+
     except Exception as e:
         print(f"An error occurred in stopword_filtered_tokens: {e}")
         return []
@@ -132,6 +116,3 @@ def lemmatize_tokens(node:Node) -> List[str]:
     except Exception as e: 
         print(f"An error occurred in lemmatize_tokens: {e}")
         return []
-
-
-# If youre looking for the local test as there is comprehensive test in main testsuite under backend/tests_backend

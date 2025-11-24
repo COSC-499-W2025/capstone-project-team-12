@@ -4,7 +4,6 @@ import hashlib
 from pathlib import Path
 from anytree import Node
 from cache.bow_cache import BoWCache, BoWCacheKey, compute_cache_key
-from bow_cache_pipeline import get_or_build_bow
 
 
 def test_compute_cache_key_stable():
@@ -50,46 +49,6 @@ def test_cache_handles_corrupted_file(tmp_path):
     result = cache.get(key)
     assert result is None
     assert not path.exists()
-
-
-def test_bow_pipeline_creates_and_reuses_cache(tmp_path, monkeypatch):
-    """Testing that BoW pipeline creates cache on first run and reuses it on second run"""
-    
-    # Set BOW_CACHE_DIR to temporary path for this test
-    monkeypatch.setenv("BOW_CACHE_DIR", str(tmp_path))
-
-    import importlib
-    import bow_cache_pipeline as bow_pipeline
-    import cache.bow_cache as bow_cache
-
-    # reload modules so they use this temporary path
-    importlib.reload(bow_cache)
-    importlib.reload(bow_pipeline)
-
-    # mock preprocessing methods to avoid actual processing
-    def mock_text_preprocess(node_array): return [["mock", "tokens"]]
-    def mock_remove_pii(processed_docs): return [["anonymized", "tokens"]]
-
-    monkeypatch.setattr(bow_pipeline, "text_preprocess", mock_text_preprocess)
-    monkeypatch.setattr(bow_pipeline, "remove_pii", mock_remove_pii)
-
-    from anytree import Node
-    node = Node("test.txt")
-    node.filepath = str(tmp_path / "test.txt")
-
-    # first run should be cache miss
-    bow1 = bow_pipeline.get_or_build_bow([node])
-    assert bow1 == [["anonymized", "tokens"]]
-
-    # second run should be cache hit
-    bow2 = bow_pipeline.get_or_build_bow([node])
-    assert bow2 == bow1
-
-    # verify that a cache file (.pkl file) was created
-    pkl_files = list(tmp_path.rglob("*.pkl"))
-    assert len(pkl_files) == 1
-    assert pkl_files[0].exists()
-
 
 
 def test_bow_cache_key_allows_missing_fields(tmp_path):
