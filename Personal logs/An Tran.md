@@ -1,6 +1,6 @@
 # An Tran Personal Log (79499364)
 
-## Week 11 (11/17/2025 - 11/23/2025)
+## Week 12 (11/17/2025 - 11/23/2025)
 ### Tasks
 - Implement metadata metadata analyzer
 - Finish implementing author extraction in metadata extractor
@@ -11,6 +11,8 @@
 - Updated tests for metadata extractor
 - Implemented metadata analyzer to return custom class of  and its tests
 - Participated in team meeting
+
+![Week 12](imgs/An%20Tran%20week12.png)
 
 ### Reflection and plans for next week
 - Initially I wanted to use the metadata stats and make analyses about a user's productivity based on their files' creation/modified dates. Sara suggested I could classify the extensions into skill categories and gather the user's productivity/primary skills based on the change in each category's total file size in between modified date durations, but I couldn't figure out a way to code that for this week. Perhaps for Milestone 2, metadata analyzer could compare the change in file size by the time between each generated insight.
