@@ -13,6 +13,7 @@ from repository_analyzer import RepositoryAnalyzer
 from text_preprocessor import text_preprocess
 from pii_remover import remove_pii
 from cache.bow_cache import BoWCache, BoWCacheKey
+from topic_vectors import generate_topic_vectors
 import hashlib
 
 
@@ -261,6 +262,16 @@ def main() -> None:
                                 cache.set(key, final_bow)
 
                                 print(f"Successfully built BoW for {len(final_bow)} document(s) and saved it to Cache. Ready for text analysis.\n")
+
+                                print("Running topic modeling...")
+
+                                lda_model, doc_topic_vectors, topic_term_vectors = generate_topic_vectors(final_bow)
+
+                                print("Successfully generated topic vectors.")
+                                print(f"- Number of documents: {len(doc_topic_vectors)}")
+                                print(f"- Number of topics: {len(topic_term_vectors)}")
+                                print("Text analysis complete.\n")
+                                
                             else:
                                 print("No text files found to preprocess.")
                         except Exception as e:
