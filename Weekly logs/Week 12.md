@@ -56,4 +56,5 @@ Filtered to only show Tasks with changes this week.
 ### Reflections
 - This was a very productive week for us, we were all motivated by the upcoming Milestone 1 deadline
 - The team was very driven to produce work that corresponds with M1 project requirements and make sure we have our MVP finished for next week
-- We had an extra meetting this week to make sure we are all on the same page technically speaking as we finish our components
+- We had an extra meeting this week to make sure we are all on the same page technically speaking as we finish our components
+- We are doing our best to come up with ways to deepen our analysis but are realizing a lot of this may have to be left to Milestone 2 since we will not have time to implement it just yet
