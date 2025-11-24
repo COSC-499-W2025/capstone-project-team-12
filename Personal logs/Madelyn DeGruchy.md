@@ -10,6 +10,18 @@
   - Find overall # of code files, test files, lines of code, lines of tests, and percentages to compare files and lines of code vs tests. Also includes boolean to check if the user wrote any tests in a project
 - Update analyze_repository.py to return the new insights from above
 
+### In Progress
+- Continuing to brainstorm how to deepen analysis and provide portfolio specific outputs
+
+### For Next Week
+- Rework input of GitHub id to consider both their account email and username, to ensure full coverage of the users commits
+
+### Reflection
+- Had some confusion on what is actually expected for Milestone 1 for the analysis and needed to meet with the team on Wednesday to restructure our approach.
+- Overall this week was very busy and put a serious time crunch on the work I needed to complete. Some portions feel rushed and may need to be included in a refactor next week
+
+![Peer Evaluation Week 11 & 12](imgs/Madelyn%20DeGruchy%20Week%2012.png)
+
 ## Week 10 (11/03/2025 - 11/09/2025)
 - Resolved bug that was preventing system from properly reconstructing .git folders
   - Made changes to tree_processor.py to prevent files in .git folder from being dropped as invalid nodes
