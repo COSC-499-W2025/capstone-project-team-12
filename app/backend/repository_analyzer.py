@@ -18,32 +18,67 @@ class RepositoryAnalyzer:
             
             # Initalize data collectors
             commits_data: List[Dict[str, Any]] = []
-            all_commits_total: int = 0
             user_dates: List[datetime] = []
-            unique_authors: Set[str] = set()
+            all_authors_stats: Dict[str, Dict[str, int]] = {}
+
+            user_email: str | None = None
 
             # Initialize statistic accumulators
             total_files_modified: int = 0
             total_lines_added: int = 0
             total_lines_deleted: int = 0
-            change_types: set = set()
+            change_types: Set[str] = set()
+
+            # Initialize all user stats
+            all_commits_total: int = 0
+            repo_total_lines_added: int = 0
+            repo_total_lines_deleted: int = 0
+            repo_total_files_modified: int = 0
             
             # TODO: how to use commit info to rank importance of project
             # ^ can look at types, total lines added/deleted, # of files modified?
             
             # Traverse commits here to ensure only a single pass
             for commit in repo.traverse_commits():
-                all_commits_total+=1
+                all_commits_total += 1
 
                 commit_email: str = commit.author.email.lower() if commit.author and commit.author.email else ""
-                unique_authors.add(commit_email)
 
                 # Will return the Github privacy email with username so extract username (ex: 12345+yourusername@users.noreply.github.com)
                 commit_username: str = commit.author.email.split('@')[0].split('+')[-1].lower()
 
+                # Track stats for all users
+                if commit_email not in all_authors_stats:
+                    all_authors_stats[commit_email] = {
+                        'commits': 0,
+                        'lines_added': 0,
+                        'lines_deleted': 0,
+                        'files_modified': 0
+                    }
+                
+                commit_lines_added = 0
+                commit_lines_deleted = 0
+                commit_files = 0
+                for mod in (commit.modified_files or []):
+                    commit_files += 1
+                    commit_lines_added += mod.added_lines if mod.added_lines is not None else 0
+                    commit_lines_deleted += mod.deleted_lines if mod.deleted_lines is not None else 0
+                    repo_total_lines_added += mod.added_lines if mod.added_lines is not None else 0
+                    repo_total_lines_deleted += mod.deleted_lines if mod.deleted_lines is not None else 0
+                    repo_total_files_modified += 1
+                    if commit_username == self.username:
+                        if mod.change_type:
+                            change_types.add(mod.change_type.name)
+                
+                all_authors_stats[commit_email]['commits'] += 1
+                all_authors_stats[commit_email]['lines_added'] += commit_lines_added
+                all_authors_stats[commit_email]['lines_deleted'] += commit_lines_deleted
+                all_authors_stats[commit_email]['files_modified'] += commit_files
+
                 # Only consider the commits of the user for analysis
                 if commit_username == self.username:
                     # Builds the commit info
+                    user_email = commit_email  # Capture user's actual email (GitHub privacy or personal)
                     commit_info = self._build_commit_info(commit)
                     commits_data.append(commit_info)
 
@@ -52,17 +87,17 @@ class RepositoryAnalyzer:
                         user_dates.append(commit.author_date)
                     
                     # Update all statistics within the traversal to ensure single pass
-                    for mod in (commit.modified_files or []):
-                        total_files_modified += 1
-                        total_lines_added += mod.added_lines if mod.added_lines is not None else 0
-                        total_lines_deleted += mod.deleted_lines if mod.deleted_lines is not None else 0
-
-                        if mod.change_type:
-                            change_types.add(mod.change_type.name)
-
+                    total_files_modified += commit_files
+                    total_lines_added += commit_lines_added
+                    total_lines_deleted += commit_lines_deleted
             # Calculate metrics
+            user_contribution_rank: Dict[str, Any] = self._calculate_contribution_rank(
+                all_authors_stats,
+                user_email
+            )
+            test_ratio: Dict[str, Any] = self._calculate_code_test_ratio(commits_data)
             date_range: Dict[str, Any] = self._calculate_date_range(user_dates)
-            is_collaborative: bool = len(unique_authors) > 1 if unique_authors else len(commits_data) < all_commits_total
+            is_collaborative: bool = len(all_authors_stats) > 1 if all_authors_stats else len(commits_data) < all_commits_total
 
             return {
                 # Basic Information for the repository
@@ -84,7 +119,17 @@ class RepositoryAnalyzer:
                     'total_lines_added': total_lines_added,
                     'total_lines_deleted': total_lines_deleted,
                     'change_types': list(change_types)
-                }
+                },
+                'repository_context': {
+                    'total_contributors': len(all_authors_stats),
+                    'total_commits_all_authors': all_commits_total,
+                    'repo_total_lines_added': repo_total_lines_added,
+                    'repo_total_lines_deleted': repo_total_lines_deleted,
+                    'repo_total_files_modified': repo_total_files_modified,
+                    
+                },
+                'user_contribution_rank': user_contribution_rank, # Reflects teamwork insights
+                'code_vs_test_ratio': test_ratio
             }
         except Exception as e:
             return {
@@ -98,8 +143,7 @@ class RepositoryAnalyzer:
         # builds the basic info for individual commits
         return {
             'hash': commit.hash if commit.hash else "Unknown",
-            'date': commit.author_date.isoformat() if commit.author_date else "Unknown", 
-            'message': commit.msg if commit.msg else "",
+            'date': commit.author_date.isoformat() if commit.author_date else "Unknown",
             'modified_files': [
                 {
                     'filename': mod.filename if mod.filename else "Unknown",
@@ -132,6 +176,84 @@ class RepositoryAnalyzer:
             'duration_seconds': int(duration.total_seconds())
         }
     
+    def _calculate_contribution_rank(self, all_authors_stats: Dict[str, Dict[str, int]], user_email: str | None) -> Dict[str,Any]:
+        # Calculate the user's contribution rank among all authors
+        if not user_email or user_email not in all_authors_stats:
+            return {
+                'contribution_level': 'Unknown',
+                'rank_by_commits': None,
+                'percentile': None,
+            }
+
+        # Sort authors by number of commits
+        sorted_by_commits = sorted(
+            all_authors_stats.items(),
+            key=lambda item: item[1]['commits'],
+            reverse=True
+        )
+
+        # Pull out just the emails in sorted order
+        sorted_emails = [email for email, stats in sorted_by_commits]
+        rank: int = sorted_emails.index(user_email) + 1  if user_email in sorted_emails else None
+
+        total_authors: int = len(all_authors_stats)
+        percentile: float = ((total_authors - rank) / total_authors) * 100 if rank else None
+
+        # Determine contribution level based on rank
+        if total_authors == 1:
+            contribution_level = 'Sole Contributor'
+        elif rank == 1:
+            contribution_level = 'Top Contributor'
+        elif percentile and percentile >= 75:
+            contribution_level = 'Major Contributor'
+        elif percentile and percentile >= 50:
+            contribution_level = 'Significant Contributor'
+        else:
+            contribution_level = 'Contributor'
+        
+        return {
+            'contribution_level': contribution_level,
+            'rank_by_commits': rank,
+            'percentile': round(percentile, 2) if percentile is not None else None,
+        }
+    
+    def _calculate_code_test_ratio(self, commits_data: List[Dict[str, Any]]) -> Dict[str, Any]:
+        # Calculate the ratio of code to test files modified
+        test_files: int = 0
+        code_files: int = 0
+        test_lines_added: int = 0
+        code_lines_added: int = 0
+
+        # Potential code patterns, can be expanded later
+        test_patterns = ['test_', '_test', 'tests/', '/tests/', '/test/','test/','spec_', '_spec', 'specs/', '/specs/', 'spec.', '.spec']
+
+        for commit in commits_data:
+            for mod in commit.get('modified_files', []):
+                filename: str = mod.get('filename', '').lower()
+                added_lines: int = mod.get('added_lines', 0)
+
+                if any(pattern in filename for pattern in test_patterns):
+                    test_files += 1
+                    test_lines_added += added_lines
+                else:
+                    code_files += 1
+                    code_lines_added += added_lines
+
+        total_files: int = test_files + code_files
+        total_lines: int = test_lines_added + code_lines_added
+
+        testing_percentage: float = (test_files / total_files * 100) if total_files > 0 else 0.0
+        testing_lines_percentage: float = (test_lines_added / total_lines * 100) if total_lines > 0 else 0.0
+
+        return {
+            'test_files_modified': test_files,
+            'code_files_modified': code_files,
+            'testing_percentage_files': round(testing_percentage, 2),
+            'test_lines_added': test_lines_added,
+            'code_lines_added': code_lines_added,
+            'testing_percentage_lines': round(testing_lines_percentage, 2),
+            'has_tests': test_files > 0
+        }
     def rank_importance_of_projects(self, projects: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """ Ranks project importance based on the number of commits from a user, the number of lines added by the user, and the
         duration of the project """
