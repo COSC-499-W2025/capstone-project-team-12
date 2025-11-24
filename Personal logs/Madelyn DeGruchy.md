@@ -9,6 +9,7 @@
 - Calculate code vs test ratio
   - Find overall # of code files, test files, lines of code, lines of tests, and percentages to compare files and lines of code vs tests. Also includes boolean to check if the user wrote any tests in a project
 - Update analyze_repository.py to return the new insights from above
+- Took part in team meetings
 
 ### In Progress
 - Continuing to brainstorm how to deepen analysis and provide portfolio specific outputs
