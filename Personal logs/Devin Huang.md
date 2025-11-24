@@ -1,5 +1,31 @@
 ## Devin Huang Personal Log (86828886)
 
+### Week 12
+#### This week 
+- Implemented the local llm and containerized it into docker (https://github.com/COSC-499-W2025/capstone-project-team-12/issues/143)
+  - Docker:
+    - Added local-llm.dockerfile for an Ollama Phi-3 Mini container
+    - Updated docker-compose with a local_llm service, memory limits, and a persistent volume
+    - Added health checks and test port
+  - Backend:
+    - Backend now depends on the local_llm service
+    - Renamed llm_api.py to llm_online.py and refactored LLMAPIClient to OnlineLLMClient to make it more clear
+    - Added llm_local.py with LocalLLMClient for Ollama
+    - The current prompts are still not optimal for the smaller model, but these will be changed later on, as they are not major issues.
+    - Added short, standard, and long summary methods (120-second timeout, although with bigger bundles, we might need more time)
+- Wrote tests for the local implementation of the llm: (https://github.com/COSC-499-W2025/capstone-project-team-12/issues/179)
+  - Updated test_llm_online.py with new names and made sure that all tests pass
+  - Added test_llm_local.py
+#### Next week
+- Add the newly implemented local llm and online llm into the main pipeline for the insight generator
+- Fix any bugs related to the pipelining and integration of these modules into `main.py`
+
+#### Reflection
+- The main factor that slowed me down this week was all the documentation that I needed to read before actually implementing the local llm and how to make it function with docker.
+
+<img width="1201" height="617" alt="image" src="https://github.com/user-attachments/assets/726ff967-d37f-464b-ae2b-f7ed7111df4b" />
+
+
 ### Week 10
 #### This week
 - Implemented a basic version of the statistics and data cache (https://github.com/COSC-499-W2025/capstone-project-team-12/pull/136)

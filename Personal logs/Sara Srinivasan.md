@@ -1,5 +1,36 @@
 # Sara Srinivasan Personal Log (10801751)
+
+## Week 11 and 12
+
+### Work Done
+
+- Dev-Ops
+    - Setup and wrote initialization for database
+    - Fixed Docker bad config leading to high build times
+    - Added dates for numerous issues and PRs in Github Proj
+- Code
+  - DB Access util functions module
+  - Component Testing for DB Utils Module
+  - Component Testing for Code Proproccessor
+- Attended weekly meeting
+- Helped team decide on ways to deepen analysis
+- Discussed with Devin details regarding local llm implementation
+- Added Start and End Dates to many issues that were not properly configured in Github Project
+- Tested and Commented on Team Member's PRs
+
+### Quiz Response
+
+![Week 12 Response](imgs/Sara%20Srinivasan%20Week%2012.png)
+
+### Review and Plans
+
+Final stretch for Milestone one Completion, Lots of work done over this week.
+Should be able to focus on integretion for Week 13
+Personally I am considering setting up github workflows CI/CD next week since we have an MVP
+(Discuss with team next meeting)
+
 ## Week 10
+
 ### Work Done
 
 - PR reviews

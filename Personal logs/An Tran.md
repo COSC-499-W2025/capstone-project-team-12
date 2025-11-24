@@ -1,5 +1,24 @@
 # An Tran Personal Log (79499364)
 
+## Week 12 (11/17/2025 - 11/23/2025)
+### Tasks
+- Implement metadata metadata analyzer
+- Finish implementing author extraction in metadata extractor
+
+### Completed:
+- Added author extraction for pdf and docx files in metadata extractor
+- Changed metadata extractor to return a dictionary with filepath as key instead of filename to prevent overwriting data
+- Updated tests for metadata extractor
+- Implemented metadata analyzer to return custom class of  and its tests
+- Participated in team meeting
+
+![Week 12](imgs/An%20Tran%20week12.png)
+
+### Reflection and plans for next week
+- Initially I wanted to use the metadata stats and make analyses about a user's productivity based on their files' creation/modified dates. Sara suggested I could classify the extensions into skill categories and gather the user's productivity/primary skills based on the change in each category's total file size in between modified date durations, but I couldn't figure out a way to code that for this week. Perhaps for Milestone 2, metadata analyzer could compare the change in file size by the time between each generated insight.
+- To integrate metadata analysis results into main.py and store in stats cache
+- Start preparing for Milestone 1 Presentation
+
 ## Week 10 (11/03/2025 - 11/09/2025)
 ### Tasks
 - Implement metadata extractor and metadata analyzer

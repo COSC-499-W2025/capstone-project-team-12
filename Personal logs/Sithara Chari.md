@@ -95,3 +95,24 @@ Overall this week we mainly focused on refactoring our existing code, so we have
 ### Review and future plans 
 - This week I was really busy with my midterms, so I only was able to do the file manager testing and not any of the other work I was supposed to do 
 - I will finish the ML implementation, and keep working on our anaysis pipeline. 
+
+
+## Week 11 and 12
+## TODOs
+- topic vector generation and testing (issue number 150 and 164) using gensim topic vectors
+- Integrate all components into main.py which is the entrypoint to our app
+
+### Work Done 
+- Participated in team meeting, prioritized taks to complete with a more focused path towards milestone 1
+- researched how to use gensim to generate topic vectors from our bag of words.
+- Wrote code for generating topic vectors using gensim
+- Reviewed teamates PRs
+
+![alt text](<imgs/Sithara Chari Week 12.png>)
+
+
+### Review and future plans 
+- I finished most of the analysis with topic vectors during the reading week, and I finished writing the test for it earlier this week. 
+- I didn't have time to work on main.py so that will be done next week mostly 
+- Next week since we have no more new components to code, we will just polishing up everything we have and storing everything in the db, and getting ready for the presentation.
+

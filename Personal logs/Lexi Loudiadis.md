@@ -1,5 +1,26 @@
 # Lexi Loudiadis (93546844) Personal Log
 
+## Week 12 (11/17/2025 - 11/23/2025)
+
+- Addressed a circular imports bug that ended up in our main branch
+- Did some refactoring to promote loose coupling by ensuring different modules do not talk to each other directly and are instead called from main
+- Worked on the project analysis pipeline; added methods so that we can rank importance of projects and summarize the top ranked projects
+- Wrote tests to test these methods
+
+### In Progress
+- Figuring out how to deepen project analysis and differentiate between portfolio and resume insights
+
+### What's Next
+- Next week I will work on extracting the import lines from projects, which will be used to extract key skills, produce a chronological list of skills, and differentiate between code files and test files
+- Additionally I will help ensure that everything is running cohesively for our demo and deliverable
+
+### Reflection
+- This week I was the only one who wasn't continuing to work on something that I'd worked on in previous weeks, so during the team meeting I asked who needed help and that's how I ended up working on the project analysis pipeline with Maddy. We met on Thursday to discuss what was left to do to ensure that we hit all the M1 requirements and how to split the remaining work. There is still a bit left to be done as outline above, which will be done early next week. However, all work I planned for this week was completed
+
+![Type of tasks I worked on](imgs/Week%2012%20Lexi.png)
+
+
+
 ## Week 10 (11/03/2025 - 11/09/2025)
 
 - Implemented the BoW Cache, which stores and retrieves tokenized text before text analysis, given a hash key
