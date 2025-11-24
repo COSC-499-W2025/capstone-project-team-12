@@ -7,6 +7,9 @@
 - Worked on the project analysis pipeline; added methods so that we can rank importance of projects and summarize the top ranked projects
 - Wrote tests to test these methods
 
+### In progress
+- Figuring out how to deepen project analysis and differentiate between portfolio and resume insights
+
 ### What's Next
 - Next week I will work on extracting the import lines from projects, which will be used to extract key skills, produce a chronological list of skills, and differentiate between code files and test files
 - Additionally I will help ensure that everything is running cohesively for our demo and deliverable
