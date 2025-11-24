@@ -7,7 +7,7 @@
 - Worked on the project analysis pipeline; added methods so that we can rank importance of projects and summarize the top ranked projects
 - Wrote tests to test these methods
 
-### In progress
+### In Progress
 - Figuring out how to deepen project analysis and differentiate between portfolio and resume insights
 
 ### What's Next
