@@ -12,6 +12,11 @@ from bow_cache_pipeline import get_or_build_bow
 from metadata_extractor import MetadataExtractor
 from metadata_analyzer import MetadataAnalyzer
 from repository_analyzer import RepositoryAnalyzer
+from text_preprocessor import text_preprocess
+from pii_remover import remove_pii
+from cache.bow_cache import BoWCache, BoWCacheKey
+from topic_vectors import generate_topic_vectors
+import hashlib
 
 
 file_data_list : List = []
@@ -205,8 +210,60 @@ def main() -> None:
                             text_nodes: List[Node] = tree_processor.get_text_files()
                             if text_nodes:
                                 print(f"Found {len(text_nodes)} text files. Running BoW pipeline...")
-                                final_bow = get_or_build_bow(text_nodes)
-                                print(f"Successfully built BoW for {len(final_bow)} documents. Ready for text analysis.\n")
+
+                                # with the current setup, we assume all text files use the same preprocessing steps
+                                preprocess_signature = {
+                                    "lemmatizer": True,
+                                    "stopwords": "nltk_english_default",
+                                    "pii_removal": True,
+                                    "filters": ["text"]
+                                }
+
+                                # build repo_id by hashing joined file paths
+                                file_paths = [getattr(text_file, "filepath", str(text_file.name)) for text_file in text_nodes]
+                                joined_paths = "|".join(file_paths)
+                                repo_id = hashlib.md5(joined_paths.encode()).hexdigest()
+
+                                # no git commit info for text files
+                                head_commit = None
+
+                                # initialize cache and key
+                                key = BoWCacheKey(repo_id, head_commit, preprocess_signature)
+                                cache = BoWCache()
+
+                                # check cache for existing BoW
+                                if cache.has(key):
+                                    print(f"Cache hit for BoW (repo_id={repo_id})")
+                                    cached = cache.get(key)
+                                    if cached is not None:
+                                        return cached # return cached BoW
+                                    print("Cache corrupted or unreadable - regenerating...")
+
+                                # if we reach here, we have a cache miss
+                                print("Cache miss - running text preprocessing pipeline...")
+
+                                # convert binary data to text data to use in for preprocessing
+                                text_data: List[str] = convert_binary_to_text(text_nodes)
+                                
+                                # run text preprocessing
+                                processed_docs = text_preprocess(text_data)
+                                anonymized_docs = remove_pii(processed_docs)
+                                final_bow: list[list[str]] = anonymized_docs
+
+                                # save to cache
+                                cache.set(key, final_bow)
+
+                                print(f"Successfully built BoW for {len(final_bow)} document(s) and saved it to Cache. Ready for text analysis.\n")
+
+                                print("Running topic modeling...")
+
+                                lda_model, doc_topic_vectors, topic_term_vectors = generate_topic_vectors(final_bow)
+
+                                print("Successfully generated topic vectors.")
+                                print(f"- Number of documents: {len(doc_topic_vectors)}")
+                                print(f"- Number of topics: {len(topic_term_vectors)}")
+                                print("Text analysis complete.\n")
+                                
                             else:
                                 print("No text files found to preprocess.")
                         except Exception as e:
