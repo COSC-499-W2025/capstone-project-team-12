@@ -4,12 +4,30 @@ from pydriller.domain.commit import Commit
 from anytree import Node
 from typing import Any, Dict, List, Set
 from datetime import datetime
+import re
 
 class RepositoryAnalyzer:
     # Analyzes repository data to extract project insights
 
     def __init__(self, username: str):
         self.username = username
+    
+    # Regex patterns for import statements in various languages
+    # Python: from X import Y -> captures X; import X, Y -> captures X, Y
+    PYTHON_IMPORT_RE = re.compile(r'^\s*(?:from\s+([a-zA-Z0-9_\.]+)\s+import|import\s+([a-zA-Z0-9_\., ]+))', re.MULTILINE)
+
+    # JavaScript/TypeScript: import X from 'module' or require('module') -> captures 'module'
+    JS_IMPORT_RE = re.compile(r'^\s*import\s+(?:.*?\s+from\s+)?["\']([^"\']+)["\']|^\s*const\s+\w+\s*=\s*require\(["\']([^"\']+)["\']\)', re.MULTILINE)
+
+    # Java: import package.Class; -> captures package.Class
+    JAVA_IMPORT_RE = re.compile(r'^\s*import\s+([\w\.]+);', re.MULTILINE)
+
+    # C/C++: #include <header> or #include "header" -> captures header
+    C_IMPORT_RE = re.compile(r'^\s*#include\s*[<"]([^>"]+)[>"]', re.MULTILINE)
+
+    # If none of the above, here is a generic pattern to capture common import/include statements
+    GENERIC_IMPORT_RE = re.compile(r'\b(import|require|include)\b.*?[\'"<]([\w\./-]+)[\'">]', re.MULTILINE)
+
 
     def analyze_repository(self, repo_node: Node, git_folder_path: Path) -> Dict[str, Any]:
         # Analyze a single repository using PyDriller to extract commit information
@@ -155,6 +173,89 @@ class RepositoryAnalyzer:
             ]
         }
 
+
+    def extract_repo_import_stats(self, repo: Repository, repo_name: str) -> Dict[str, Any]:
+        """
+        Extracts the import statistics for all files modified by the user in one repo.
+        Returns a dict with repository_name and imports_summary. For each import, we track:
+        - frequency
+        - start_date
+        - end_date
+        - duration_days
+
+        Doing this allows us to find skills and technologies the user has worked with over time.
+        """
+
+        commit_username = self.username
+        imports_data: Dict[str, Dict[str, Any]] = {}
+
+        # loop through all commits in the repository
+        for commit in repo.traverse_commits():
+            c_username = commit.author.email.split('@')[0].split('+')[-1].lower()
+            if c_username != commit_username:
+                continue # skip commits not by the user
+
+            commit_date = commit.author_date
+            if not commit_date:
+                continue
+
+            # loop through all modified files in the commit
+            for mod in (commit.modified_files or []):
+                src = mod.source_code or ""
+                if not src.strip():
+                    continue
+
+                # get file extension to determine language
+                filename = mod.filename or "unknown"
+                ext = filename.split('.')[-1].lower() if '.' in filename else ""
+
+                # extract imports based on programming language using regex patterns
+                imports: List[str] = []
+                if ext == "py":
+                    matches = self.PYTHON_IMPORT_RE.findall(src)
+                    for m_from, m_imp in matches:
+                        if m_from:
+                            imports.append(m_from)
+                        elif m_imp:
+                            imports += [i.split(" as ")[0].strip() for i in m_imp.split(',')]
+                elif ext in {"js", "ts"}:
+                    matches = self.JS_IMPORT_RE.findall(src)
+                    for m in matches:
+                        imports.append(m[0] or m[1])
+                elif ext == "java":
+                    imports += self.JAVA_IMPORT_RE.findall(src)
+                elif ext in {"c", "cpp", "h", "hpp"}:
+                    imports += self.C_IMPORT_RE.findall(src)
+
+                # imports_data is a dict with per-import statistics
+                for imp in imports:
+                    if imp not in imports_data:
+                        imports_data[imp] = {
+                            "frequency": 0,
+                            "start_date": commit_date,
+                            "end_date": commit_date
+                        }
+                    imports_data[imp]["frequency"] += 1
+                    if commit_date < imports_data[imp]["start_date"]:
+                        imports_data[imp]["start_date"] = commit_date
+                    if commit_date > imports_data[imp]["end_date"]:
+                        imports_data[imp]["end_date"] = commit_date
+
+        # convert dates and calculate duration
+        for imp, data in imports_data.items():
+            start = data["start_date"]
+            end = data["end_date"]
+            data["start_date"] = start.isoformat() if start else None
+            data["end_date"] = end.isoformat() if end else None
+            data["duration_days"] = (end - start).days if start and end else None
+
+        # imports_summary has frequency, start_date, end_date and duration_days for each import in the repo
+        return {
+            "repository_name": repo_name,
+            "imports_summary": imports_data
+        }
+
+
     def _calculate_date_range(self, dates: List[datetime]) -> Dict[str, Any]:
         # Calculate the start and end date for timeline and duration
         if not dates:
@@ -254,6 +355,8 @@ class RepositoryAnalyzer:
             'testing_percentage_lines': round(testing_lines_percentage, 2),
             'has_tests': test_files > 0
         }
+    
+
     def rank_importance_of_projects(self, projects: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """ Ranks project importance based on the number of commits from a user, the number of lines added by the user, and the
         duration of the project """
