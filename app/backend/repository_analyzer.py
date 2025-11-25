@@ -280,6 +280,18 @@ class RepositoryAnalyzer:
                 })
 
         return repo_summaries
+    
+    
+    def sort_repo_imports_in_chronological_order(self, repo_summary: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Sorts the imports of a single repo in chronological order by start_date DESC
+        """
+        imports = repo_summary.get("imports_summary", {})
+
+        sorted_imports = sorted(imports.items(), key=lambda item: datetime.fromisoformat(item[1]["start_date"]) if item[1].get("start_date") else datetime.min, reverse=True)
+        repo_summary["imports_summary"] = {imp: stats for imp, stats in sorted_imports}
+
+        return repo_summary
 
 
     def _calculate_date_range(self, dates: List[datetime]) -> Dict[str, Any]:
