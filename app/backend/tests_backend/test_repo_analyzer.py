@@ -220,8 +220,8 @@ class TestRepositoryAnalyzer:
 
         assert "numpy" in imports_summary
         assert "pandas" in imports_summary
-        assert "os.path.join" in imports_summary
-        assert "os.path.exists" in imports_summary
+        assert "os.path" in imports_summary
+
 
 
     def test_extract_repo_import_stats_multiple_commits_and_dates(self):
@@ -251,9 +251,9 @@ class TestRepositoryAnalyzer:
 
         assert imports_summary["os"]["start_date"] == "2024-01-01T00:00:00"
         assert imports_summary["os"]["end_date"] == "2024-01-01T00:00:00"
-        assert imports_summary["math.sqrt"]["start_date"] == "2024-01-10T00:00:00"
-        assert imports_summary["math.sqrt"]["end_date"] == "2024-01-10T00:00:00"
-        assert imports_summary["math.sqrt"]["duration_days"] == 0
+        assert imports_summary["math"]["start_date"] == "2024-01-10T00:00:00"
+        assert imports_summary["math"]["end_date"] == "2024-01-10T00:00:00"
+        assert imports_summary["math"]["duration_days"] == 0
 
 
     def test_extract_repo_import_stats_js_imports(self):
@@ -272,8 +272,7 @@ class TestRepositoryAnalyzer:
         imports_summary = result["imports_summary"]
 
         assert "fs" in imports_summary
-        assert "join" in imports_summary
-        assert "resolve" in imports_summary
+        assert "path" in imports_summary
         assert imports_summary["fs"]["frequency"] == 1
 
 
@@ -330,7 +329,7 @@ class TestRepositoryAnalyzer:
                                     "end_date": "2024-01-02T00:00:00", "duration_days": 0}}
         })
 
-        result = analyzer.extract_all_repo_import_stats([repo_node1, repo_node2])
+        result = analyzer.get_all_repo_import_stats([repo_node1, repo_node2])
 
         assert len(result) == 2
         assert result[0]["repository_name"] == "Repo1"
@@ -355,9 +354,9 @@ class TestRepositoryAnalyzer:
 
         assert result["repository_name"] == "RepoA"
         assert "os" in imports_summary
-        assert "math.sin" in imports_summary
+        assert "math" in imports_summary
         assert imports_summary["os"]["frequency"] == 1
-        assert imports_summary["math.sin"]["frequency"] == 1
+        assert imports_summary["math"]["frequency"] == 1
 
 
     def test_sort_imports_in_chronological_order(self):
@@ -373,8 +372,8 @@ class TestRepositoryAnalyzer:
             }
         }
 
-        sorted_summary = analyzer.sort_imports_in_chronological_order(repo_summary)
+        sorted_summary = analyzer.sort_repo_imports_in_chronological_order(repo_summary)
         keys = list(sorted_summary["imports_summary"].keys())
 
-        assert keys == ["sys", "os"]  # sys is newer -> first
+        assert keys == ["sys", "os"]  # sys is newer, so is first
     
