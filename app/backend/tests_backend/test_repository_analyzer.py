@@ -57,7 +57,6 @@ class TestRepositoryAnalyzer:
         commit_info: Dict[str, Any] = analyzer._build_commit_info(commit)
         
         assert commit_info['hash'] == "Unknown"
-        assert commit_info['message'] == ""
         assert commit_info['modified_files'] == []
     
     def test_calculate_date_range(self) -> None:

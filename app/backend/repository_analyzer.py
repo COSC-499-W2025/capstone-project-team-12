@@ -254,7 +254,7 @@ class RepositoryAnalyzer:
             "repository_name": repo_name,
             "imports_summary": imports_data
         }
-    
+
 
     def get_all_repo_import_stats(self, repo_nodes: List[Node]) -> List[Dict[str, Any]]:
         """
@@ -293,7 +293,7 @@ class RepositoryAnalyzer:
 
         return repo_summary
     
-    
+
     def sort_all_repo_imports_chronologically(self, all_repo_summaries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         Takes the full list from get_all_repo_import_stats() and sorts all imports across all repositories in chronological order 
