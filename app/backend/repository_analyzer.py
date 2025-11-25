@@ -254,6 +254,32 @@ class RepositoryAnalyzer:
             "repository_name": repo_name,
             "imports_summary": imports_data
         }
+    
+
+    def get_all_repo_import_stats(self, repo_nodes: List[Node]) -> List[Dict[str, Any]]:
+        """
+        Get the import statistics for all repos that were modified by the user.
+        Returns a list of dicts (one per repository), each containing:
+        - repository_name
+        - imports_summary (as defined in extract_repo_import_stats)
+        """
+
+        repo_summaries: List[Dict[str, Any]] = []
+
+        for repo_node in repo_nodes:
+            try:
+                git_folder_path: Path = self._extract_git_folder(repo_node)
+                repo = Repository(str(git_folder_path))
+                summary = self.extract_repo_import_stats(repo, repo_node.name)
+                repo_summaries.append(summary)
+            except Exception as e: # In case of error, log and continue
+                repo_summaries.append({
+                    "repository_name": repo_node.name,
+                    "imports_summary": {},
+                    "error": str(e)
+                })
+
+        return repo_summaries
 
 
     def _calculate_date_range(self, dates: List[datetime]) -> Dict[str, Any]:
