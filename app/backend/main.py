@@ -278,30 +278,30 @@ def main() -> None:
                             print(f"Error during text/PII processing: {e}")
 
 
-                    if git_repos:
-                        # prompt user for github username to link repos
-                        github_username: str = input("Git repositories detected in the file tree. Please enter your GitHub username to link them. To skip this processing, please press enter: \n> ").strip()
-                        if github_username:
-                            # Validate binary data from FileManager before passing it on
-                            repo_processor: RepositoryProcessor = RepositoryProcessor(
-                                username=github_username,
-                                binary_data_array=binary_data
-                            )
-                            try:
-                                processed_git_repos: bytes = repo_processor.process_repositories(git_repos)
-                                if processed_git_repos:
-                                    print(f"repos successfully processed {processed_git_repos}")
-                                    analyzer = RepositoryAnalyzer(github_username)
-                                    timeline = analyzer.create_chronological_project_list(processed_git_repos)
-                                    for project in timeline:
-                                        print(f"{project['name']}: {project['start_date']} - {project['end_date']}")
-                            except Exception as e:
-                                # Catch unexpected errors during repository processing so the app doesn't crash
-                                print(f"Repository processing failed: {e}")
+                        if git_repos:
+                            # prompt user for github username to link repos
+                            github_username: str = input("Git repositories detected in the file tree. Please enter your GitHub username to link them. To skip this processing, please press enter: \n> ").strip()
+                            if github_username:
+                                # Validate binary data from FileManager before passing it on
+                                repo_processor: RepositoryProcessor = RepositoryProcessor(
+                                    username=github_username,
+                                    binary_data_array=binary_data
+                                )
+                                try:
+                                    processed_git_repos: bytes = repo_processor.process_repositories(git_repos)
+                                    if processed_git_repos:
+                                        print(f"repos successfully processed {processed_git_repos}")
+                                        analyzer = RepositoryAnalyzer(github_username)
+                                        timeline = analyzer.create_chronological_project_list(processed_git_repos)
+                                        for project in timeline:
+                                            print(f"{project['name']}: {project['start_date']} - {project['end_date']}")
+                                except Exception as e:
+                                    # Catch unexpected errors during repository processing so the app doesn't crash
+                                    print(f"Repository processing failed: {e}")
 
 
-                        else:
-                            print("Skipping Git repository linking as no username was provided.\n")
+                            else:
+                                print("Skipping Git repository linking as no username was provided.\n")
 
                         #stat cache + llm pipeline
 
