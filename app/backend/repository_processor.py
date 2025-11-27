@@ -40,7 +40,7 @@ class RepositoryProcessor:
             repo: Repository = Repository(str(git_folder_path))
             
             commits_result: Dict[str, Any] = self._extract_commits_data(repo)
-            
+            user_dates: List[datetime] = commits_result['user_dates']
             date_range: Dict[str, Any] = self._calculate_date_range(user_dates)
 
             return {
@@ -49,8 +49,8 @@ class RepositoryProcessor:
                 'repository_path': str(git_folder_path) if git_folder_path else "Unknown",
                 'status': 'success',
 
-                # Project type (individual vs collaborative)
-                'commits': commits_result['commits_data'],
+                # Extracted Data
+                'user_commits': commits_result['user_commits_data'],
                 'statistics': commits_result['user_statistics'],
                 'repository_context': commits_result['repository_context'],
                 'dates': date_range,
@@ -149,7 +149,7 @@ class RepositoryProcessor:
         is_collaborative: bool = len(all_authors_stats) > 1 if all_authors_stats else len(commits_data) < repo_total_commits
 
         return {
-            'commits_data': commits_data,
+            'user_commits_data': commits_data,
             'user_dates': user_dates,
             'user_statistics': {
                 'user_files_modified': user_files_modified,
@@ -191,7 +191,8 @@ class RepositoryProcessor:
             return {
                 'start_date': None,
                 'end_date': None,
-                'duration_days': 0
+                'duration_days': 0,
+                'duration_seconds': 0
             }
         
         start_date: datetime = min(user_dates)
