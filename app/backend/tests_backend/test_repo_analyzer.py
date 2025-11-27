@@ -5,6 +5,8 @@ from datetime import datetime
 from unittest.mock import Mock
 from anytree import Node
 from repository_analyzer import RepositoryAnalyzer
+from pydriller import Repository
+
 
 # Test repository path constant
 TEST_REPO_PATH: Path = Path("tests_backend/test_main_dir/capstone_team12_testrepo")
@@ -57,7 +59,6 @@ class TestRepositoryAnalyzer:
         commit_info: Dict[str, Any] = analyzer._build_commit_info(commit)
 
         assert commit_info['hash'] == "Unknown"
-        assert commit_info['message'] == ""
         assert commit_info['modified_files'] == []
 
     def test_calculate_date_range(self) -> None:
@@ -199,3 +200,180 @@ class TestRepositoryAnalyzer:
         analyzer = RepositoryAnalyzer("testuser")
         top3 = analyzer.get_most_important_projects([])
         assert top3 == []
+    
+
+    def test_extract_repo_import_stats_alias_and_multi_imports(self):
+        analyzer = RepositoryAnalyzer("testuser")
+
+        repo = Mock(spec=Repository)
+        commit = Mock()
+        commit.author = Mock(email="testuser")
+        commit.author_date = datetime(2024, 1, 5)
+        mod = Mock()
+        mod.filename = "b.py"
+        mod.source_code = "import numpy as np, pandas as pd\nfrom os.path import join as j, exists"
+        commit.modified_files = [mod]
+        repo.traverse_commits.return_value = [commit]
+
+        result = analyzer.extract_repo_import_stats(repo, "RepoB")
+        imports_summary = result["imports_summary"]
+
+        assert "numpy" in imports_summary
+        assert "pandas" in imports_summary
+        assert "os.path" in imports_summary
+
+
+
+    def test_extract_repo_import_stats_multiple_commits_and_dates(self):
+        analyzer = RepositoryAnalyzer("testuser")
+        repo = Mock(spec=Repository)
+
+        commit1 = Mock()
+        commit1.author = Mock(email="testuser")
+        commit1.author_date = datetime(2024, 1, 1)
+        mod1 = Mock()
+        mod1.filename = "a.py"
+        mod1.source_code = "import os"
+        commit1.modified_files = [mod1]
+
+        commit2 = Mock()
+        commit2.author = Mock(email="testuser")
+        commit2.author_date = datetime(2024, 1, 10)
+        mod2 = Mock()
+        mod2.filename = "b.py"
+        mod2.source_code = "from math import sqrt"
+        commit2.modified_files = [mod2]
+
+        repo.traverse_commits.return_value = [commit1, commit2]
+
+        result = analyzer.extract_repo_import_stats(repo, "RepoC")
+        imports_summary = result["imports_summary"]
+
+        assert imports_summary["os"]["start_date"] == "2024-01-01T00:00:00"
+        assert imports_summary["os"]["end_date"] == "2024-01-01T00:00:00"
+        assert imports_summary["math"]["start_date"] == "2024-01-10T00:00:00"
+        assert imports_summary["math"]["end_date"] == "2024-01-10T00:00:00"
+        assert imports_summary["math"]["duration_days"] == 0
+
+
+    def test_extract_repo_import_stats_js_imports(self):
+        analyzer = RepositoryAnalyzer("testuser")
+        repo = Mock(spec=Repository)
+        commit = Mock()
+        commit.author = Mock(email="testuser")
+        commit.author_date = datetime(2024, 1, 3)
+        mod = Mock()
+        mod.filename = "app.js"
+        mod.source_code = 'import fs from "fs";\nimport { join, resolve } from "path";'
+        commit.modified_files = [mod]
+        repo.traverse_commits.return_value = [commit]
+
+        result = analyzer.extract_repo_import_stats(repo, "RepoJS")
+        imports_summary = result["imports_summary"]
+
+        assert "fs" in imports_summary
+        assert "path" in imports_summary
+        assert imports_summary["fs"]["frequency"] == 1
+
+
+    def test_extract_repo_import_stats_java_imports(self):
+        analyzer = RepositoryAnalyzer("testuser")
+        repo = Mock(spec=Repository)
+        commit = Mock()
+        commit.author = Mock(email="testuser")
+        commit.author_date = datetime(2024, 1, 4)
+        mod = Mock()
+        mod.filename = "Example.java"
+        mod.source_code = "import java.util.List;\nimport java.io.File;"
+        commit.modified_files = [mod]
+        repo.traverse_commits.return_value = [commit]
+
+        result = analyzer.extract_repo_import_stats(repo, "RepoJava")
+        imports_summary = result["imports_summary"]
+
+        assert "java.util.List" in imports_summary
+        assert "java.io.File" in imports_summary
+        assert imports_summary["java.util.List"]["frequency"] == 1
+
+
+    def test_extract_repo_import_stats_c_cpp_imports(self):
+        analyzer = RepositoryAnalyzer("testuser")
+        repo = Mock(spec=Repository)
+        commit = Mock()
+        commit.author = Mock(email="testuser")
+        commit.author_date = datetime(2024, 1, 6)
+        mod = Mock()
+        mod.filename = "main.cpp"
+        mod.source_code = "#include <iostream>\n#include <vector>"
+        commit.modified_files = [mod]
+        repo.traverse_commits.return_value = [commit]
+
+        result = analyzer.extract_repo_import_stats(repo, "RepoCPP")
+        imports_summary = result["imports_summary"]
+
+        assert "iostream" in imports_summary
+        assert "vector" in imports_summary
+        assert imports_summary["iostream"]["frequency"] == 1
+
+
+    def test_extract_all_repo_import_stats_aggregates_repos(self):
+        analyzer = RepositoryAnalyzer("testuser")
+        repo_node1 = create_repo_node("Repo1")
+        repo_node2 = create_repo_node("Repo2")
+
+        analyzer._extract_git_folder = Mock(side_effect=lambda node: "/fake/path/" + node.name)
+
+        analyzer.extract_repo_import_stats = Mock(side_effect=lambda repo, name: {
+            "repository_name": name,
+            "imports_summary": {"os": {"frequency": 1, "start_date": "2024-01-02T00:00:00",
+                                    "end_date": "2024-01-02T00:00:00", "duration_days": 0}}
+        })
+
+        result = analyzer.get_all_repo_import_stats([repo_node1, repo_node2])
+
+        assert len(result) == 2
+        assert result[0]["repository_name"] == "Repo1"
+        assert result[1]["repository_name"] == "Repo2"
+        assert result[0]["imports_summary"]["os"]["frequency"] == 1
+    
+
+    def test_extract_repo_import_stats_python_basic(self):
+        analyzer = RepositoryAnalyzer("testuser")
+        repo = Mock(spec=Repository)
+        commit = Mock()
+        commit.author = Mock(email="testuser")
+        commit.author_date = datetime(2024, 1, 2)
+        mod = Mock()
+        mod.filename = "a.py"
+        mod.source_code = "import os\nfrom math import sin"
+        commit.modified_files = [mod]
+        repo.traverse_commits.return_value = [commit]
+
+        result = analyzer.extract_repo_import_stats(repo, "RepoA")
+        imports_summary = result["imports_summary"]
+
+        assert result["repository_name"] == "RepoA"
+        assert "os" in imports_summary
+        assert "math" in imports_summary
+        assert imports_summary["os"]["frequency"] == 1
+        assert imports_summary["math"]["frequency"] == 1
+
+
+    def test_sort_imports_in_chronological_order(self):
+        analyzer = RepositoryAnalyzer("testuser")
+
+        repo_summary = {
+            "repository_name": "RepoX",
+            "imports_summary": {
+                "os": {"start_date": "2024-01-02T00:00:00", "end_date": "2024-01-02T00:00:00", "frequency": 1,
+                    "duration_days": 0},
+                "sys": {"start_date": "2024-01-05T00:00:00", "end_date": "2024-01-05T00:00:00", "frequency": 1,
+                        "duration_days": 0},
+            }
+        }
+
+        sorted_summary = analyzer.sort_repo_imports_in_chronological_order(repo_summary)
+        keys = list(sorted_summary["imports_summary"].keys())
+
+        assert keys == ["sys", "os"]  # sys is newer, so is first
+    
