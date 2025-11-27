@@ -133,6 +133,16 @@ def get_bin_data_by_IdList(bin_Idx_list:List[int])->List[BinaryIO]:
         response_List.append(get_bin_data_by_Id(bin_Idx))
     return response_List
 
+def convert_binary_to_text(node_array:List[Node])->List[BinaryIO|None]:
+    """ Converts binary data to text strings for text preprocessing """
+    text_data_list: List[str] = []
+    bin_Idx_list: List[int] = []
+    for node in node_array:
+        bin_Id = node.file_data['binary_index']
+        bin_Idx_list.append(bin_Id)
+    text_data_list = [str(x) for x in get_bin_data_by_IdList(bin_Idx_list)]
+    return text_data_list
+
 def main() -> None:
     try:
         choice: str = input("Would you like to run all backend tests? (y/n) \n> ").strip().lower()
