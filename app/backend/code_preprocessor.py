@@ -9,7 +9,7 @@ import regex as re
 #minimum token length for consideration
 MIN_TOKEN_LEN = 5
 
-# Lists composed of pygments.token type. 
+# Lists composed of pygments.token type
 # All tokens of type not in Include will be dropped
 # All tokens of a type in Include but also of a type in exclude will be dropped
 # Eg. for python code, to include all Identifiers add: "pygments.token.Name" to Include
