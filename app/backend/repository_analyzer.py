@@ -1,7 +1,3 @@
-from pathlib import Path
-from pydriller import Repository
-from pydriller.domain.commit import Commit
-from anytree import Node
 from typing import Any, Dict, List, Set
 from datetime import datetime
 
@@ -11,173 +7,57 @@ class RepositoryAnalyzer:
     def __init__(self, username: str):
         self.username = username
 
-    def analyze_repository(self, repo_node: Node, git_folder_path: Path) -> Dict[str, Any]:
-        # Analyze a single repository using PyDriller to extract commit information
-        try:
-            repo: Repository = Repository(str(git_folder_path))
-            
-            # Initalize data collectors
-            commits_data: List[Dict[str, Any]] = []
-            user_dates: List[datetime] = []
-            all_authors_stats: Dict[str, Dict[str, int]] = {}
+    def generate_project_insights(self, project_data: List[Dict[str, Any]]) -> Dict[str, Any]:
+        # Generate insights for all projects
 
-            user_email: str | None = None
+        # Filter out any projects that failed to process
+        valid_projects: List[Dict[str, Any]] = [
+            project for project in project_data if project.get('status') == 'success'
+        ]
 
-            # Initialize statistic accumulators
-            total_files_modified: int = 0
-            total_lines_added: int = 0
-            total_lines_deleted: int = 0
-            change_types: Set[str] = set()
-
-            # Initialize all user stats
-            all_commits_total: int = 0
-            repo_total_lines_added: int = 0
-            repo_total_lines_deleted: int = 0
-            repo_total_files_modified: int = 0
-            
-            # TODO: how to use commit info to rank importance of project
-            # ^ can look at types, total lines added/deleted, # of files modified?
-            
-            # Traverse commits here to ensure only a single pass
-            for commit in repo.traverse_commits():
-                all_commits_total += 1
-
-                commit_email: str = commit.author.email.lower() if commit.author and commit.author.email else ""
-
-                # Will return the Github privacy email with username so extract username (ex: 12345+yourusername@users.noreply.github.com)
-                commit_username: str = commit.author.email.split('@')[0].split('+')[-1].lower()
-
-                # Track stats for all users
-                if commit_email not in all_authors_stats:
-                    all_authors_stats[commit_email] = {
-                        'commits': 0,
-                        'lines_added': 0,
-                        'lines_deleted': 0,
-                        'files_modified': 0
-                    }
-                
-                commit_lines_added = 0
-                commit_lines_deleted = 0
-                commit_files = 0
-                for mod in (commit.modified_files or []):
-                    commit_files += 1
-                    commit_lines_added += mod.added_lines if mod.added_lines is not None else 0
-                    commit_lines_deleted += mod.deleted_lines if mod.deleted_lines is not None else 0
-                    repo_total_lines_added += mod.added_lines if mod.added_lines is not None else 0
-                    repo_total_lines_deleted += mod.deleted_lines if mod.deleted_lines is not None else 0
-                    repo_total_files_modified += 1
-                    if commit_username == self.username:
-                        if mod.change_type:
-                            change_types.add(mod.change_type.name)
-                
-                all_authors_stats[commit_email]['commits'] += 1
-                all_authors_stats[commit_email]['lines_added'] += commit_lines_added
-                all_authors_stats[commit_email]['lines_deleted'] += commit_lines_deleted
-                all_authors_stats[commit_email]['files_modified'] += commit_files
-
-                # Only consider the commits of the user for analysis
-                if commit_username == self.username:
-                    # Builds the commit info
-                    user_email = commit_email  # Capture user's actual email (GitHub privacy or personal)
-                    commit_info = self._build_commit_info(commit)
-                    commits_data.append(commit_info)
-
-                    # Track project dates
-                    if commit.author_date:
-                        user_dates.append(commit.author_date)
-                    
-                    # Update all statistics within the traversal to ensure single pass
-                    total_files_modified += commit_files
-                    total_lines_added += commit_lines_added
-                    total_lines_deleted += commit_lines_deleted
-            # Calculate metrics
-            user_contribution_rank: Dict[str, Any] = self._calculate_contribution_rank(
-                all_authors_stats,
-                user_email
-            )
-            test_ratio: Dict[str, Any] = self._calculate_code_test_ratio(commits_data)
-            date_range: Dict[str, Any] = self._calculate_date_range(user_dates)
-            is_collaborative: bool = len(all_authors_stats) > 1 if all_authors_stats else len(commits_data) < all_commits_total
-
+        if not valid_projects:
             return {
-                # Basic Information for the repository
-                'repository_name': repo_node.name if repo_node.name else "Unknown",
-                'repository_path': str(git_folder_path) if git_folder_path else "Unknown",
-                'status': 'success',
-
-                # Project type (individual vs collaborative)
-                'commits': commits_data if commits_data else "Unknown",
-                'commit_count': len(commits_data) if commits_data else 0,
-                'is_collaborative': is_collaborative,
-
-                # Use date_range Dict[str, Any] found from helper method
-                **date_range,
-
-                # derived statistics from commits
-                'statistics': {
-                    'total_files_modified': total_files_modified,
-                    'total_lines_added': total_lines_added,
-                    'total_lines_deleted': total_lines_deleted,
-                    'change_types': list(change_types)
-                },
-                'repository_context': {
-                    'total_contributors': len(all_authors_stats),
-                    'total_commits_all_authors': all_commits_total,
-                    'repo_total_lines_added': repo_total_lines_added,
-                    'repo_total_lines_deleted': repo_total_lines_deleted,
-                    'repo_total_files_modified': repo_total_files_modified,
-                    
-                },
-                'user_contribution_rank': user_contribution_rank, # Reflects teamwork insights
-                'code_vs_test_ratio': test_ratio
-            }
-        except Exception as e:
-            return {
-                'repository_name': repo_node.name,
-                'repository_path': str(git_folder_path),
-                'status': 'error',
-                'error_message': str(e)
+                'projects': [],
+                'summary': {}
             }
 
-    def _build_commit_info(self, commit: Commit) -> Dict[str, Any]:
-        # builds the basic info for individual commits
+        # Compute importance rankings (requires all valid projects for normalization)
+        ranked_projects: List[Dict[str, Any]] = self.rank_importance_of_projects(valid_projects)
+
+        # Generate insights for each project
+        projects_insights: List[Dict[str, Any]] = []
+        for idx, project in enumerate(ranked_projects):
+            project_insight: Dict[str, Any] = {
+                'repository_name': project.get('repository_name', 'Unknown'),
+                'importance_rank': idx + 1,
+                'importance_score': round(project.get('importance', 0), 4),
+                'contribution_analysis': self._calculate_contribution_insights(project),
+                'collaboration_insights': self._generate_collaboration_insights(project),
+                'testing_insights': self._generate_testing_insights(project),
+                'project_scope': self._generate_project_scope_insights(project)
+            }
+            projects_insights.append(project_insight)
+
+        portfolio_summary: Dict[str, Any] = self._generate_portfolio_summary(projects_insights)
+
         return {
-            'hash': commit.hash if commit.hash else "Unknown",
-            'date': commit.author_date.isoformat() if commit.author_date else "Unknown",
-            'modified_files': [
-                {
-                    'filename': mod.filename if mod.filename else "Unknown",
-                    'change_type': mod.change_type.name if mod.change_type else "UNKNOWN",
-                    'added_lines': mod.added_lines if mod.added_lines is not None else 0,
-                    'deleted_lines': mod.deleted_lines if mod.deleted_lines is not None else 0
-                }
-                for mod in (commit.modified_files or [])
-            ]
-        }
-
-    def _calculate_date_range(self, dates: List[datetime]) -> Dict[str, Any]:
-        # Calculate the start and end date for timeline and duration
-        if not dates:
-            return{
-                'start_date': None,
-                'end_date': None,
-                'duration_days': None,
-                'duration_seconds': None
-            }
-        
-        start_date: datetime = min(dates)
-        end_date: datetime = max(dates)
-        duration: datetime = end_date - start_date
-
-        return{
-            'start_date': start_date.isoformat(),
-            'end_date': end_date.isoformat(),
-            'duration_days': duration.days,
-            'duration_seconds': int(duration.total_seconds())
+            'projects': projects_insights,
+            'summary': portfolio_summary
         }
     
-    def _calculate_contribution_rank(self, all_authors_stats: Dict[str, Dict[str, int]], user_email: str | None) -> Dict[str,Any]:
-        # Calculate the user's contribution rank among all authors
+    def _calculate_contribution_insights(self, project: Dict[str, Any]) -> Dict[str,Any]:
+        # Determines user's contribution rank and level within the project
+        context: Dict[str, Any] = project.get('repository_context', {})
+        all_authors_stats: Dict[str, Dict[str, int]] = context.get('all_authors_stats', {})
+
+        # TODO: Rework this and processor to anonymize emails to ensure no PII is stored
+        # For now, we find the user's email from all_authors_stats
+        user_email: str | None = None
+        for email in all_authors_stats.keys(): 
+            if self.username.lower() in email.lower():
+                user_email = email
+                break
+
         if not user_email or user_email not in all_authors_stats:
             return {
                 'contribution_level': 'Unknown',
@@ -216,15 +96,34 @@ class RepositoryAnalyzer:
             'rank_by_commits': rank,
             'percentile': round(percentile, 2) if percentile is not None else None,
         }
+
+    def _generate_collaboration_insights(self, project: Dict[str, Any]) -> Dict[str, Any]:
+        # Analyze collaboration patterns and team dynamics
+        context: Dict[str, Any] = project.get('repository_context', {})
+        total_contributors: int = context.get('total_contributors', 1)
+        is_collaborative: bool = context.get('is_collaborative', False)
+
+        # Calculate the user's share of total work
+        user_commits: int = len(context.get('user_commits', []))
+        total_commits: int = context.get('total_commits', user_commits)
+        contribution_share: float = (user_commits / total_commits * 100) if total_commits > 0 else 0.0
+
+        return {
+            'is_collaborative': is_collaborative,
+            'team_size': total_contributors,
+            'user_contribution_share_percentage': round(contribution_share, 2)
+        }
     
-    def _calculate_code_test_ratio(self, commits_data: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def _generate_testing_insights(self, project: Dict[str, Any]) -> Dict[str, Any]:
         # Calculate the ratio of code to test files modified
+        commits_data: List[Dict[str, Any]] = project.get('user_commits', [])
+        
         test_files: int = 0
         code_files: int = 0
         test_lines_added: int = 0
         code_lines_added: int = 0
 
-        # Potential code patterns, can be expanded later
+        # Potential test patterns, can be expanded later
         test_patterns = ['test_', '_test', 'tests/', '/tests/', '/test/','test/','spec_', '_spec', 'specs/', '/specs/', 'spec.', '.spec']
 
         for commit in commits_data:
@@ -301,6 +200,56 @@ class RepositoryAnalyzer:
         ranked_projects = self.rank_importance_of_projects(projects)
 
         return ranked_projects[:3] if ranked_projects else []
+
+    def _generate_project_scope_insights(self, project: Dict[str, Any]) -> Dict[str, Any]:
+        # Determine the maturity and activity status of the project
+        dates: Dict[str, Any] = project.get('dates', {})
+        duration_days: int = dates.get('duration_days', 0)
+
+        # Determine maturity level based on duration
+        if duration_days < 30:
+            maturity_level = 'Short-term'
+        elif duration_days < 90:
+            maturity_level = 'Medium-term'
+        else:
+            maturity_level = 'Long-term'
+        
+        end_date_str: str | None = dates.get('end_date')
+        is_active: bool = False
+        if end_date_str:
+            try:
+                end_date = datetime.fromisoformat(end_date_str)
+                days_since_end = (datetime.now() - end_date).days
+                is_active = days_since_end <= 30  # Active if ended within the last 30 days
+            except (ValueError, TypeError):
+                is_active = False
+        
+        return {
+            'maturity_level': maturity_level,
+            'is_active': is_active
+        }
+
+    def _generate_portfolio_summary(self, projects_insights: List[Dict[str, Any]]) -> Dict[str, Any]:
+        # Generate a summary for the entire portfolio of projects
+        if not projects_insights:
+            return {}
+        
+        total_projects: int = len(projects_insights)
+        collaborative_projects: int = sum(1 for p in projects_insights if p.get('collaboration_insights', {}).get('is_collaborative', False))
+        average_importance: float = sum(p.get('importance_score', 0) for p in projects_insights) / total_projects if total_projects > 0 else 0.0
+        active_projects: int = sum(1 for p in projects_insights if p.get('project_scope', {}).get('is_active', False))
+
+        durations: List[int] = [
+            p.get('project_scope', {}).get('duration_days', 0) for p in projects_insights
+        ]
+        average_duration: float = sum(durations) / total_projects if total_projects > 0 else 0.0
+
+        return {
+            'total_projects': total_projects,
+            'collaborative_projects': collaborative_projects,
+            'average_importance_score': round(average_importance, 4),
+            'active_projects': active_projects,
+        }
 
 
     # This method may move in later implementation but is included to ensure overall functionality
