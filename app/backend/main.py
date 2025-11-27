@@ -8,7 +8,7 @@ from typing import List,BinaryIO, Dict, Any
 from file_manager import FileManager
 from tree_processor import TreeProcessor
 from repository_processor import RepositoryProcessor
-from bow_cache_pipeline import get_or_build_bow
+# from bow_cache_pipeline import get_or_build_bow
 from metadata_extractor import MetadataExtractor
 from metadata_analyzer import MetadataAnalyzer
 from repository_analyzer import RepositoryAnalyzer
@@ -280,13 +280,21 @@ def main() -> None:
                                 binary_data_array=binary_data
                             )
                             try:
-                                processed_git_repos: bytes = repo_processor.process_repositories(git_repos)
-                                if processed_git_repos:
-                                    print(f"repos successfully processed {processed_git_repos}")
-                                    analyzer = RepositoryAnalyzer(github_username)
-                                    timeline = analyzer.create_chronological_project_list(processed_git_repos)
-                                    for project in timeline:
-                                        print(f"{project['name']}: {project['start_date']} - {project['end_date']}")
+                                raw_repo_data: List[Dict[str, Any]] = repo_processor.process_repositories(git_repos)
+                                print(f"Processed {len(raw_repo_data)} Git repositories successfully in Repository Processor.\n")
+
+                                repo_analyzer: RepositoryAnalyzer = RepositoryAnalyzer(github_username)
+                                analyzed_repos: Dict[str, Any] = repo_analyzer.generate_project_insights(raw_repo_data)
+                                print(f"Analyzed {len(analyzed_repos)} Git repositories successfully in Repository Analyzer.\n")
+                                
+                                # Print summary of portfolio analysis
+                                print("\n ===Portfolio Summary===\n")
+                                print(analyzed_repos['summary'])
+                                
+                                # Print detailed info for each repository
+                                print("\n=== Repository Details ===\n")
+                                print(analyzed_repos['projects'])
+                                
                             except Exception as e:
                                 # Catch unexpected errors during repository processing so the app doesn't crash
                                 print(f"Repository processing failed: {e}")
