@@ -8,7 +8,6 @@ from typing import List,BinaryIO, Dict, Any
 from file_manager import FileManager
 from tree_processor import TreeProcessor
 from repository_processor import RepositoryProcessor
-from bow_cache_pipeline import get_or_build_bow
 from metadata_extractor import MetadataExtractor
 from metadata_analyzer import MetadataAnalyzer
 from repository_analyzer import RepositoryAnalyzer
@@ -133,6 +132,16 @@ def get_bin_data_by_IdList(bin_Idx_list:List[int])->List[BinaryIO]:
     for bin_Idx in bin_Idx_list:
         response_List.append(get_bin_data_by_Id(bin_Idx))
     return response_List
+
+def convert_binary_to_text(node_array:List[Node])->List[BinaryIO|None]:
+    """ Converts binary data to text strings for text preprocessing """
+    text_data_list: List[str] = []
+    bin_Idx_list: List[int] = []
+    for node in node_array:
+        bin_Id = node.file_data['binary_index']
+        bin_Idx_list.append(bin_Id)
+    text_data_list = [str(x) for x in get_bin_data_by_IdList(bin_Idx_list)]
+    return text_data_list
 
 def main() -> None:
     try:
