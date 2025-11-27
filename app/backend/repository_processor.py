@@ -179,7 +179,8 @@ class RepositoryProcessor:
                     'filename': mod.filename if mod.filename else "Unknown",
                     'change_type': mod.change_type.name if mod.change_type else "UNKNOWN",
                     'added_lines': mod.added_lines if mod.added_lines is not None else 0,
-                    'deleted_lines': mod.deleted_lines if mod.deleted_lines is not None else 0
+                    'deleted_lines': mod.deleted_lines if mod.deleted_lines is not None else 0,
+                    'source_code': mod.source_code if mod.source_code else ""
                 }
                 for mod in (commit.modified_files or [])
             ]
