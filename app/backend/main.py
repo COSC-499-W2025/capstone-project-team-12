@@ -8,7 +8,6 @@ from typing import List,BinaryIO, Dict, Any
 from file_manager import FileManager
 from tree_processor import TreeProcessor
 from repository_processor import RepositoryProcessor
-# from bow_cache_pipeline import get_or_build_bow
 from metadata_extractor import MetadataExtractor
 from metadata_analyzer import MetadataAnalyzer
 from repository_analyzer import RepositoryAnalyzer
