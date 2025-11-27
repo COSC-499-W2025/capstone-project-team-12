@@ -45,16 +45,20 @@ def test_setUp():
     add_mock_entry("lg_text_test2",str(largetext_2))
 
 #gets file data from liist based on passed node
-def get_test_str(node:Node):
+def get_test_str_by_Node(node:Node):
     testStr :str = datalist[node.file_data['binary_index']]     #access bin_idx from node
     return testStr
-  
+
+#g
+def get_test_str_by_Id(id:int):
+    datalist[id]
+    
 #--------------
 # Test operations chain
 #--------------
   
 def test_get_tokens():
-    tokens = get_tokens(get_test_str(nodelist['simple_text']))
+    tokens = get_tokens(get_test_str_by_Node(nodelist['simple_text']))
     # ensure it returns a list of strings
     assert all(isinstance(token, str) for token in tokens)
     # ensure common words are tokenized
@@ -62,7 +66,7 @@ def test_get_tokens():
     assert all(expected==result for expected, result in zip(expectedResult,tokens))
 
 def test_stopword_filtering():
-    tokens = get_tokens(get_test_str(nodelist['simple_text']))
+    tokens = get_tokens(get_test_str_by_Node(nodelist['simple_text']))
     filtered = stopword_filtered_tokens(tokens)
     assert  all(word.isalpha() for word in filtered)
     assert "the" not in filtered #"the" is a stopword and should be removed
@@ -70,7 +74,7 @@ def test_stopword_filtering():
     assert all(expected==filtered for expected, filtered in zip(expectedResult,filtered))
 
 def test_lemmatization():
-    tokens = stopword_filtered_tokens(get_tokens(get_test_str(nodelist['simple_text'])))
+    tokens = stopword_filtered_tokens(get_tokens(get_test_str_by_Node(nodelist['simple_text'])))
     lemmatized = lemmatize_tokens(tokens)
     assert all(isinstance(lemma,str)for lemma in lemmatized) 
     # ensure known lemmas appear
@@ -81,13 +85,13 @@ def test_lemmatization():
 # Edgecase testing
 #-------------
 def test_stopword_only():
-    tokens = get_tokens(get_test_str(nodelist['stopwords_text']))
+    tokens = get_tokens(get_test_str_by_Node(nodelist['stopwords_text']))
     filtered = stopword_filtered_tokens(tokens)
     assert len(filtered) == 0
     
 
 def test_punctuation_only():
-    tokens = get_tokens(get_test_str(nodelist['punctuations_text'])) # long string of punctuation marks should all be removed
+    tokens = get_tokens(get_test_str_by_Node(nodelist['punctuations_text'])) # long string of punctuation marks should all be removed
     assert len(tokens) == 0
 
 #-------------
@@ -95,17 +99,17 @@ def test_punctuation_only():
 #-------------
    
 def test_large_simple():
-    tokens = stopword_filtered_tokens(get_tokens(get_test_str(nodelist['lg_text_test2'])))
+    tokens = stopword_filtered_tokens(get_tokens(get_test_str_by_Node(nodelist['lg_text_test2'])))
     lemmatized = lemmatize_tokens(tokens)
     assert all(isinstance(lemma,str)for lemma in lemmatized)     
 
 def test_large_complex():
-    tokens = stopword_filtered_tokens(get_tokens(get_test_str(nodelist['lg_text_test1'])))
+    tokens = stopword_filtered_tokens(get_tokens(get_test_str_by_Node(nodelist['lg_text_test1'])))
     lemmatized = lemmatize_tokens(tokens)
     assert all(isinstance(lemma,str)for lemma in lemmatized) 
 
 def test_comprehensive(mocker):
-    mocker.patch('text_preprocessor.get_data',return_value = datalist)
+    mocker.patch('text_preprocessor.get_bin_data_by_Id',get_test_str_by_Id)
     temp_nodelist: List[Node] = list(nodelist.values())
     print(temp_nodelist)
     result: List[List[str]] = text_preprocess(temp_nodelist)
@@ -116,4 +120,3 @@ def test_comprehensive(mocker):
     assert all(isinstance(sublist,List)for sublist in result)
     for sublist in result:
         assert all(isinstance(token,str)for token in sublist)
-    
