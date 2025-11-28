@@ -144,7 +144,13 @@ def get_bin_data_by_Nodes(nodes:List[Node])->[BinaryIO|None]:
     return get_bin_data_by_IdList(IdList)
 
 def binary_to_str(bin_data:List[BinaryIO])-> List[str]:
-    return [str(data) for data in bin_data]
+    result = []
+    for data in bin_data:
+        try:
+            result.append(data.decode('utf-8', errors='ignore') if data else '')
+        except (AttributeError, UnicodeDecodeError):
+            result.append('')
+    return result
 
 def main() -> None:
     try:
@@ -156,6 +162,7 @@ def main() -> None:
 
         elif choice in ("n", "no"):
             while True: # looping so that prompts get asked until the user is successful or the user does not want to try again
+                
                 filepath: str = input("\nEnter a file path to process: \n>").strip()
                 try:
                     path: Path = validate_path(filepath) # validate using method above
@@ -269,10 +276,11 @@ def main() -> None:
                                     text_binary_data: List[BinaryIO|None] = get_bin_data_by_Nodes(text_nodes) if text_nodes else []
                                     code_binary_data: List[BinaryIO|None] = get_bin_data_by_Nodes(code_nodes) if code_nodes else []
 
+
                                     # convert binary data to strings
                                     text_data: List[str] = binary_to_str(text_binary_data) if text_nodes else []
                                     code_data: List[str] = binary_to_str(code_binary_data) if code_nodes else []
-                                
+
                                     # run combined preprocessing
                                     processed_docs = combined_preprocess(text_nodes, text_data, code_nodes, code_data, normalize=True)
                                     
