@@ -15,6 +15,9 @@ from text_preprocessor import text_preprocess
 from pii_remover import remove_pii
 from cache.bow_cache import BoWCache, BoWCacheKey
 from topic_vectors import generate_topic_vectors
+from stats_cache import collect_stats
+from llm_online import OnlineLLMClient
+from llm_local import LocalLLMClient
 import hashlib
 
 
@@ -130,6 +133,16 @@ def get_bin_data_by_IdList(bin_Idx_list:List[int])->List[BinaryIO]:
         response_List.append(get_bin_data_by_Id(bin_Idx))
     return response_List
 
+def convert_binary_to_text(node_array:List[Node])->List[BinaryIO|None]:
+    """ Converts binary data to text strings for text preprocessing """
+    text_data_list: List[str] = []
+    bin_Idx_list: List[int] = []
+    for node in node_array:
+        bin_Id = node.file_data['binary_index']
+        bin_Idx_list.append(bin_Id)
+    text_data_list = [str(x) for x in get_bin_data_by_IdList(bin_Idx_list)]
+    return text_data_list
+
 def main() -> None:
     try:
         choice: str = input("Would you like to run all backend tests? (y/n) \n> ").strip().lower()
@@ -204,6 +217,11 @@ def main() -> None:
 
                         git_repos: List[Node] = tree_processor.get_git_repos() #check for git repos before processing repos
 
+                        #initialize variables for text and project analysis
+                        doc_topic_vectors: list = []
+                        topic_term_vectors: list = []
+                        timeline: list = []
+
                         # Run text preprocessing pipeline + store pipeline results in BoW Cache
                         try:
                             text_nodes: List[Node] = tree_processor.get_text_files()
@@ -235,11 +253,13 @@ def main() -> None:
                                     print(f"Cache hit for BoW (repo_id={repo_id})")
                                     cached = cache.get(key)
                                     if cached is not None:
-                                        return cached # return cached BoW
-                                    print("Cache corrupted or unreadable - regenerating...")
-
-                                # if we reach here, we have a cache miss
-                                print("Cache miss - running text preprocessing pipeline...")
+                                        final_bow = cached
+                                        print("Loaded BoW from cache.")
+                                    else:
+                                        print("Cache corrupted or unreadable - regenerating...")
+                                else:
+                                    # if we reach here, we have a cache miss
+                                    print("Cache miss - running text preprocessing pipeline...")
 
                                 # convert binary data to text data to use in for preprocessing
                                 text_data: List[str] = convert_binary_to_text(text_nodes)
@@ -269,30 +289,91 @@ def main() -> None:
                             print(f"Error during text/PII processing: {e}")
 
 
-                    if git_repos:
-                        # prompt user for github username to link repos
-                        github_username: str = input("Git repositories detected in the file tree. Please enter your GitHub username to link them. To skip this processing, please press enter: \n> ").strip()
-                        if github_username:
-                            # Validate binary data from FileManager before passing it on
-                            repo_processor: RepositoryProcessor = RepositoryProcessor(
-                                username=github_username,
-                                binary_data_array=binary_data
+                        if git_repos:
+                            # prompt user for github username to link repos
+                            github_username: str = input("Git repositories detected in the file tree. Please enter your GitHub username to link them. To skip this processing, please press enter: \n> ").strip()
+                            if github_username:
+                                # Validate binary data from FileManager before passing it on
+                                repo_processor: RepositoryProcessor = RepositoryProcessor(
+                                    username=github_username,
+                                    binary_data_array=binary_data
+                                )
+                                try:
+                                    processed_git_repos: bytes = repo_processor.process_repositories(git_repos)
+                                    if processed_git_repos:
+                                        print(f"repos successfully processed {processed_git_repos}")
+                                        analyzer = RepositoryAnalyzer(github_username)
+                                        timeline = analyzer.create_chronological_project_list(processed_git_repos)
+                                        for project in timeline:
+                                            print(f"{project['name']}: {project['start_date']} - {project['end_date']}")
+                                except Exception as e:
+                                    # Catch unexpected errors during repository processing so the app doesn't crash
+                                    print(f"Repository processing failed: {e}")
+
+
+                            else:
+                                print("Skipping Git repository linking as no username was provided.\n")
+
+                        #stat cache + llm pipeline
+
+                        #prepare text analysis data for stats cache
+                        text_analysis_data = {
+                            "num_documents": len(doc_topic_vectors),
+                            "num_topics": len(topic_term_vectors),
+                            "doc_topic_vectors": doc_topic_vectors,
+                            "topic_term_vectors": topic_term_vectors
+                        } if doc_topic_vectors else {}
+                        
+                        #prepare project analysis data for stats cache
+                        project_analysis_data = {
+                            "projects": timeline
+                        } if timeline else {}
+                        
+                        # collect all statistics into a single bundle
+                        try:
+                            print("\nCollecting analysis statistics...")
+                            data_bundle = collect_stats(
+                                metadata_stats=metadata_results,
+                                text_analysis=text_analysis_data,
+                                project_analysis=project_analysis_data
                             )
-                            try:
-                                processed_git_repos: bytes = repo_processor.process_repositories(git_repos)
-                                if processed_git_repos:
-                                    print(f"repos successfully processed {processed_git_repos}")
-                                    analyzer = RepositoryAnalyzer(github_username)
-                                    timeline = analyzer.create_chronological_project_list(processed_git_repos)
-                                    for project in timeline:
-                                        print(f"{project['name']}: {project['start_date']} - {project['end_date']}")
+                            print("Statistics bundle created successfully.\n")
+                            
+                            #get user consent (hardcoded as True for now)
+                            # TODO: ^^
+                            online_consent: bool = True
+                            
+                            #select appropriate LLM client based on user consent
+                            if online_consent:
+                                print("Using Online LLM...")
+                                try:
+                                    llm_client = OnlineLLMClient()
+                                except ValueError as e:
+                                    print(f"Online LLM initialization failed: {e}")
+                                    print("Falling back to Local LLM...\n")
+                                    llm_client = LocalLLMClient()
+                            else:
+                                print("Using Local LLM...\n")
+                                llm_client = LocalLLMClient()
+                            
+                            print("Generating project summaries...\n")
+                            
+                            try: #for now I'll just use the standard summary, but we could implement logic to let user choose later
+                                medium_summary = llm_client.generate_summary(data_bundle)
+                                print("=" * 60)
+                                print("STANDARD SUMMARY")
+                                print("=" * 60)
+                                print(medium_summary)
+                                print()
+                                
+                                
                             except Exception as e:
-                                # Catch unexpected errors during repository processing so the app doesn't crash
-                                print(f"Repository processing failed: {e}")
-
-
-                        else:
-                            print("Skipping Git repository linking as no username was provided.\n")
+                                print(f"Error generating summary: {e}")
+                                print("Proceeding without summary.\n")
+                        
+                        except Exception as e:
+                            print(f"Error collecting statistics: {e}")
+                            print("Proceeding without LLM summaries.\n")
 
                     elif fm_result["status"] == "error":
                         print(f"There was an error loading the file to File Manager: {fm_result.get('message', 'Unknown error')}\n")
