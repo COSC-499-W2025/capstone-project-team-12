@@ -52,17 +52,11 @@ class RepositoryAnalyzer:
                 'contribution_analysis': self._calculate_contribution_insights(project),
                 'collaboration_insights': self._generate_collaboration_insights(project),
                 'testing_insights': self._generate_testing_insights(project),
-                'project_scope': self._generate_project_scope_insights(project),
                 'imports_summary': self.extract_repo_import_stats(project)
             }
             projects_insights.append(project_insight)
 
-        portfolio_summary: Dict[str, Any] = self._generate_portfolio_summary(projects_insights)
-
-        return {
-            'projects': projects_insights,
-            'summary': portfolio_summary
-        }
+        return projects_insights
     
     def _calculate_contribution_insights(self, project: Dict[str, Any]) -> Dict[str,Any]:
         # Determines user's contribution rank and level within the project
@@ -335,59 +329,6 @@ class RepositoryAnalyzer:
         ranked_projects = self.rank_importance_of_projects(projects)
 
         return ranked_projects[:3] if ranked_projects else []
-
-    def _generate_project_scope_insights(self, project: Dict[str, Any]) -> Dict[str, Any]:
-        # Determine the maturity and activity status of the project
-        dates: Dict[str, Any] = project.get('dates', {})
-        duration_days: int = dates.get('duration_days', 0)
-
-        # Determine maturity level based on duration
-        if duration_days < 30:
-            maturity_level = 'Short-term'
-        elif duration_days < 90:
-            maturity_level = 'Medium-term'
-        else:
-            maturity_level = 'Long-term'
-        
-        # Check if the project is active
-        end_date_str: str | None = dates.get('end_date')
-        is_active: bool = False
-        if end_date_str:
-            try:
-                end_date = datetime.fromisoformat(end_date_str)
-                days_since_end = (datetime.now() - end_date).days
-                is_active = days_since_end <= 30  # Active if ended within the last 30 days
-            except (ValueError, TypeError):
-                is_active = False
-        
-        return {
-            'maturity_level': maturity_level,
-            'is_active': is_active,
-            'duration_days': duration_days
-        }
-
-    def _generate_portfolio_summary(self, projects_insights: List[Dict[str, Any]]) -> Dict[str, Any]:
-        # Generate a summary for the entire portfolio of projects
-        if not projects_insights:
-            return {}
-        
-        total_projects: int = len(projects_insights)
-        collaborative_projects: int = sum(1 for p in projects_insights if p.get('collaboration_insights', {}).get('is_collaborative', False))
-        average_importance: float = sum(p.get('importance_score', 0) for p in projects_insights) / total_projects if total_projects > 0 else 0.0
-        active_projects: int = sum(1 for p in projects_insights if p.get('project_scope', {}).get('is_active', False))
-
-        durations: List[int] = [
-            p.get('project_scope', {}).get('duration_days', 0) for p in projects_insights
-        ]
-        average_duration: float = sum(durations) / total_projects if total_projects > 0 else 0.0
-
-        return {
-            'total_projects': total_projects,
-            'collaborative_projects': collaborative_projects,
-            'average_importance_score': round(average_importance, 4),
-            'active_projects': active_projects,
-            'average_duration_days': round(average_duration, 2)
-        }
 
 
     # This method may move in later implementation but is included to ensure overall functionality
