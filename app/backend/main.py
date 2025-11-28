@@ -293,7 +293,15 @@ def main() -> None:
                                 # Print detailed info for each repository
                                 print("\n=== Repository Details ===\n")
                                 print(analyzed_repos['projects'])
-                                
+
+                                # Print generated timelines
+                                print("\n=== Project and Skill Timelines===\n")
+                                all_imports = repo_analyzer.get_all_repo_import_stats(raw_repo_data)
+                                skill_timeline = repo_analyzer.sort_all_repo_imports_chronologically(all_imports)
+                                print(f"Skills: {skill_timeline}\n")
+
+                                project_timeline = repo_analyzer.create_chronological_project_list(raw_repo_data)
+                                print(f"Projects: {project_timeline}\n")
                             except Exception as e:
                                 # Catch unexpected errors during repository processing so the app doesn't crash
                                 print(f"Repository processing failed: {e}")
