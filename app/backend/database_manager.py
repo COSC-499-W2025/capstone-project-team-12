@@ -179,9 +179,9 @@ class DatabaseManager:
                 (
                     uuid.UUID(result_id),
                     json.dumps(metadata_results),
-                    json.dumps(bow_cache) if bow_cache else None,
-                    json.dumps(project_data, default=str) if project_data else None,
-                    json.dumps(package_data) if package_data else None
+                    json.dumps(bow_cache) if bow_cache is not None else None,
+                    json.dumps(project_data, default=str) if project_data is not None else None,
+                    json.dumps(package_data) if package_data is not None else None
                 )
             )
             
