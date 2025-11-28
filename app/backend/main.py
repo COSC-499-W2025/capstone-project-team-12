@@ -252,26 +252,26 @@ def main() -> None:
                                 print("Cache miss - running text preprocessing pipeline...")
 
                                 # convert binary data to text data to use in for preprocessing
-                                text_data: List[str] = convert_binary_to_text(text_nodes)
+                                # text_data: List[str] = convert_binary_to_text(text_nodes)
                                 
-                                # run text preprocessing
-                                processed_docs = text_preprocess(text_data)
-                                anonymized_docs = remove_pii(processed_docs)
-                                final_bow: list[list[str]] = anonymized_docs
+                                # # run text preprocessing
+                                # processed_docs = text_preprocess(text_data)
+                                # anonymized_docs = remove_pii(processed_docs)
+                                # final_bow: list[list[str]] = anonymized_docs
 
-                                # save to cache
-                                cache.set(key, final_bow)
+                                # # save to cache
+                                # cache.set(key, final_bow)
 
-                                print(f"Successfully built BoW for {len(final_bow)} document(s) and saved it to Cache. Ready for text analysis.\n")
+                                # print(f"Successfully built BoW for {len(final_bow)} document(s) and saved it to Cache. Ready for text analysis.\n")
 
-                                print("Running topic modeling...")
+                                # print("Running topic modeling...")
 
-                                lda_model, doc_topic_vectors, topic_term_vectors = generate_topic_vectors(final_bow)
+                                # lda_model, doc_topic_vectors, topic_term_vectors = generate_topic_vectors(final_bow)
 
-                                print("Successfully generated topic vectors.")
-                                print(f"- Number of documents: {len(doc_topic_vectors)}")
-                                print(f"- Number of topics: {len(topic_term_vectors)}")
-                                print("Text analysis complete.\n")
+                                # print("Successfully generated topic vectors.")
+                                # print(f"- Number of documents: {len(doc_topic_vectors)}")
+                                # print(f"- Number of topics: {len(topic_term_vectors)}")
+                                # print("Text analysis complete.\n")
                                 
                             else:
                                 print("No text files found to preprocess.")
@@ -296,13 +296,9 @@ def main() -> None:
                                 analyzed_repos: Dict[str, Any] = repo_analyzer.generate_project_insights(raw_repo_data)
                                 print(f"Analyzed {len(analyzed_repos)} Git repositories successfully in Repository Analyzer.\n")
                                 
-                                # Print summary of portfolio analysis
-                                print("\n ===Portfolio Summary===\n")
-                                print(analyzed_repos['summary'])
-                                
                                 # Print detailed info for each repository
                                 print("\n=== Repository Details ===\n")
-                                print(analyzed_repos['projects'])
+                                print(analyzed_repos)
 
                                 # Print generated timelines
                                 print("\n=== Project and Skill Timelines===\n")
