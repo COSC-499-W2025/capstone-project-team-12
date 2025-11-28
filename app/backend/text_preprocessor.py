@@ -71,6 +71,9 @@ def get_tokens(filestring:str) -> List[str]:
     #convert normalized filestring to token list using nltk
     reg_tokens: list[str] = word_tokenize(reg_txt)
 
+    # Additional filtering for tokens that are too short (since values like /n would return n as a token)
+    reg_tokens = [token for token in reg_tokens if len(token) > 1]
+
     return reg_tokens
 
 def stopword_filtered_tokens(tokens: List[str]) -> List[str]:
