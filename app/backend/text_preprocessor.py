@@ -6,7 +6,7 @@ from nltk.stem import WordNetLemmatizer
 from nltk.corpus import wordnet
 from nltk import word_tokenize, pos_tag
 from anytree import Node
-from typing import BinaryIO
+
 
 stop_words: set[str] = None
 
@@ -43,7 +43,7 @@ def text_preprocess(text_nodes: List[Node],text_data: List[str]) ->List[List[str
                 raise RuntimeWarning("Failed to process text file, NO DATA! Skipping file:" + text_nodes[i].file_data['filename'])
                 continue
         except Exception as e:
-            print("Unexpected runtime error in: Text_Preprocessor:{e}")
+            print(f"Unexpected runtime error in: Text_Preprocessor:{e}")
             continue
     return preProcessed_doclist
 
