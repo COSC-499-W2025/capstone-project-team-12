@@ -54,58 +54,6 @@ class RepositoryAnalyzer:
             projects_insights.append(project_insight)
 
         return projects_insights
-    
-    def _calculate_contribution_insights(self, project: Dict[str, Any]) -> Dict[str,Any]:
-        # Determines user's contribution rank and level within the project
-        context: Dict[str, Any] = project.get('repository_context', {})
-        all_authors_stats: Dict[str, Dict[str, int]] = context.get('all_authors_stats', {})
-
-        # TODO: Rework this and processor to anonymize emails to ensure no PII is stored
-        # For now, we find the user's email from all_authors_stats
-        user_email: str | None = None
-        for email in all_authors_stats.keys(): 
-            if self.username.lower() in email.lower():
-                user_email = email
-                break
-
-        if not user_email or user_email not in all_authors_stats:
-            return {
-                'contribution_level': 'Unknown',
-                'rank_by_commits': None,
-                'percentile': None,
-            }
-
-        # Sort authors by number of commits
-        sorted_by_commits = sorted(
-            all_authors_stats.items(),
-            key=lambda item: item[1]['commits'],
-            reverse=True
-        )
-
-        # Pull out just the emails in sorted order
-        sorted_emails = [email for email, stats in sorted_by_commits]
-        rank: int = sorted_emails.index(user_email) + 1  if user_email in sorted_emails else None
-
-        total_authors: int = len(all_authors_stats)
-        percentile: float = ((total_authors - rank) / total_authors) * 100 if rank else None
-
-        # Determine contribution level based on rank
-        if total_authors == 1:
-            contribution_level = 'Sole Contributor'
-        elif rank == 1:
-            contribution_level = 'Top Contributor'
-        elif percentile and percentile >= 75:
-            contribution_level = 'Major Contributor'
-        elif percentile and percentile >= 50:
-            contribution_level = 'Significant Contributor'
-        else:
-            contribution_level = 'Contributor'
-        
-        return {
-            'contribution_level': contribution_level,
-            'rank_by_commits': rank,
-            'percentile': round(percentile, 2) if percentile is not None else None,
-        }
 
     def extract_repo_import_stats(self, project: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -236,6 +184,58 @@ class RepositoryAnalyzer:
             'is_collaborative': is_collaborative,
             'team_size': total_contributors,
             'user_contribution_share_percentage': round(contribution_share, 2)
+        }
+    
+    def _calculate_contribution_insights(self, project: Dict[str, Any]) -> Dict[str,Any]:
+        # Determines user's contribution rank and level within the project
+        context: Dict[str, Any] = project.get('repository_context', {})
+        all_authors_stats: Dict[str, Dict[str, int]] = context.get('all_authors_stats', {})
+
+        # TODO: Rework this and processor to anonymize emails to ensure no PII is stored
+        # For now, we find the user's email from all_authors_stats
+        user_email: str | None = None
+        for email in all_authors_stats.keys(): 
+            if self.username.lower() in email.lower():
+                user_email = email
+                break
+
+        if not user_email or user_email not in all_authors_stats:
+            return {
+                'contribution_level': 'Unknown',
+                'rank_by_commits': None,
+                'percentile': None,
+            }
+
+        # Sort authors by number of commits
+        sorted_by_commits = sorted(
+            all_authors_stats.items(),
+            key=lambda item: item[1]['commits'],
+            reverse=True
+        )
+
+        # Pull out just the emails in sorted order
+        sorted_emails = [email for email, stats in sorted_by_commits]
+        rank: int = sorted_emails.index(user_email) + 1  if user_email in sorted_emails else None
+
+        total_authors: int = len(all_authors_stats)
+        percentile: float = ((total_authors - rank) / total_authors) * 100 if rank else None
+
+        # Determine contribution level based on rank
+        if total_authors == 1:
+            contribution_level = 'Sole Contributor'
+        elif rank == 1:
+            contribution_level = 'Top Contributor'
+        elif percentile and percentile >= 75:
+            contribution_level = 'Major Contributor'
+        elif percentile and percentile >= 50:
+            contribution_level = 'Significant Contributor'
+        else:
+            contribution_level = 'Contributor'
+        
+        return {
+            'contribution_level': contribution_level,
+            'rank_by_commits': rank,
+            'percentile': round(percentile, 2) if percentile is not None else None,
         }
     
     def _generate_testing_insights(self, project: Dict[str, Any]) -> Dict[str, Any]:
