@@ -20,12 +20,17 @@ def combined_preprocess(text_nodes: List[Node], text_data: List[str], code_nodes
     if code_nodes and code_data:
         code_tokens_by_file = code_preprocess(code_nodes, code_data, True)
 
-    # Join code tokens into strings for text preprocessing
-    code_as_text_data: List[str] = [' '.join(tokens) for tokens in code_tokens_by_file]
-
-    # Combine text file data and code file data as text
+    # Need to skip any empty files that may have resulted in empty token lists
+    code_as_text_data: List[str] = []
+    valid_code_nodes: List[Node] = []
+    for i, tokens in enumerate(code_tokens_by_file):
+        if tokens and tokens !=['']:  # Only consider non-empty token lists
+            code_as_text_data.append(' '.join(tokens))
+            valid_code_nodes.append(code_nodes[i])
+    
+    # Combine valid text and code data
     combined_text_data: List[str] = text_data + code_as_text_data
-    combined_text_nodes: List[Node] = text_nodes + code_nodes
+    combined_text_nodes: List[Node] = text_nodes + valid_code_nodes
 
     # Preprocess combined data
     combined_preprocessed_tokens: List[List[str]] = text_preprocess(combined_text_nodes, combined_text_data)
