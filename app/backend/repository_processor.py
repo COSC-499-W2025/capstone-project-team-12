@@ -2,7 +2,7 @@ from pathlib import Path
 import tempfile
 import shutil
 from anytree import Node
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 from datetime import datetime
 from pydriller import Repository
 from pydriller.domain.commit import Commit
