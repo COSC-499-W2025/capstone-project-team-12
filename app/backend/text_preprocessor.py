@@ -39,7 +39,7 @@ def text_preprocess(text_nodes: List[Node],text_data: List[str]) ->List[List[str
                 token_array = lemmatize_tokens(token_array)
                 preProcessed_doclist.append(token_array)
             else:
-                preProcessed_doclist.append([""]) #append empty list here to preserve ordinality. i.e 6 input nodes must give six output. Matters when a file node is made but corresponding data in bin_data_list is None
+                preProcessed_doclist.append([]) #append empty list here to preserve ordinality. i.e 6 input nodes must give six output. Matters when a file node is made but corresponding data in bin_data_list is None
                 raise RuntimeWarning("Failed to process text file, NO DATA! Skipping file:" + text_nodes[i].file_data['filename'])
                 continue
         except Exception as e:
