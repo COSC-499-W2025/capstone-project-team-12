@@ -168,6 +168,53 @@ class RepositoryAnalyzer:
 
         return repo_summaries
     
+    def sort_repo_imports_in_chronological_order(self, repo_summary: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Sorts the imports of a single repo in chronological order by start_date DESC
+        """
+        imports = repo_summary.get("imports_summary", {})
+
+        sorted_imports = sorted(imports.items(), key=lambda item: datetime.fromisoformat(item[1]["start_date"]) if item[1].get("start_date") else datetime.min, reverse=True)
+        repo_summary["imports_summary"] = {imp: stats for imp, stats in sorted_imports}
+
+        return repo_summary
+    
+    
+    def sort_all_repo_imports_chronologically(self, all_repo_summaries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Takes the full list from get_all_repo_import_stats() and sorts all imports across all repositories in chronological order 
+        (by start_date DESC)
+        """
+        aggregated = []
+
+        for repo_summary in all_repo_summaries:
+            repo_name = repo_summary["repository_name"]
+            imports_summary = repo_summary.get("imports_summary", {})
+
+            for imp, stats in imports_summary.items():
+                start_str = stats.get("start_date")
+                start_dt = (
+                    datetime.fromisoformat(start_str)
+                    if start_str else datetime.min
+                )
+
+                aggregated.append({
+                    "import": imp,
+                    "repository_name": repo_name,
+                    "start_date": stats.get("start_date"),
+                    "end_date": stats.get("end_date"),
+                    "duration_days": stats.get("duration_days"),
+                    "frequency": stats.get("frequency"),
+                    "start_dt": start_dt,   # keep this only for sorting
+                })
+
+        aggregated.sort(key=lambda x: x["start_dt"], reverse=True)
+
+        # remove the helper datetime object before returning
+        for entry in aggregated:
+            entry.pop("start_dt", None)
+
+        return aggregated 
 
     def _generate_collaboration_insights(self, project: Dict[str, Any]) -> Dict[str, Any]:
         # Analyze collaboration patterns and team dynamics
@@ -361,50 +408,4 @@ class RepositoryAnalyzer:
 
         return projects
 
-    def sort_repo_imports_in_chronological_order(self, repo_summary: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Sorts the imports of a single repo in chronological order by start_date DESC
-        """
-        imports = repo_summary.get("imports_summary", {})
-
-        sorted_imports = sorted(imports.items(), key=lambda item: datetime.fromisoformat(item[1]["start_date"]) if item[1].get("start_date") else datetime.min, reverse=True)
-        repo_summary["imports_summary"] = {imp: stats for imp, stats in sorted_imports}
-
-        return repo_summary
     
-    
-    def sort_all_repo_imports_chronologically(self, all_repo_summaries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """
-        Takes the full list from get_all_repo_import_stats() and sorts all imports across all repositories in chronological order 
-        (by start_date DESC)
-        """
-        aggregated = []
-
-        for repo_summary in all_repo_summaries:
-            repo_name = repo_summary["repository_name"]
-            imports_summary = repo_summary.get("imports_summary", {})
-
-            for imp, stats in imports_summary.items():
-                start_str = stats.get("start_date")
-                start_dt = (
-                    datetime.fromisoformat(start_str)
-                    if start_str else datetime.min
-                )
-
-                aggregated.append({
-                    "import": imp,
-                    "repository_name": repo_name,
-                    "start_date": stats.get("start_date"),
-                    "end_date": stats.get("end_date"),
-                    "duration_days": stats.get("duration_days"),
-                    "frequency": stats.get("frequency"),
-                    "start_dt": start_dt,   # keep this only for sorting
-                })
-
-        aggregated.sort(key=lambda x: x["start_dt"], reverse=True)
-
-        # remove the helper datetime object before returning
-        for entry in aggregated:
-            entry.pop("start_dt", None)
-
-        return aggregated 
