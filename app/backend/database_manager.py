@@ -14,8 +14,7 @@ class DatabaseManager:
         """Create a new result entry and return its result_id UUID (str)."""
         try:
             query = """
-                INSERT INTO Results (result_id)
-                VALUES (uuid_generate_v4())
+                INSERT INTO Results DEFAULT VALUES
                 RETURNING result_id;
             """
             result = self.db.execute_update(query, returning=True)
