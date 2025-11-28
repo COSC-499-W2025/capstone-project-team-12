@@ -26,7 +26,7 @@ class RepositoryAnalyzer:
 
 
     def generate_project_insights(self, project_data: List[Dict[str, Any]]) -> Dict[str, Any]:
-        # Generate insights for all projects
+        # Generate insights from extracted project data
 
         # Filter out any projects that failed to process
         valid_projects: List[Dict[str, Any]] = [
@@ -39,7 +39,7 @@ class RepositoryAnalyzer:
                 'summary': {}
             }
 
-        # Compute importance rankings (requires all valid projects for normalization)
+        # Compute importance scores & rankings (requires all valid projects for normalization)
         ranked_projects: List[Dict[str, Any]] = self.rank_importance_of_projects(valid_projects)
 
         # Generate insights for each project
@@ -52,7 +52,8 @@ class RepositoryAnalyzer:
                 'contribution_analysis': self._calculate_contribution_insights(project),
                 'collaboration_insights': self._generate_collaboration_insights(project),
                 'testing_insights': self._generate_testing_insights(project),
-                'project_scope': self._generate_project_scope_insights(project)
+                'project_scope': self._generate_project_scope_insights(project),
+                'imports_summary': self.extract_repo_import_stats(project)
             }
             projects_insights.append(project_insight)
 
@@ -115,9 +116,10 @@ class RepositoryAnalyzer:
             'percentile': round(percentile, 2) if percentile is not None else None,
         }
 
-    def extract_repo_import_stats(self, repo: Repository, repo_name: str) -> Dict[str, Any]:
+    def extract_repo_import_stats(self, project: Dict[str, Any]) -> Dict[str, Any]:
         """
         Extracts the import statistics for all files modified by the user in one repo.
+        Uses the modified files from the raw data extracted in the processor
         Returns a dict with repository_name and imports_summary. For each import, we track:
         - frequency
         - start_date
@@ -126,31 +128,32 @@ class RepositoryAnalyzer:
 
         Doing this allows us to find skills and technologies the user has worked with over time.
         """
-
-        commit_username = self.username
+        repo_name = project.get('repository_name', 'Unknown')
+        commits_data: List[Dict[str, Any]] = project.get('user_commits', [])
         imports_data: Dict[str, Dict[str, Any]] = {}
 
-        # loop through all commits in the repository
-        for commit in repo.traverse_commits():
-            c_username = commit.author.email.split('@')[0].split('+')[-1].lower()
-            if c_username != commit_username:
-                continue # skip commits not by the user
-
-            commit_date = commit.author_date
-            if not commit_date:
+        # Loop through all commits in the raw data
+        for commit in commits_data:
+            commit_date_str = commit.get('date')
+            if not commit_date_str:
+                continue
+            
+            try:
+                commit_date = datetime.fromisoformat(commit_date_str)
+            except (ValueError, TypeError):
                 continue
 
-            # loop through all modified files in the commit
-            for mod in (commit.modified_files or []):
-                src = mod.source_code or ""
+            # Loop through all modified files in the commit
+            for mod in commit.get('modified_files', []):
+                src = mod.get('source_code', '')
                 if not src.strip():
                     continue
 
-                # get file extension to determine language
-                filename = mod.filename or "unknown"
+                # Get file extension to determine language
+                filename = mod.get('filename', 'unknown')
                 ext = filename.split('.')[-1].lower() if '.' in filename else ""
 
-                # extract imports based on programming language using regex patterns
+                # Extract imports based on programming language using regex patterns
                 imports: List[str] = []
                 if ext == "py":
                     matches = self.PYTHON_IMPORT_RE.findall(src)
@@ -182,7 +185,7 @@ class RepositoryAnalyzer:
                     if commit_date > imports_data[imp]["end_date"]:
                         imports_data[imp]["end_date"] = commit_date
 
-        # convert dates and calculate duration
+        # Convert dates and calculate duration
         for imp, data in imports_data.items():
             start = data["start_date"]
             end = data["end_date"]
@@ -190,14 +193,9 @@ class RepositoryAnalyzer:
             data["end_date"] = end.isoformat() if end else None
             data["duration_days"] = (end - start).days if start and end else None
 
-        # imports_summary has frequency, start_date, end_date and duration_days for each import in the repo
-        return {
-            "repository_name": repo_name,
-            "imports_summary": imports_data
-        }
-    
+        return imports_data   
 
-    def get_all_repo_import_stats(self, repo_nodes: List[Node]) -> List[Dict[str, Any]]:
+    def get_all_repo_import_stats(self, project_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         Get the import statistics for all repos that were modified by the user.
         Returns a list of dicts (one per repository), each containing:
@@ -207,69 +205,30 @@ class RepositoryAnalyzer:
 
         repo_summaries: List[Dict[str, Any]] = []
 
-        for repo_node in repo_nodes:
-            try:
-                git_folder_path: Path = self._extract_git_folder(repo_node)
-                repo = Repository(str(git_folder_path))
-                summary = self.extract_repo_import_stats(repo, repo_node.name)
-                repo_summaries.append(summary)
-            except Exception as e: # In case of error, log and continue
+        for project in project_data:
+            if project.get('status') != 'success':
                 repo_summaries.append({
-                    "repository_name": repo_node.name,
+                    "repository_name": project.get('repository_name', 'Unknown'),
+                    "imports_summary": {},
+                    "error": project.get('error_message', 'Unknown error')
+                })
+                continue
+            
+            try:
+                imports_summary = self.extract_repo_import_stats(project)
+                repo_summaries.append({
+                    "repository_name": project.get('repository_name', 'Unknown'),
+                    "imports_summary": imports_summary
+                })
+            except Exception as e:
+                repo_summaries.append({
+                    "repository_name": project.get('repository_name', 'Unknown'),
                     "imports_summary": {},
                     "error": str(e)
                 })
 
         return repo_summaries
     
-
-    def sort_repo_imports_in_chronological_order(self, repo_summary: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Sorts the imports of a single repo in chronological order by start_date DESC
-        """
-        imports = repo_summary.get("imports_summary", {})
-
-        sorted_imports = sorted(imports.items(), key=lambda item: datetime.fromisoformat(item[1]["start_date"]) if item[1].get("start_date") else datetime.min, reverse=True)
-        repo_summary["imports_summary"] = {imp: stats for imp, stats in sorted_imports}
-
-        return repo_summary
-    
-    
-    def sort_all_repo_imports_chronologically(self, all_repo_summaries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """
-        Takes the full list from get_all_repo_import_stats() and sorts all imports across all repositories in chronological order 
-        (by start_date DESC)
-        """
-        aggregated = []
-
-        for repo_summary in all_repo_summaries:
-            repo_name = repo_summary["repository_name"]
-            imports_summary = repo_summary.get("imports_summary", {})
-
-            for imp, stats in imports_summary.items():
-                start_str = stats.get("start_date")
-                start_dt = (
-                    datetime.fromisoformat(start_str)
-                    if start_str else datetime.min
-                )
-
-                aggregated.append({
-                    "import": imp,
-                    "repository_name": repo_name,
-                    "start_date": stats.get("start_date"),
-                    "end_date": stats.get("end_date"),
-                    "duration_days": stats.get("duration_days"),
-                    "frequency": stats.get("frequency"),
-                    "start_dt": start_dt,   # keep this only for sorting
-                })
-
-        aggregated.sort(key=lambda x: x["start_dt"], reverse=True)
-
-        # remove the helper datetime object before returning
-        for entry in aggregated:
-            entry.pop("start_dt", None)
-
-        return aggregated    
 
     def _generate_collaboration_insights(self, project: Dict[str, Any]) -> Dict[str, Any]:
         # Analyze collaboration patterns and team dynamics
@@ -278,8 +237,8 @@ class RepositoryAnalyzer:
         is_collaborative: bool = context.get('is_collaborative', False)
 
         # Calculate the user's share of total work
-        user_commits: int = len(context.get('user_commits', []))
-        total_commits: int = context.get('total_commits', user_commits)
+        user_commits: int = len(project.get('user_commits', []))
+        total_commits: int = context.get('total_commits_all_authors', user_commits)
         contribution_share: float = (user_commits / total_commits * 100) if total_commits > 0 else 0.0
 
         return {
@@ -333,23 +292,23 @@ class RepositoryAnalyzer:
         """ Ranks project importance based on the number of commits from a user, the number of lines added by the user, and the
         duration of the project """
 
-        # extract all values into lists
-        commits_vals = [p.get('commit_count', 0) for p in projects]
-        lines_vals = [p.get('statistics', {}).get('total_lines_added', 0) for p in projects]
-        duration_vals = [p.get('duration_days', 0) for p in projects]
+        # Extract all values into lists
+        commits_vals = [len(p.get('user_commits', [])) for p in projects]
+        lines_vals = [p.get('statistics', {}).get('user_lines_added', 0) for p in projects]
+        duration_vals = [p.get('dates', {}).get('duration_days', 0) for p in projects]
 
-        # find min and max for each measure
-        min_commits = min(commits_vals)
-        max_commits = max(commits_vals)
-        min_lines = min (lines_vals)
-        max_lines = max(lines_vals)
-        min_duration = min(duration_vals)
-        max_duration = max(duration_vals)
+        # Find min and max for each measure
+        min_commits = min(commits_vals) if commits_vals else 0
+        max_commits = max(commits_vals) if commits_vals else 0
+        min_lines = min(lines_vals) if lines_vals else 0
+        max_lines = max(lines_vals) if lines_vals else 0
+        min_duration = min(duration_vals) if duration_vals else 0
+        max_duration = max(duration_vals) if duration_vals else 0
 
         for project in projects:
-            commits = project.get('commit_count', 0)
-            lines = project.get('statistics', {}).get('total_lines_added', 0)
-            duration = project.get('duration_days', 0)
+            commits = len(project.get('user_commits', []))
+            lines = project.get('statistics', {}).get('user_lines_added', 0)
+            duration = project.get('dates', {}).get('duration_days', 0)
 
             norm_commits = self.normalize_for_rankings(commits, max_commits, min_commits)
             norm_lines_added = self.normalize_for_rankings(lines, max_lines, min_lines)
@@ -390,6 +349,7 @@ class RepositoryAnalyzer:
         else:
             maturity_level = 'Long-term'
         
+        # Check if the project is active
         end_date_str: str | None = dates.get('end_date')
         is_active: bool = False
         if end_date_str:
@@ -402,7 +362,8 @@ class RepositoryAnalyzer:
         
         return {
             'maturity_level': maturity_level,
-            'is_active': is_active
+            'is_active': is_active,
+            'duration_days': duration_days
         }
 
     def _generate_portfolio_summary(self, projects_insights: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -425,6 +386,7 @@ class RepositoryAnalyzer:
             'collaborative_projects': collaborative_projects,
             'average_importance_score': round(average_importance, 4),
             'active_projects': active_projects,
+            'average_duration_days': round(average_duration, 2)
         }
 
 
@@ -433,13 +395,15 @@ class RepositoryAnalyzer:
         # TODO: determine what parts of a project should be displayed on the timeline
         # ^ This will determine what needs to be returned here
 
+        # all_repo_data is the raw data returned from the repository processor
         projects: List[Dict[str, Any]] = []
 
         for repo in all_repo_data:
             if repo.get('status') != 'success':
                 continue
             
-            start_date = repo.get('start_date')
+            dates = repo.get('dates',{})
+            start_date = dates.get('start_date')
 
             if not start_date or not isinstance(start_date, str):
                 continue
@@ -447,19 +411,62 @@ class RepositoryAnalyzer:
             project_info = {
                 'name': repo.get('repository_name', 'Unknown'),
                 'start_date': start_date,
-                'end_date': repo.get('end_date'),
-                'duration_days': repo.get('duration_days', 0),
-                'commit_count': repo.get('commit_count', 0),
-                'is_collaborative': repo.get('is_collaborative', False),
-                'total_lines_added': repo.get('statistics', {}).get('total_lines_added', 0),
-                'total_lines_deleted': repo.get('statistics', {}).get('total_lines_deleted', 0),
-                'files_modified': repo.get('statistics', {}).get('total_files_modified', 0)
+                'end_date': dates.get('end_date'),
+                'duration_days': dates.get('duration_days', 0)
             }
 
             projects.append(project_info)
 
-        # Sort all projects by the start date
+        # Sort all projects by the start date (most recent first)
         if projects:
             projects.sort(key = lambda x: x['start_date'], reverse = True)
 
         return projects
+
+    def sort_repo_imports_in_chronological_order(self, repo_summary: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Sorts the imports of a single repo in chronological order by start_date DESC
+        """
+        imports = repo_summary.get("imports_summary", {})
+
+        sorted_imports = sorted(imports.items(), key=lambda item: datetime.fromisoformat(item[1]["start_date"]) if item[1].get("start_date") else datetime.min, reverse=True)
+        repo_summary["imports_summary"] = {imp: stats for imp, stats in sorted_imports}
+
+        return repo_summary
+    
+    
+    def sort_all_repo_imports_chronologically(self, all_repo_summaries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Takes the full list from get_all_repo_import_stats() and sorts all imports across all repositories in chronological order 
+        (by start_date DESC)
+        """
+        aggregated = []
+
+        for repo_summary in all_repo_summaries:
+            repo_name = repo_summary["repository_name"]
+            imports_summary = repo_summary.get("imports_summary", {})
+
+            for imp, stats in imports_summary.items():
+                start_str = stats.get("start_date")
+                start_dt = (
+                    datetime.fromisoformat(start_str)
+                    if start_str else datetime.min
+                )
+
+                aggregated.append({
+                    "import": imp,
+                    "repository_name": repo_name,
+                    "start_date": stats.get("start_date"),
+                    "end_date": stats.get("end_date"),
+                    "duration_days": stats.get("duration_days"),
+                    "frequency": stats.get("frequency"),
+                    "start_dt": start_dt,   # keep this only for sorting
+                })
+
+        aggregated.sort(key=lambda x: x["start_dt"], reverse=True)
+
+        # remove the helper datetime object before returning
+        for entry in aggregated:
+            entry.pop("start_dt", None)
+
+        return aggregated 
