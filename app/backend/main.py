@@ -258,11 +258,13 @@ def main() -> None:
                                 print("Cache miss - running text preprocessing pipeline...")
 
                                 # convert binary data to text data to use in for preprocessing
-                                text_data: List[str] = convert_binary_to_text(text_nodes)
+                                node_binary_data: List[BinaryIO|None] = get_bin_data_by_Nodes(text_nodes)
+                                text_data: List[str] = binary_to_str(node_binary_data)
                                 
                                 # run text preprocessing
-                                processed_docs = text_preprocess(text_data)
+                                processed_docs = text_preprocess(text_nodes, text_data)
                                 anonymized_docs = remove_pii(processed_docs)
+                                # TODO: I think this only ever returns (1?) list so need to fix logic?
                                 final_bow: list[list[str]] = anonymized_docs
 
                                 # save to cache
