@@ -140,11 +140,13 @@ def code_preprocess(code_nodes: List[Node],code_data:List[str], normalize:bool =
             tmp_filename:str = code_nodes[i].file_data['filename']
             print(f"Failed to extract identifiers for file {tmp_filename}:\n\t Reason: {e}\n\tSkipping File...")
             continue
-    tokenarray = pygmentTokenList_to_stringTokenList(tokenarray)
-    if normalize:
-        tokenarray = normalize_identifiers(tokenarray)
-    
-    codefile_tokenlist.append(tokenarray)
+
+        tokenarray = pygmentTokenList_to_stringTokenList(tokenarray)
+        if normalize:
+            tokenarray = normalize_identifiers(tokenarray)
+        
+        codefile_tokenlist.append(tokenarray)
+        
     return codefile_tokenlist
 
 
