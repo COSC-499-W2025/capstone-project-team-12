@@ -7,7 +7,6 @@ from nltk.corpus import wordnet
 from nltk import word_tokenize, pos_tag
 from anytree import Node
 from typing import BinaryIO
-from main import get_bin_data_by_Id
 
 stop_words: set[str] = None
 
@@ -16,38 +15,32 @@ def stopwords_init():
     stop_words = set(stopwords.words('english'))
     return
 
-# Primary function for external use of module. 
-# Each sub array refers to tokens extracted from individual text files
-# eg. [
-#      ["capy","bring","happy","toy"]           --> Corresponds to one txt file
-#      ["Smith" "common" "lastname" "bear"]     --> Corresponds to another txt file
-#     ]
-# Note should only be called on array of text files, i.e Should not be called on array of codefile nodes
-# Instead call `codepreprocess_entrypoint(...)` and add the results pf both functions together
-# Before forwarding PII removal and eventually to analysis step
-def text_preprocess(text_nodes: List[Node]) ->List[List[str]]:
+def text_preprocess(text_nodes: List[Node],text_data: List[str]) ->List[List[str]]:
+    """ 
+    Primary function for external use of module. 
+    each sub array refers to tokens extracted from individual text files
+    eg. [
+            ["capy","bring","happy","toy"]           --> Corresponds to one txt file
+            ["Smith" "common" "lastname" "bear"]     --> Corresponds to another txt file
+        ]
+    Note should only be called on array of text file nodes, i.e Should not be called on array of codefile nodes
+    """
     #declare output list
     preProcessed_doclist: List[List[str]] = []
-    if text_nodes is None:
-        raise ValueError("Text Proprocess error: No nodes given!")
-        return
     
-    for i in range(len(text_nodes)):
-        
+    #loopover input data
+    for i in range(len(text_data)):
         #Temp array for storing text file currently being processed.
         token_array: List[str]
-        
-        cur_text_node: Node = text_nodes[i]
-        cur_text_binId: int = cur_text_node.file_data['binary_index']
-        cur_text_data: BinaryIO= str(get_bin_data_by_Id(cur_text_binId))
         try:
-            if cur_text_data: #If downstream error then will be none!
-                token_array = get_tokens(cur_text_data)
+            if text_data[i]:
+                token_array = get_tokens(text_data[i])
                 token_array = stopword_filtered_tokens(token_array)
                 token_array = lemmatize_tokens(token_array)
                 preProcessed_doclist.append(token_array)
             else:
-                raise RuntimeWarning("Failed to process text file, NO DATA! Skipping file:" + cur_text_node.file_data['filename'])
+                preProcessed_doclist.append([""]) #append empty list here to preserve ordinality. i.e 6 input nodes must give six output. Matters when a file node is made but corresponding data in bin_data_list is None
+                raise RuntimeWarning("Failed to process text file, NO DATA! Skipping file:" + text_nodes[i].file_data['filename'])
                 continue
         except Exception as e:
             print("Unexpected runtime error in: Text_Preprocessor:{e}")
@@ -81,6 +74,7 @@ def get_tokens(filestring:str) -> List[str]:
     return reg_tokens
 
 def stopword_filtered_tokens(tokens: List[str]) -> List[str]:
+    """Removes stopwords in provided token list based on stopword list in nltk package"""
     try:
         # import tokens from text_tokenizer
         global stop_words
@@ -99,12 +93,8 @@ def stopword_filtered_tokens(tokens: List[str]) -> List[str]:
     return filtered_tokens
 
 
-# --------------------------
-# LEMMATIZATION
-# --------------------------
-
-# we need to tell the lemmatizer what part of speech the word in question is: adjective, verb, etc
 def get_wordnet_pos(tag: str) -> str:
+    """ Look-up and retrieve appropriate POS type based on the tag"""
     if tag.startswith('J'):
         return wordnet.ADJ  # adjective
     elif tag.startswith('V'):

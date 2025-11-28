@@ -1,55 +1,54 @@
-from pytest_mock import mocker
 from text_preprocessor import *
 from anytree import Node
 from typing import OrderedDict
 
-#generated mock nodes based on mock files.
+#generated test nodes based on test files.
 nodelist:OrderedDict[str,Node] = {}
-#generated mock data list for use by text preprocessor
+#generated test data list for use by text preprocessor
 datalist:List|None = []
 
-#Adds a mock entry to both nodelist and datalist based on file name and content
+#Adds a test entry to both nodelist and datalist based on file name and content
 #Only adds attributes used by text_preprocessor to Nodes (for minimal coupling)
-def add_mock_entry(name:str,content:str):
+def add_test_entry(name:str,content:str):
     
     #static variable implemented as func attribute to track functioncals
-    if not hasattr(add_mock_entry,"idxCounter"):
-        add_mock_entry.idxCounter=0
+    if not hasattr(add_test_entry,"idxCounter"):
+        add_test_entry.idxCounter=0
     else:
-        add_mock_entry.idxCounter += 1
+        add_test_entry.idxCounter += 1
     
     #scoping global variiables
     global nodelist,datalist
     
     #construct test node
-    testNode:Node = Node(name,file_data={'binary_index':add_mock_entry.idxCounter})
+    testNode:Node = Node(name,file_data={'binary_index':add_test_entry.idxCounter})
     
     #add entries to global Lists
     nodelist[name] = testNode
     if content is not None:
         datalist.append(content)
-    else:
-        datalist.append('')
+    elif content is None:
+        datalist.append(str(""))
     return
 
-#Adds mockdata to global lists
+#Adds testdata to global lists
 def test_setUp():
-    add_mock_entry("simple_text","This is the simple text used")
-    add_mock_entry("stopwords_text","the and if but or")
-    add_mock_entry("punctuations_text","...!!!???")
-    add_mock_entry("empty_text",None)
+    add_test_entry("simple_text","This is the simple text used")
+    add_test_entry("stopwords_text","the and if but or")
+    add_test_entry("punctuations_text","...!!!???")
+    add_test_entry("empty_text",None)
     
     largetext_1= open("tests_backend/test_main_dir/mock_files/textProcessor_testfile1.txt",'rb').read()
     largetext_2= open("tests_backend/test_main_dir/mock_files/textProcessor_testfile2.txt",'rb').read()
-    add_mock_entry("lg_text_test1",str(largetext_1))
-    add_mock_entry("lg_text_test2",str(largetext_2))
+    add_test_entry("lg_text_test1",str(largetext_1))
+    add_test_entry("lg_text_test2",str(largetext_2))
 
-#gets file data from liist based on passed node
+#gets file data from list based on passed node
 def get_test_str_by_Node(node:Node):
     testStr :str = datalist[node.file_data['binary_index']]     #access bin_idx from node
     return testStr
 
-#g
+#get filedata from test datalist based on ID
 def get_test_str_by_Id(id:int):
     datalist[id]
     
@@ -108,13 +107,13 @@ def test_large_complex():
     lemmatized = lemmatize_tokens(tokens)
     assert all(isinstance(lemma,str)for lemma in lemmatized) 
 
-def test_comprehensive(mocker):
-    mocker.patch('text_preprocessor.get_bin_data_by_Id',get_test_str_by_Id)
+def test_comprehensive():
+    
+    #do not delete line, converts dict to list while preserving append order
     temp_nodelist: List[Node] = list(nodelist.values())
-    print(temp_nodelist)
-    result: List[List[str]] = text_preprocess(temp_nodelist)
-    for x in result:
-        print(x)
+    
+    
+    result: List[List[str]] = text_preprocess(temp_nodelist,datalist)
     assert isinstance(result,List)
     assert len(result) == 6
     assert all(isinstance(sublist,List)for sublist in result)
