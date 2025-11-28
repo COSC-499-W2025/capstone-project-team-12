@@ -25,7 +25,7 @@ class RepositoryAnalyzer:
     GENERIC_IMPORT_RE = re.compile(r'\b(import|require|include)\b.*?[\'"<]([\w\./-]+)[\'">]', re.MULTILINE)
 
 
-    def generate_project_insights(self, project_data: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def generate_project_insights(self, project_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         # Generate insights from extracted project data
 
         # Filter out any projects that failed to process
@@ -34,10 +34,7 @@ class RepositoryAnalyzer:
         ]
 
         if not valid_projects:
-            return {
-                'projects': [],
-                'summary': {}
-            }
+            return []
 
         # Compute importance scores & rankings (requires all valid projects for normalization)
         ranked_projects: List[Dict[str, Any]] = self.rank_importance_of_projects(valid_projects)
@@ -325,7 +322,7 @@ class RepositoryAnalyzer:
         if not all_repo_data:
             return []
         
-        projects = self.create_chronological_project_list(all_repo_data)
+        projects = [proj for proj in all_repo_data if proj.get('status') == 'success']
         ranked_projects = self.rank_importance_of_projects(projects)
 
         return ranked_projects[:3] if ranked_projects else []
