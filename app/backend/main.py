@@ -273,7 +273,7 @@ def main() -> None:
                                 
                                 # PII removals
                                 anonymized_docs = remove_pii(processed_docs)
-                                # TODO: I think this only ever returns (1?) list so need to fix logic?
+                            
                                 final_bow: List[List[str]] = anonymized_docs
 
                                 # save to cache
