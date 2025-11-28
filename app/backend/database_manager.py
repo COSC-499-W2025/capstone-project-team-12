@@ -38,7 +38,7 @@ class DatabaseManager:
     ) -> bool:
         """Save metadata analysis results to the database and return success status (bool)."""
         try:
-            # Convert the dataclass to a dictionary for JSON serialization
+            #convert the dataclass to a dictionary for JSON serialization
             metadata_insights = {
                 "basic_stats": analysis_results.basic_stats.__dict__,
                 "extension_stats": {ext: stats.__dict__ for ext, stats in analysis_results.extension_stats.items()},
@@ -96,6 +96,7 @@ class DatabaseManager:
             print(f"Error saving text analysis: {e}")
             return False
 
+    #will probably have to modify the output for the llm results
     def save_resume_points(self, result_id: str, points: List[str]) -> bool:
         """Save generated resume points to the database and return success status (bool)."""
         try:
@@ -148,7 +149,7 @@ class DatabaseManager:
             
             self.db.execute_update(
                 query,
-                (json.dumps(project_insights), uuid.UUID(result_id))
+                (json.dumps(project_insights, default=str), uuid.UUID(result_id))
             )
             
             print(f"Saved repository analysis for result_id: {result_id}")
@@ -179,7 +180,7 @@ class DatabaseManager:
                     uuid.UUID(result_id),
                     json.dumps(metadata_results),
                     json.dumps(bow_cache) if bow_cache else None,
-                    json.dumps(project_data) if project_data else None,
+                    json.dumps(project_data, default=str) if project_data else None,
                     json.dumps(package_data) if package_data else None
                 )
             )
@@ -190,8 +191,97 @@ class DatabaseManager:
         except Exception as e:
             print(f"Error saving tracked data: {e}")
             return False
+
+    def get_result_by_id(self, result_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieve a complete result and its tracked data by its ID."""
+        try:
+            query = """
+                SELECT 
+                    r.result_id,
+                    r.topic_vector,
+                    r.resume_points,
+                    r.project_insights,
+                    r.package_insights,
+                    r.metadata_insights,
+                    t.bow_cache,
+                    t.project_data,
+                    t.package_data,
+                    t.metadata_stats
+                FROM Results r
+                LEFT JOIN Tracked_Data t ON r.result_id = t.result_id
+                WHERE r.result_id = %s;
+            """
+            results = self.db.execute_query(query, (uuid.UUID(result_id),))
+            
+            if not results:
+                return None
+
+            #main result data
+            row = results[0]
+            result_data = {
+                "result_id": str(row['result_id']),
+                "topic_vector": row['topic_vector'],
+                "resume_points": row['resume_points'],
+                "project_insights": row['project_insights'],
+                "package_insights": row['package_insights'],
+                "metadata_insights": row['metadata_insights'],
+                "tracked_data": {
+                    "bow_cache": row['bow_cache'],
+                    "project_data": row['project_data'],
+                    "package_data": row['package_data'],
+                    "metadata_stats": row['metadata_stats']
+                }
+            }
+            return result_data
+            
+        except Exception as e:
+            print(f"Error retrieving result by ID: {e}")
+            return None
+
+    def get_all_results_summary(self) -> List[Dict[str, Any]]:
+        """Retrieve a summary of all results from the database."""
+        try:
+            query = "SELECT result_id, metadata_insights FROM Results ORDER BY result_id;"
+            results = self.db.execute_query(query)
+            #convert UUID to string for JSON compatibility if needed later
+            for result in results:
+                result['result_id'] = str(result['result_id'])
+            return results
+        except Exception as e:
+            print(f"Error retrieving all results: {e}")
+            return []
+
+    def delete_result(self, result_id: str) -> bool:
+        """Delete a result and its associated tracked data from the database."""
+        try:
+            #delete from Tracked_Data due to the foreign key constraint
+            delete_tracked_query = "DELETE FROM Tracked_Data WHERE result_id = %s;"
+            self.db.execute_update(delete_tracked_query, (uuid.UUID(result_id),))
+            
+            #then delete from Results
+            delete_result_query = "DELETE FROM Results WHERE result_id = %s;"
+            self.db.execute_update(delete_result_query, (uuid.UUID(result_id),))
+            
+            print(f"Successfully deleted result and associated data for result_id: {result_id}")
+            return True
+        except Exception as e:
+            print(f"Error deleting result: {e}")
+            return False
+
+    def wipe_all_data(self) -> bool:
+        """Delete all records from both Results and Tracked_Data tables."""
+        try:
+            # TRUNCATE is faster and resets any auto-incrementing counters.
+            # CASCADE handles the foreign key relationship automatically.
+            query = "TRUNCATE TABLE Results, Tracked_Data RESTART IDENTITY CASCADE;"
+            self.db.execute_update(query)
+            print("Successfully wiped all data from Results and Tracked_Data tables.")
+            return True
+        except Exception as e:
+            print(f"Error wiping database tables: {e}")
+            return False
     
     def close(self):
-        """Close the database connection (no-op as connections auto-close)."""
-        # DB_connector uses context managers, so connections auto-close
+        """Close the database connection."""
+        #DB_connector uses context managers, so connections auto-close
         pass
