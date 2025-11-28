@@ -6,7 +6,7 @@ from nltk.stem import WordNetLemmatizer
 from nltk.corpus import wordnet
 from nltk import word_tokenize, pos_tag
 from anytree import Node
-from typing import BinaryIO
+
 
 stop_words: set[str] = None
 
@@ -15,51 +15,66 @@ def stopwords_init():
     stop_words = set(stopwords.words('english'))
     return
 
-# Primary function for external use of module. 
-# Each sub array refers to tokens extracted from individual text files
-# eg. [
-#      ["capy","bring","happy","toy"]           --> Corresponds to one txt file
-#      ["Smith" "common" "lastname" "bear"]     --> Corresponds to another txt file
-#     ]
-# Note should only be called on array of text files, i.e Should not be called on array of codefile nodes
-# Instead call `codepreprocess_entrypoint(...)` and add the results pf both functions together
-# Before forwarding PII removal and eventually to analysis step
-def text_preprocess(text_data_array:List[str]) ->List[List[str]]:
+def text_preprocess(text_nodes: List[Node],text_data: List[str]) ->List[List[str]]:
+    """ 
+    Primary function for external use of module. 
+    each sub array refers to tokens extracted from individual text files
+    eg. [
+            ["capy","bring","happy","toy"]           --> Corresponds to one txt file
+            ["Smith" "common" "lastname" "bear"]     --> Corresponds to another txt file
+        ]
+    Note should only be called on array of text file nodes, i.e Should not be called on array of codefile nodes
+    """
     #declare output list
     preProcessed_doclist: List[List[str]] = []
     
-    for i in range(len(text_data_array)):
-        tokenarray: List[str]
-        text = text_data_array[i]
-        if text is not None: #If downstream error then will be none!
-            tokenarray = get_tokens(text)
-            tokenarray = stopword_filtered_tokens(tokenarray)
-            tokenarray = lemmatize_tokens(tokenarray)
-            preProcessed_doclist.append(tokenarray)
-        else:
-            print("Failed to process text file:" + text_data_array[i])
+    #loopover input data
+    for i in range(len(text_data)):
+        #Temp array for storing text file currently being processed.
+        token_array: List[str]
+        try:
+            if text_data[i]:
+                token_array = get_tokens(text_data[i])
+                token_array = stopword_filtered_tokens(token_array)
+                token_array = lemmatize_tokens(token_array)
+                preProcessed_doclist.append(token_array)
+            else:
+                preProcessed_doclist.append([""]) #append empty list here to preserve ordinality. i.e 6 input nodes must give six output. Matters when a file node is made but corresponding data in bin_data_list is None
+                raise RuntimeWarning("Failed to process text file, NO DATA! Skipping file:" + text_nodes[i].file_data['filename'])
+                continue
+        except Exception as e:
+            print(f"Unexpected runtime error in: Text_Preprocessor:{e}")
             continue
     return preProcessed_doclist
 
-#reads file and gets token, currently from local dir
-def get_tokens(text:str) -> List[str]:
+
+def get_tokens(filestring:str) -> List[str]:
+    """ 
+    Converts passed text file data string into List of preprocessed tokens
+
+    Params: filestring = String of text file loaded as a string    
+    Return: List[str]  = Contains preprocessed and filtered tokens generated from filestring
+    """ 
     
     clean_txt:str
-    # cleaning whitespace and line breaks
-    clean_txt = re.sub(r"\n", " ",text)
+    #Replace Line breaks with one whitespace
+    clean_txt = re.sub(r"\n", " ",filestring)
+    #Replace multiple whitespaces or multiple line breaks with one whitespace
     clean_txt = re.sub(r"\s+", " ", clean_txt).strip()
 
-    # removing non-alphabetic tokens
+    # removing tokens containing non-alphabetic characters and replacing with one whitespace
     # this can result in the loss of tokens that contain actual words, like in "2.Python"
-    # here we replace all non-alphabetic characters with a single space, then remove all surrounding spaces
-    reg_text: str
+    reg_txt: str
     reg_txt = re.sub(r"[^\p{L}\s]", " ", clean_txt)
     reg_txt = re.sub(r"\s+", " ", reg_txt).strip()
+    
+    #convert normalized filestring to token list using nltk
     reg_tokens: list[str] = word_tokenize(reg_txt)
 
     return reg_tokens
 
 def stopword_filtered_tokens(tokens: List[str]) -> List[str]:
+    """Removes stopwords in provided token list based on stopword list in nltk package"""
     try:
         # import tokens from text_tokenizer
         global stop_words
@@ -78,12 +93,8 @@ def stopword_filtered_tokens(tokens: List[str]) -> List[str]:
     return filtered_tokens
 
 
-# --------------------------
-# LEMMATIZATION
-# --------------------------
-
-# we need to tell the lemmatizer what part of speech the word in question is: adjective, verb, etc
 def get_wordnet_pos(tag: str) -> str:
+    """ Look-up and retrieve appropriate POS type based on the tag"""
     if tag.startswith('J'):
         return wordnet.ADJ  # adjective
     elif tag.startswith('V'):
@@ -96,13 +107,7 @@ def get_wordnet_pos(tag: str) -> str:
         return wordnet.NOUN # default to noun
        
 def lemmatize_tokens(words:List[str]) -> List[str]:
-    # assign label to each word (adjective, verb, etc)
-    pos_tags: List[Tuple[str, str]] = pos_tag(words)
-
-def lemmatize_tokens(node:Node) -> List[str]:
     try:
-        words: List[str] = stopword_filtered_tokens(node)
-
         # assign label to each word (adjective, verb, etc)
         pos_tags: List[Tuple[str, str]] = pos_tag(words)
 
@@ -113,6 +118,5 @@ def lemmatize_tokens(node:Node) -> List[str]:
         lemmatized_words: list[str] = [lemmatizer.lemmatize(word, get_wordnet_pos(tag)) for word, tag in pos_tags]
 
         return lemmatized_words
-    except Exception as e: 
-        print(f"An error occurred in lemmatize_tokens: {e}")
-        return []
+    except Exception as e:
+        raise RuntimeError(f"An error occurred in lemmatize_tokens: {e}")

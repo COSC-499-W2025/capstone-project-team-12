@@ -113,6 +113,7 @@ def run_all_backend_tests() -> None:
 
 #pass entry by provided id from file_data_array
 def get_bin_data_by_Id(bin_Idx:int)->BinaryIO|None:
+    global file_data_list
     if file_data_list is None or len(file_data_list) == 0:
         print("Empty List: Initialize by calling File")
         return None
@@ -120,6 +121,7 @@ def get_bin_data_by_Id(bin_Idx:int)->BinaryIO|None:
 
 def get_bin_data_by_IdList(bin_Idx_list:List[int])->List[BinaryIO]:
     #check if files are loaded
+    global file_data_list
     if file_data_list is None or len(file_data_list) == 0:
         print("Empty List: Initialize by calling File")
         return None
@@ -129,6 +131,20 @@ def get_bin_data_by_IdList(bin_Idx_list:List[int])->List[BinaryIO]:
     for bin_Idx in bin_Idx_list:
         response_List.append(get_bin_data_by_Id(bin_Idx))
     return response_List
+
+def get_bin_data_by_Nodes(nodes:List[Node])->[BinaryIO|None]:
+    """Retrives all the data for passed tree nodes as strings in a list"""
+    if nodes is None:
+        raise ValueError("Error preparing datalist in main!: No nodes given!")
+        return
+    
+    IdList: List[int] = []
+    for node in nodes:
+        IdList.append(node.file_data['binary_index'])
+    return [get_bin_data_by_IdList(IdList)]
+
+def binary_to_str(bin_data:List[BinaryIO])-> List[str]:
+    return [str(data) for data in bin_data]
 
 def main() -> None:
     try:
