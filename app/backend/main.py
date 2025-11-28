@@ -11,7 +11,7 @@ from repository_processor import RepositoryProcessor
 from metadata_extractor import MetadataExtractor
 from metadata_analyzer import MetadataAnalyzer
 from repository_analyzer import RepositoryAnalyzer
-from text_preprocessor import text_preprocess
+from combined_preprocess import combined_preprocess
 from pii_remover import remove_pii
 from cache.bow_cache import BoWCache, BoWCacheKey
 from topic_vectors import generate_topic_vectors
@@ -141,10 +141,16 @@ def get_bin_data_by_Nodes(nodes:List[Node])->[BinaryIO|None]:
     IdList: List[int] = []
     for node in nodes:
         IdList.append(node.file_data['binary_index'])
-    return [get_bin_data_by_IdList(IdList)]
+    return get_bin_data_by_IdList(IdList)
 
 def binary_to_str(bin_data:List[BinaryIO])-> List[str]:
-    return [str(data) for data in bin_data]
+    result = []
+    for data in bin_data:
+        try:
+            result.append(data.decode('utf-8', errors='ignore') if data else '')
+        except (AttributeError, UnicodeDecodeError):
+            result.append('')
+    return result
 
 def main() -> None:
     try:
@@ -156,6 +162,7 @@ def main() -> None:
 
         elif choice in ("n", "no"):
             while True: # looping so that prompts get asked until the user is successful or the user does not want to try again
+                
                 filepath: str = input("\nEnter a file path to process: \n>").strip()
                 try:
                     path: Path = validate_path(filepath) # validate using method above
@@ -223,19 +230,22 @@ def main() -> None:
                         # Run text preprocessing pipeline + store pipeline results in BoW Cache
                         try:
                             text_nodes: List[Node] = tree_processor.get_text_files()
-                            if text_nodes:
-                                print(f"Found {len(text_nodes)} text files. Running BoW pipeline...")
+                            code_nodes: List[Node] = tree_processor.get_code_files()
+                            if text_nodes or code_nodes:
+                                print(f"Found {len(text_nodes)} text files and {len(code_nodes)} code files. Running BoW pipeline...")
 
                                 # with the current setup, we assume all text files use the same preprocessing steps
                                 preprocess_signature = {
                                     "lemmatizer": True,
                                     "stopwords": "nltk_english_default",
                                     "pii_removal": True,
-                                    "filters": ["text"]
+                                    "filters": ["text", "code"],
+                                    "normalize_code": True
                                 }
 
                                 # build repo_id by hashing joined file paths
-                                file_paths = [getattr(text_file, "filepath", str(text_file.name)) for text_file in text_nodes]
+                                all_nodes: List[Node] = text_nodes + code_nodes
+                                file_paths = [getattr(file, "filepath", str(file.name)) for file in all_nodes]
                                 joined_paths = "|".join(file_paths)
                                 repo_id = hashlib.md5(joined_paths.encode()).hexdigest()
 
@@ -245,28 +255,42 @@ def main() -> None:
                                 # initialize cache and key
                                 key = BoWCacheKey(repo_id, head_commit, preprocess_signature)
                                 cache = BoWCache()
-
+                                # Initialize final_bow to store cache or newly processed BoW
+                                final_bow: List[List[str]] = []
                                 # check cache for existing BoW
                                 if cache.has(key):
                                     print(f"Cache hit for BoW (repo_id={repo_id})")
                                     cached = cache.get(key)
                                     if cached is not None:
-                                        return cached # return cached BoW
-                                    print("Cache corrupted or unreadable - regenerating...")
+                                        final_bow = cached
+                                        print(f"Successfully retrieved BoW for {len(final_bow)} document(s) from Cache. Ready for text analysis.\n")
+                                        
+                                    else: 
+                                        print("Cache corrupted or unreadable - regenerating...")
 
-                                # if we reach here, we have a cache miss
-                                print("Cache miss - running text preprocessing pipeline...")
+                                if not cache.has(key) or cached is None:
+                                    # if we reach here, we have a cache miss
+                                    print("Cache miss - running text preprocessing pipeline...")
 
-                                # convert binary data to text data to use in for preprocessing
-                                text_data: List[str] = convert_binary_to_text(text_nodes)
+                                    # Get binary data for all files
+                                    text_binary_data: List[BinaryIO|None] = get_bin_data_by_Nodes(text_nodes) if text_nodes else []
+                                    code_binary_data: List[BinaryIO|None] = get_bin_data_by_Nodes(code_nodes) if code_nodes else []
+
+
+                                    # convert binary data to strings
+                                    text_data: List[str] = binary_to_str(text_binary_data) if text_nodes else []
+                                    code_data: List[str] = binary_to_str(code_binary_data) if code_nodes else []
+
+                                    # run combined preprocessing
+                                    processed_docs = combined_preprocess(text_nodes, text_data, code_nodes, code_data, normalize=True)
+                                    
+                                    # PII removals
+                                    anonymized_docs = remove_pii(processed_docs)
                                 
-                                # run text preprocessing
-                                processed_docs = text_preprocess(text_data)
-                                anonymized_docs = remove_pii(processed_docs)
-                                final_bow: list[list[str]] = anonymized_docs
+                                    final_bow = anonymized_docs
 
-                                # save to cache
-                                cache.set(key, final_bow)
+                                    # save to cache
+                                    cache.set(key, final_bow)
 
                                 print(f"Successfully built BoW for {len(final_bow)} document(s) and saved it to Cache. Ready for text analysis.\n")
 
@@ -277,6 +301,11 @@ def main() -> None:
                                 print("Successfully generated topic vectors.")
                                 print(f"- Number of documents: {len(doc_topic_vectors)}")
                                 print(f"- Number of topics: {len(topic_term_vectors)}")
+                                # After generating topics in main.py:
+                                print("\nTop words per topic:")
+                                for i in range(5):  # 5 topics
+                                    top_words = lda_model.show_topic(i, topn=10)
+                                    print(f"Topic {i}: {', '.join([word for word, prob in top_words])}")
                                 print("Text analysis complete.\n")
                                 
                             else:
