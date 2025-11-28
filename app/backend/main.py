@@ -248,36 +248,41 @@ def main() -> None:
                                 # initialize cache and key
                                 key = BoWCacheKey(repo_id, head_commit, preprocess_signature)
                                 cache = BoWCache()
-
+                                # Initialize final_bow to store cache or newly processed BoW
+                                final_bow: List[List[str]] = []
                                 # check cache for existing BoW
                                 if cache.has(key):
                                     print(f"Cache hit for BoW (repo_id={repo_id})")
                                     cached = cache.get(key)
                                     if cached is not None:
-                                        return cached # return cached BoW
-                                    print("Cache corrupted or unreadable - regenerating...")
+                                        final_bow = cached
+                                        print(f"Successfully retrieved BoW for {len(final_bow)} document(s) from Cache. Ready for text analysis.\n")
+                                        
+                                    else: 
+                                        print("Cache corrupted or unreadable - regenerating...")
 
-                                # if we reach here, we have a cache miss
-                                print("Cache miss - running text preprocessing pipeline...")
+                                if not cache.has(key) or cached is None:
+                                    # if we reach here, we have a cache miss
+                                    print("Cache miss - running text preprocessing pipeline...")
 
-                                # Get binary data for all files
-                                text_binary_data: List[BinaryIO|None] = get_bin_data_by_Nodes(text_nodes) if text_nodes else []
-                                code_binary_data: List[BinaryIO|None] = get_bin_data_by_Nodes(code_nodes) if code_nodes else []
+                                    # Get binary data for all files
+                                    text_binary_data: List[BinaryIO|None] = get_bin_data_by_Nodes(text_nodes) if text_nodes else []
+                                    code_binary_data: List[BinaryIO|None] = get_bin_data_by_Nodes(code_nodes) if code_nodes else []
 
-                                # convert binary data to strings
-                                text_data: List[str] = binary_to_str(text_binary_data) if text_nodes else []
-                                code_data: List[str] = binary_to_str(code_binary_data) if code_nodes else []
-                            
-                                # run combined preprocessing
-                                processed_docs = combined_preprocess(text_nodes, text_data, code_nodes, code_data, normalize=True)
+                                    # convert binary data to strings
+                                    text_data: List[str] = binary_to_str(text_binary_data) if text_nodes else []
+                                    code_data: List[str] = binary_to_str(code_binary_data) if code_nodes else []
                                 
-                                # PII removals
-                                anonymized_docs = remove_pii(processed_docs)
-                            
-                                final_bow: List[List[str]] = anonymized_docs
+                                    # run combined preprocessing
+                                    processed_docs = combined_preprocess(text_nodes, text_data, code_nodes, code_data, normalize=True)
+                                    
+                                    # PII removals
+                                    anonymized_docs = remove_pii(processed_docs)
+                                
+                                    final_bow = anonymized_docs
 
-                                # save to cache
-                                cache.set(key, final_bow)
+                                    # save to cache
+                                    cache.set(key, final_bow)
 
                                 print(f"Successfully built BoW for {len(final_bow)} document(s) and saved it to Cache. Ready for text analysis.\n")
 
@@ -288,6 +293,11 @@ def main() -> None:
                                 print("Successfully generated topic vectors.")
                                 print(f"- Number of documents: {len(doc_topic_vectors)}")
                                 print(f"- Number of topics: {len(topic_term_vectors)}")
+                                # After generating topics in main.py:
+                                print("\nTop words per topic:")
+                                for i in range(5):  # 5 topics
+                                    top_words = lda_model.show_topic(i, topn=10)
+                                    print(f"Topic {i}: {', '.join([word for word, prob in top_words])}")
                                 print("Text analysis complete.\n")
                                 
                             else:
