@@ -253,11 +253,13 @@ def main() -> None:
                                     print(f"Cache hit for BoW (repo_id={repo_id})")
                                     cached = cache.get(key)
                                     if cached is not None:
-                                        return cached # return cached BoW
-                                    print("Cache corrupted or unreadable - regenerating...")
-
-                                # if we reach here, we have a cache miss
-                                print("Cache miss - running text preprocessing pipeline...")
+                                        final_bow = cached
+                                        print("Loaded BoW from cache.")
+                                    else:
+                                        print("Cache corrupted or unreadable - regenerating...")
+                                else:
+                                    # if we reach here, we have a cache miss
+                                    print("Cache miss - running text preprocessing pipeline...")
 
                                 # convert binary data to text data to use in for preprocessing
                                 text_data: List[str] = convert_binary_to_text(text_nodes)
