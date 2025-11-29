@@ -26,6 +26,8 @@ class MetadataAnalyzer:
             skill_stats, primary_skills = self._calculate_skill_stats(extension_stats)
             date_stats = self._calculate_date_stats()
 
+            self._add_percentages(extension_stats, skill_stats, basic_stats['total_files'])
+
             analysis: Dict[str, Any] = {
                 'basic_stats': basic_stats,
                 'extension_stats': extension_stats,
@@ -60,6 +62,22 @@ class MetadataAnalyzer:
                 'activity_level': 'unknown'
             }
         }
+
+    def _add_percentages(self, extension_stats: Dict[str, Any], skill_stats: Dict[str, Any], total_files: int) -> None:
+        """
+        Add percentage calculations to extension and skill statistics
+        """
+        if total_files == 0:
+            return
+            
+        # add percentages to extension stats
+        for ext_stats in extension_stats.values():
+            ext_stats['percentage'] = round((ext_stats['count'] / total_files) * 100, 2)
+        
+        # add percentages to skill stats
+        for skill_stat in skill_stats.values():
+            skill_stat['percentage'] = round((skill_stat['file_count'] / total_files) * 100, 2)
+
     
     def _calculate_basic_stats(self) -> Dict[str, int]:
         """
@@ -262,6 +280,16 @@ class MetadataAnalyzer:
         except Exception as e:
             print(f"Error classifying extension {ext}: {e}")
             return "Other"
+    
+    def return_metadata_stats(self) -> Dict[str, Any]:
+        """
+        Return raw metadata statistics
+        """
+        try:
+            return self.metadata_store
+        except Exception as e:
+            print(f"Failed to return metadata stats: {e}")
+            return {}
             
 # Manual testing
 if __name__ == "__main__":
@@ -352,7 +380,7 @@ if __name__ == "__main__":
         
         print("Extension Statistics:")
         for ext, stats in results['extension_stats'].items():
-            print(f"{ext}: {stats['count']} files, {stats['total_size']} bytes, {stats['category']}")
+            print(f"{ext}: {stats['count']} files ({stats['percentage']}%), {stats['total_size']} bytes, {stats['category']}")
         print()
         
         print("Date Statistics:")
@@ -364,9 +392,8 @@ if __name__ == "__main__":
         print("Skill Statistics:")
         for skill_name, skill_stats in results['skill_stats'].items():
             primary_indicator = " (PRIMARY)" if skill_stats['is_primary'] else ""
-            print(f"{skill_name}{primary_indicator}: {skill_stats['file_count']} files")
+            print(f"{skill_name}{primary_indicator}: {skill_stats['file_count']} files ({skill_stats['percentage']}%)")
         print(f"\nPrimary Skills: {', '.join(results['primary_skills'])}")
-
     except Exception as e:
         print(f"Test failed: {e}")
         import traceback
