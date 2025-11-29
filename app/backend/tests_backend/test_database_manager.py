@@ -5,12 +5,11 @@ from unittest.mock import Mock, MagicMock, patch
 from datetime import datetime
 
 from database_manager import DatabaseManager
-from metadata_analyzer import MetadataAnalysis, BasicStats, ExtensionStats, SkillStats, DateStats
 
 
 @pytest.fixture
 def mock_db_connector():
-    """Fixture to create a mock DB_connector"""
+    """Fixture to create a mock DB_connector."""
     with patch('database_manager.DB_connector') as mock_connector:
         mock_instance = Mock()
         mock_connector.return_value = mock_instance
@@ -30,54 +29,54 @@ def sample_result_id():
 
 
 @pytest.fixture
-def sample_metadata_analysis():
-    """Fixture providing a sample MetadataAnalysis object"""
-    return MetadataAnalysis(
-        basic_stats=BasicStats(
-            total_files=10,
-            total_size=50000,
-            total_lines=1200,
-            total_words=8000,
-            total_characters=50000
-        ),
-        extension_stats={
-            ".py": ExtensionStats(
-                extension=".py",
-                count=5,
-                total_size=25000,
-                avg_size=5000,
-                category="Code"
-            ),
-            ".js": ExtensionStats(
-                extension=".js",
-                count=3,
-                total_size=15000,
-                avg_size=5000,
-                category="Code"
-            )
+def sample_metadata_insights():
+    """Fixture providing sample metadata insights as a dictionary."""
+    return {
+        "basic_stats": {
+            "total_files": 10,
+            "total_size": 50000,
+            "total_lines": 1200,
+            "total_words": 8000,
+            "total_characters": 50000
         },
-        skill_stats={
-            "Python": SkillStats(
-                file_count=5,
-                total_size=25000,
-                is_primary=True,
-                category="Programming Language"
-            ),
-            "JavaScript": SkillStats(
-                file_count=3,
-                total_size=15000,
-                is_primary=False,
-                category="Programming Language"
-            )
+        "extension_stats": {
+            ".py": {
+                "extension": ".py",
+                "count": 5,
+                "total_size": 25000,
+                "avg_size": 5000,
+                "category": "Code"
+            },
+            ".js": {
+                "extension": ".js",
+                "count": 3,
+                "total_size": 15000,
+                "avg_size": 5000,
+                "category": "Code"
+            }
         },
-        primary_skills=["Python", "JavaScript"],
-        date_stats=DateStats(
-            by_creation_date={"2024": 5, "2025": 5},
-            by_modified_date={"2025": 10},
-            recent_activity_count=10,
-            activity_level="high"
-        )
-    )
+        "skill_stats": {
+            "Python": {
+                "file_count": 5,
+                "total_size": 25000,
+                "is_primary": True,
+                "category": "Programming Language"
+            },
+            "JavaScript": {
+                "file_count": 3,
+                "total_size": 15000,
+                "is_primary": False,
+                "category": "Programming Language"
+            }
+        },
+        "primary_skills": ["Python", "JavaScript"],
+        "date_stats": {
+            "by_creation_date": {"2024": 5, "2025": 5},
+            "by_modified_date": {"2025": 10},
+            "recent_activity_count": 10,
+            "activity_level": "high"
+        }
+    }
 
 
 class TestDatabaseManagerInit:
@@ -90,7 +89,7 @@ class TestDatabaseManagerInit:
 
 
 class TestCreateNewResult:
-    """Tests for create_new_result method"""
+    """Tests for create_new_result method."""
     
     def test_create_new_result_success(self, db_manager, mock_db_connector):
         """Test successful creation of a new result"""
@@ -106,14 +105,14 @@ class TestCreateNewResult:
         assert call_args[1]['returning'] is True
     
     def test_create_new_result_failure(self, db_manager, mock_db_connector):
-        """Test handling of failed result creation"""
+        """Test handling of failed result creation."""
         mock_db_connector.execute_update.return_value = None
         
         with pytest.raises(Exception, match="Failed to generate result_id"):
             db_manager.create_new_result()
     
     def test_create_new_result_database_error(self, db_manager, mock_db_connector):
-        """Test handling of database errors during result creation"""
+        """Test handling of database errors during result creation."""
         mock_db_connector.execute_update.side_effect = Exception("Database connection failed")
         
         with pytest.raises(Exception, match="Database connection failed"):
@@ -121,13 +120,13 @@ class TestCreateNewResult:
 
 
 class TestSaveMetadataAnalysis:
-    """Tests for save_metadata_analysis method"""
+    """Tests for save_metadata_analysis method."""
     
-    def test_save_metadata_analysis_success(self, db_manager, mock_db_connector, sample_result_id, sample_metadata_analysis):
-        """Test successful saving of metadata analysis"""
+    def test_save_metadata_analysis_success(self, db_manager, mock_db_connector, sample_result_id, sample_metadata_insights):
+        """Test successful saving of metadata analysis."""
         mock_db_connector.execute_update.return_value = None
         
-        result = db_manager.save_metadata_analysis(sample_result_id, sample_metadata_analysis)
+        result = db_manager.save_metadata_analysis(sample_result_id, sample_metadata_insights)
         
         assert result is True
         mock_db_connector.execute_update.assert_called_once()
@@ -144,17 +143,17 @@ class TestSaveMetadataAnalysis:
         assert 'date_stats' in json_data
     
     def test_save_metadata_analysis_with_empty_data(self, db_manager, mock_db_connector, sample_result_id):
-        """Test saving metadata analysis with empty collections"""
-        empty_analysis = MetadataAnalysis(
-            basic_stats=BasicStats(0, 0, 0, 0, 0),
-            extension_stats={},
-            skill_stats={},
-            primary_skills=[],
-            date_stats=DateStats({}, {}, 0, "low")
-        )
+        """Test saving metadata analysis with empty collections."""
+        empty_insights = {
+            "basic_stats": {},
+            "extension_stats": {},
+            "skill_stats": {},
+            "primary_skills": [],
+            "date_stats": {}
+        }
         mock_db_connector.execute_update.return_value = None
         
-        result = db_manager.save_metadata_analysis(sample_result_id, empty_analysis)
+        result = db_manager.save_metadata_analysis(sample_result_id, empty_insights)
         
         assert result is True
         call_args = mock_db_connector.execute_update.call_args
@@ -162,11 +161,11 @@ class TestSaveMetadataAnalysis:
         assert json_data['extension_stats'] == {}
         assert json_data['primary_skills'] == []
     
-    def test_save_metadata_analysis_database_error(self, db_manager, mock_db_connector, sample_result_id, sample_metadata_analysis):
-        """Test handling of database errors during metadata save"""
+    def test_save_metadata_analysis_database_error(self, db_manager, mock_db_connector, sample_result_id, sample_metadata_insights):
+        """Test handling of database errors during metadata save."""
         mock_db_connector.execute_update.side_effect = Exception("Database error")
         
-        result = db_manager.save_metadata_analysis(sample_result_id, sample_metadata_analysis)
+        result = db_manager.save_metadata_analysis(sample_result_id, sample_metadata_insights)
         
         assert result is False
 
@@ -191,9 +190,9 @@ class TestSaveTextAnalysis:
         json_data = json.loads(call_args[0][1][0])
         assert json_data['doc_topic_vectors'] == doc_vectors
         expected_topic_vectors = [
-    [list(term) for term in topic] 
-    for topic in topic_vectors
-]
+            [list(term) for term in topic] 
+            for topic in topic_vectors
+        ]
         assert json_data['topic_term_vectors'] == expected_topic_vectors
     
     def test_save_text_analysis_empty_vectors(self, db_manager, mock_db_connector, sample_result_id):

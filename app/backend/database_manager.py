@@ -3,7 +3,6 @@ import uuid
 from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime
 from db_utils import DB_connector
-from metadata_analyzer import MetadataAnalysis
 
 class DatabaseManager:
     def __init__(self):
@@ -33,19 +32,10 @@ class DatabaseManager:
     def save_metadata_analysis(
         self, 
         result_id: str, 
-        analysis_results: MetadataAnalysis
+        metadata_insights: Dict[str, Any]
     ) -> bool:
         """Save metadata analysis results to the database and return success status (bool)."""
         try:
-            #convert the dataclass to a dictionary for JSON serialization
-            metadata_insights = {
-                "basic_stats": analysis_results.basic_stats.__dict__,
-                "extension_stats": {ext: stats.__dict__ for ext, stats in analysis_results.extension_stats.items()},
-                "skill_stats": {skill: stats.__dict__ for skill, stats in analysis_results.skill_stats.items()},
-                "primary_skills": analysis_results.primary_skills,
-                "date_stats": analysis_results.date_stats.__dict__
-            }
-
             query = """
                 UPDATE Results
                 SET metadata_insights = %s
