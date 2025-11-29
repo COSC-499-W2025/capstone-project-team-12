@@ -1,50 +1,6 @@
 from collections import defaultdict
-from dataclasses import dataclass
 from typing import Dict, Any, List, Tuple
 from datetime import datetime
-
-@dataclass
-class ExtensionStats:
-    # statistics per file extension
-    extension: str
-    count: int
-    total_size: int
-    avg_size: float
-    category: str
-
-@dataclass
-class SkillStats:
-    # statistics per skill category
-    category: str
-    file_count: int
-    total_size: int
-    is_primary: bool = False
-
-@dataclass
-class BasicStats:
-    # sums of various metrics
-    total_files: int
-    total_size: int
-    total_lines: int
-    total_words: int
-    total_characters: int
-
-@dataclass
-class DateStats:
-    # statistics by date range
-    by_creation_date: Dict[str, List[str]]
-    by_modified_date: Dict[str, List[str]]
-    recent_activity_count: int = 0
-    activity_level: str = "unknown"
-
-@dataclass
-class MetadataAnalysis:
-    # Complete analysis results
-    basic_stats: BasicStats
-    extension_stats: Dict[str, ExtensionStats]
-    skill_stats: Dict[str, SkillStats]
-    primary_skills: List[str]
-    date_stats: DateStats
 
 class MetadataAnalyzer:
     """
@@ -56,7 +12,7 @@ class MetadataAnalyzer:
         '''
         self.metadata_store = metadata_store
 
-    def analyze_all(self) -> MetadataAnalysis:
+    def analyze_all(self) -> Dict[str, Any]:
         """
         Perform complete metadata analysis
         """
@@ -69,32 +25,43 @@ class MetadataAnalyzer:
             extension_stats = self._calculate_extension_stats()
             skill_stats, primary_skills = self._calculate_skill_stats(extension_stats)
             date_stats = self._calculate_date_stats()
-            
-            return MetadataAnalysis(
-                basic_stats=basic_stats,
-                extension_stats=extension_stats,
-                skill_stats=skill_stats,
-                primary_skills=primary_skills,
-                date_stats=date_stats
 
-            )
+            analysis: Dict[str, Any] = {
+                'basic_stats': basic_stats,
+                'extension_stats': extension_stats,
+                'skill_stats': skill_stats,
+                'primary_skills': primary_skills,
+                'date_stats': date_stats
+            }
             
+            return analysis
         except Exception as e:
             raise ValueError(f"Metadata analysis failed: {e}")
 
-    def _create_empty_results(self) -> MetadataAnalysis:
+    def _create_empty_results(self) -> Dict[str, Any]:
         """
         Create empty analysis results
         """
-        return MetadataAnalysis(
-            basic_stats=BasicStats(0, 0, 0, 0, 0),
-            extension_stats={},
-            skill_stats={},
-            primary_skills=[],
-            date_stats=DateStats({}, {})
-        )
+        return {
+            'basic_stats': {
+                'total_files': 0,
+                'total_size': 0,
+                'total_lines': 0,
+                'total_words': 0,
+                'total_characters': 0
+            },
+            'extension_stats': {},
+            'skill_stats': {},
+            'primary_skills': [],
+            'date_stats': {
+                'by_creation_date': {},
+                'by_modified_date': {},
+                'recent_activity_count': 0,
+                'activity_level': 'unknown'
+            }
+        }
     
-    def _calculate_basic_stats(self) -> BasicStats:
+    def _calculate_basic_stats(self) -> Dict[str, int]:
         """
         Calculate basic statistics from metadata
         """
@@ -113,18 +80,24 @@ class MetadataAnalyzer:
                     total_characters += metadata.get('character_count', 0)
                 except Exception as e:
                     print(f"Error processing metadata entry: {e}")
-            return BasicStats(
-                total_files=total_files,
-                total_size=total_size,
-                total_lines=total_lines,
-                total_words=total_words,
-                total_characters=total_characters
-            )
+            return {
+                'total_files': total_files,
+                'total_size': total_size,
+                'total_lines': total_lines,
+                'total_words': total_words,
+                'total_characters': total_characters
+            }
         except Exception as e:
             print(f"Failed to calculate basic stats: {e}")
-            return BasicStats(0, 0, 0, 0, 0)
+            return {
+                'total_files': 0,
+                'total_size': 0,
+                'total_lines': 0,
+                'total_words': 0,
+                'total_characters': 0
+            }
     
-    def _calculate_extension_stats(self) -> Dict[str, ExtensionStats]:
+    def _calculate_extension_stats(self) -> Dict[str, Any]:
         '''
         Calculate statistics by file extension
         '''
@@ -141,7 +114,7 @@ class MetadataAnalyzer:
                 except Exception as e:
                     print(f"Error processing metadata entry for extension stats: {e}")
 
-            extension_stats: Dict[str, ExtensionStats] = {}
+            extension_stats: Dict[str, Any] = {}
 
             # compile final extension stats
             for ext, data in extension_totals.items():
@@ -158,51 +131,56 @@ class MetadataAnalyzer:
                     avg_size = 0
                     category = "unknown"
 
-                extension_stats[ext] = ExtensionStats(
-                    extension=ext,
-                    count=count,
-                    total_size=total_size,
-                    avg_size=avg_size,
-                    category=category
-                )
+                extension_stats[ext] = {
+                    'extension': ext,
+                    'count': count,
+                    'total_size': total_size,
+                    'avg_size': avg_size,
+                    'category': category
+                }
             return extension_stats
         except Exception as e:
             print(f"Failed to calculate extension stats: {e}")
             return {}
 
-    def _calculate_skill_stats(self, extension_stats: Dict[str, ExtensionStats]) -> Tuple[Dict[str, SkillStats], List[str]]:
+    def _calculate_skill_stats(self, extension_stats: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str]]:
         """
         Calculate statistics for each skill category
         """
-        skill_stats: Dict[str, SkillStats] = {}
+        skill_stats: Dict[str, Any] = {}
 
         try:
             for ext_stats in extension_stats.values():
                 try:
-                    category = ext_stats.category
+                    category = ext_stats['category']
                     if category not in skill_stats:
-                        skill_stats[category] = SkillStats(
-                            category = category,
-                            file_count = 0,
-                            total_size = 0,
-                        )
-                    skill_stats[category].file_count += ext_stats.count
-                    skill_stats[category].total_size += ext_stats.total_size
+                        skill_stats[category] = {
+                            'category': category,
+                            'file_count': 0,
+                            'total_size': 0,
+                            'is_primary': False
+                        }
+                    skill_stats[category]['file_count'] += ext_stats['count']
+                    skill_stats[category]['total_size'] += ext_stats['total_size']
                 except Exception as e:
                     print(f"Error processing skill stats for category {category}: {e}")
 
-            # determine top 3 skills based on file count
-            sorted_skills: List[SkillStats] = sorted(skill_stats.values(), key=lambda x: x.file_count, reverse=True)
-            primary_skills: List[str] = [skill.category for skill in sorted_skills[:3]]
+            # check if skill_stats is empty before sorting
+            if not skill_stats:
+                return {}, []
 
-            for skill in sorted_skills:
-                skill.is_primary = skill.category in primary_skills
+            # determine top 3 skills based on file count
+            sorted_skills: List[Dict[str, Any]] = sorted(skill_stats.values(), key=lambda x: x['file_count'], reverse=True)
+            primary_skills: List[str] = [skill['category'] for skill in sorted_skills[:3]]
+
+            for skill in skill_stats:
+                skill_stats[skill]['is_primary'] = skill_stats[skill]['category'] in primary_skills
             return skill_stats, primary_skills
         except Exception as e:
             print(f"Failed to calculate skill stats: {e}")
             return {}, []
     
-    def _calculate_date_stats(self) -> DateStats:
+    def _calculate_date_stats(self) ->  Dict[str, Any]:
         """
         Calculate productivity statistics by date ranges
         """
@@ -244,15 +222,20 @@ class MetadataAnalyzer:
             # activity level = high if >30% files recently modified, else moderate
             activity_level = "high" if recent_files > len(self.metadata_store) * 0.3 else "moderate"
         
-            return DateStats(
-                by_creation_date=dict(sorted_creation_months),
-                by_modified_date=dict(sorted_modified_months),
-                recent_activity_count=recent_files,
-                activity_level=activity_level,
-            )           
+            return {
+                'by_creation_date': dict(sorted_creation_months),
+                'by_modified_date': dict(sorted_modified_months),
+                'recent_activity_count': recent_files,
+                'activity_level': activity_level,
+            }
         except Exception as e:
             print(f"Failed to calculate date stats: {e}")
-            return DateStats({}, {})
+            return {
+                'by_creation_date': {},
+                'by_modified_date': {},
+                'recent_activity_count': 0,
+                'activity_level': 'unknown'
+            }
         
     def _classify_extension(self, ext: str) -> str:
         """
@@ -362,30 +345,27 @@ if __name__ == "__main__":
         results = analyzer.analyze_all()
         
         print("Basic Statistics:")
-        print(f"Total Files: {results.basic_stats.total_files}")
-        print(f"Total Size: {results.basic_stats.total_size} bytes")
-        print(f"Total Lines: {results.basic_stats.total_lines}")
-        print(f"Total Words: {results.basic_stats.total_words}")
-        print(f"Total Characters: {results.basic_stats.total_characters}\n")
+        print(f"Total Files: {results['basic_stats']['total_files']}")
+        print(f"Total Size: {results['basic_stats']['total_size']} bytes")
+        print(f"Total Lines: {results['basic_stats']['total_lines']}")
+        print(f"Total Words: {results['basic_stats']['total_words']}")
         
         print("Extension Statistics:")
-        for ext, stats in results.extension_stats.items():
-            print(f"{ext}: {stats.count} files, {stats.total_size} bytes, {stats.category}")
+        for ext, stats in results['extension_stats'].items():
+            print(f"{ext}: {stats['count']} files, {stats['total_size']} bytes, {stats['category']}")
         print()
         
         print("Date Statistics:")
-        print(f"Creation Dates: {results.date_stats.by_creation_date}")
-        print(f"Modified Dates: {results.date_stats.by_modified_date}")
-        print(f"Recent Activity: {results.date_stats.recent_activity_count} files")
-        print(f"Activity Level: {results.date_stats.activity_level}\n")
+        print(f"Creation Dates: {results['date_stats']['by_creation_date']}")
+        print(f"Modified Dates: {results['date_stats']['by_modified_date']}")
+        print(f"Recent Activity: {results['date_stats']['recent_activity_count']} files")
+        print(f"Activity Level: {results['date_stats']['activity_level']}\n")
 
         print("Skill Statistics:")
-        for skill_name, skill_stats in results.skill_stats.items():
-            primary_indicator = " (PRIMARY)" if skill_stats.is_primary else ""
-            print(f"{skill_name}{primary_indicator}:")
-            print(f"Files: {skill_stats.file_count}")
-            print(f"Total Size: {skill_stats.total_size} bytes")
-        print(f"\nPrimary Skills: {', '.join(results.primary_skills)}")
+        for skill_name, skill_stats in results['skill_stats'].items():
+            primary_indicator = " (PRIMARY)" if skill_stats['is_primary'] else ""
+            print(f"{skill_name}{primary_indicator}: {skill_stats['file_count']} files")
+        print(f"\nPrimary Skills: {', '.join(results['primary_skills'])}")
 
     except Exception as e:
         print(f"Test failed: {e}")
