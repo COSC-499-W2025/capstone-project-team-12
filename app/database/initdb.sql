@@ -5,7 +5,7 @@ SELECT uuid_generate_v4();
 CREATE TABLE IF NOT EXISTS 
 Results(
     result_id uuid DEFAULT uuid_generate_v4() PRIMARY KEY,
-    topic_vector varchar(300),
+    topic_vector JSON, --changed to JSON for more flexibility--
     resume_points JSON,
     project_insights JSON,
     package_insights JSON,
