@@ -204,16 +204,18 @@ def main() -> None:
                         
                         metadata_extractor: MetadataExtractor = MetadataExtractor()
                         metadata_results: Dict[str, Dict[str, Any]] = metadata_extractor.extract_all_metadata(processed_tree, binary_data)
-                        
                         print("Metadata extracted successfully in Metadata Manager.\n")
                         
                         total_files: int = len(metadata_results)
                         if total_files > 0:
-                            print(f"   Processed metadata for {total_files} files")
+                            print(f"Processed metadata for {total_files} files")
 
                         metadata_analyzer: MetadataAnalyzer = MetadataAnalyzer(metadata_results)
-                        analysis_results = metadata_analyzer.analyze_all()
+                        metadata_analysis = metadata_analyzer.analyze_all()
                         print("Metadata analysis completed successfully in Metadata Analyzer.\n")
+                        print("Extension Statistics:")
+                        for ext, stats in metadata_analysis['extension_stats'].items():
+                            print(f"{ext}: {stats['count']} files ({stats['percentage']}%), {stats['total_size']} bytes, {stats['category']}")
 
                         git_repos: List[Node] = tree_processor.get_git_repos() #check for git repos before processing repos
 
@@ -334,6 +336,7 @@ def main() -> None:
                             print("\nCollecting analysis statistics...")
                             data_bundle = collect_stats(
                                 metadata_stats=metadata_results,
+                                metadata_analysis=metadata_analysis,
                                 text_analysis=text_analysis_data,
                                 project_analysis=project_analysis_data
                             )
