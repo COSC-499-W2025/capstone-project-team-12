@@ -1,11 +1,12 @@
 import orjson
 from typing import Any, Dict, Optional
-
+from dataclasses import is_dataclass, asdict
 
 #subject to change once other components are implemented
 def collect_stats(
         *,
         metadata_stats: Optional[Dict[str, Dict[str, Any]]] = None,
+        metadata_analysis: Optional[Dict[str, Any]] = None,
         text_analysis: Optional[dict[str, Any]] = None,
         project_analysis: Optional[dict[str, Any]] = None,
     ) -> str:
@@ -13,6 +14,7 @@ def collect_stats(
     try:
         pre_analysis_bundle: Dict[str, Any] = {
             "metadata_stats": _to_serializable(metadata_stats or {}),
+            "metadata_analysis": _to_serializable(metadata_analysis or {}),
             "text_analysis": _to_serializable(text_analysis or {}),
             "project_analysis": _to_serializable(project_analysis or {})
         }
@@ -33,7 +35,9 @@ def collect_stats(
 #convert non-JSON-serializable types like sets and tuples into lists since orjson can't serialize sets or tuples
 def _to_serializable(obj: Any) -> Any:
     #recusively goes through structures
-    if isinstance(obj, dict):
+    if is_dataclass(obj):
+        return asdict(obj)
+    elif isinstance(obj, dict):
         return {k: _to_serializable(v) for k, v in obj.items()}
     elif isinstance(obj, list):
         return [_to_serializable(item) for item in obj]
