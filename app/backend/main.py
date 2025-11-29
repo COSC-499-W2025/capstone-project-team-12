@@ -133,6 +133,16 @@ def get_bin_data_by_IdList(bin_Idx_list:List[int])->List[BinaryIO]:
         response_List.append(get_bin_data_by_Id(bin_Idx))
     return response_List
 
+def convert_binary_to_text(node_array:List[Node])->List[BinaryIO|None]:
+    """ Converts binary data to text strings for text preprocessing """
+    text_data_list: List[str] = []
+    bin_Idx_list: List[int] = []
+    for node in node_array:
+        bin_Id = node.file_data['binary_index']
+        bin_Idx_list.append(bin_Id)
+    text_data_list = [str(x) for x in get_bin_data_by_IdList(bin_Idx_list)]
+    return text_data_list
+
 def main() -> None:
     try:
         choice: str = input("Would you like to run all backend tests? (y/n) \n> ").strip().lower()
@@ -280,6 +290,10 @@ def main() -> None:
                         except Exception as e:
                             print(f"Error during text/PII processing: {e}")
 
+                    elif fm_result["status"] == "error":
+                        print(f"There was an error loading the file to File Manager: {fm_result.get('message', 'Unknown error')}\n")
+                        break
+                        
 
                     if git_repos:
                         # prompt user for github username to link repos
@@ -315,75 +329,65 @@ def main() -> None:
                                 print(f"Repository processing failed: {e}")
 
 
-                            else:
-                                print("Skipping Git repository linking as no username was provided.\n")
+                        else:
+                            print("Skipping Git repository linking as no username was provided.\n")
 
-                        #stat cache + llm pipeline
+                    #stat cache + llm pipeline
 
-                        #prepare text analysis data for stats cache
-                        text_analysis_data = {
-                            "num_documents": len(doc_topic_vectors),
-                            "num_topics": len(topic_term_vectors),
-                            "doc_topic_vectors": doc_topic_vectors,
-                            "topic_term_vectors": topic_term_vectors
-                        } if doc_topic_vectors else {}
+                    #prepare text analysis data for stats cache
+                    text_analysis_data = {
+                        "num_documents": len(doc_topic_vectors),
+                        "num_topics": len(topic_term_vectors),
+                        "doc_topic_vectors": doc_topic_vectors,
+                        "topic_term_vectors": topic_term_vectors
+                    } if doc_topic_vectors else {}
+                    
+                    # collect all statistics into a single bundle
+                    try:
+                        print("\nCollecting analysis statistics...")
+                        data_bundle = collect_stats(
+                            metadata_stats=metadata_results,
+                            metadata_analysis=metadata_analysis,
+                            text_analysis=text_analysis_data,
+                            project_analysis=analyzed_repos if git_repos else {}
+                        )
+                        print("Statistics bundle created successfully.\n")
                         
-                        #prepare project analysis data for stats cache
-                        project_analysis_data = {
-                            "projects": timeline
-                        } if timeline else {}
+                        #get user consent (hardcoded as True for now)
+                        # TODO: ^^
+                        online_consent: bool = True
                         
-                        # collect all statistics into a single bundle
-                        try:
-                            print("\nCollecting analysis statistics...")
-                            data_bundle = collect_stats(
-                                metadata_stats=metadata_results,
-                                metadata_analysis=metadata_analysis,
-                                text_analysis=text_analysis_data,
-                                project_analysis=project_analysis_data
-                            )
-                            print("Statistics bundle created successfully.\n")
-                            
-                            #get user consent (hardcoded as True for now)
-                            # TODO: ^^
-                            online_consent: bool = True
-                            
-                            #select appropriate LLM client based on user consent
-                            if online_consent:
-                                print("Using Online LLM...")
-                                try:
-                                    llm_client = OnlineLLMClient()
-                                except ValueError as e:
-                                    print(f"Online LLM initialization failed: {e}")
-                                    print("Falling back to Local LLM...\n")
-                                    llm_client = LocalLLMClient()
-                            else:
-                                print("Using Local LLM...\n")
+                        #select appropriate LLM client based on user consent
+                        if online_consent:
+                            print("Using Online LLM...")
+                            try:
+                                llm_client = OnlineLLMClient()
+                            except ValueError as e:
+                                print(f"Online LLM initialization failed: {e}")
+                                print("Falling back to Local LLM...\n")
                                 llm_client = LocalLLMClient()
-                            
-                            print("Generating project summaries...\n")
-                            
-                            try: #for now I'll just use the standard summary, but we could implement logic to let user choose later
-                                medium_summary = llm_client.generate_summary(data_bundle)
-                                print("=" * 60)
-                                print("STANDARD SUMMARY")
-                                print("=" * 60)
-                                print(medium_summary)
-                                print()
-                                
-                                
-                            except Exception as e:
-                                print(f"Error generating summary: {e}")
-                                print("Proceeding without summary.\n")
+                        else:
+                            print("Using Local LLM...\n")
+                            llm_client = LocalLLMClient()
                         
+                        print("Generating project summaries...\n")
+                        
+                        try: #for now I'll just use the standard summary, but we could implement logic to let user choose later
+                            medium_summary = llm_client.generate_summary(data_bundle)
+                            print("=" * 60)
+                            print("STANDARD SUMMARY")
+                            print("=" * 60)
+                            print(medium_summary)
+                            print()
+                            
+                            
                         except Exception as e:
-                            print(f"Error collecting statistics: {e}")
-                            print("Proceeding without LLM summaries.\n")
-
-                    elif fm_result["status"] == "error":
-                        print(f"There was an error loading the file to File Manager: {fm_result.get('message', 'Unknown error')}\n")
-
-                    break
+                            print(f"Error generating summary: {e}")
+                            print("Proceeding without summary.\n")
+                    
+                    except Exception as e:
+                        print(f"Error collecting statistics: {e}")
+                        print("Proceeding without LLM summaries.\n")
                     
                 
                 except Exception as e:
