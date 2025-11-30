@@ -1,5 +1,24 @@
 ## Devin Huang Personal Log (86828886)
 
+### Week 13
+#### This week
+- Implemented the local llm and online llm into the main pipeline (https://github.com/COSC-499-W2025/capstone-project-team-12/pull/195)
+- Implemented the stats and data cache into main pipeline 
+- Implemented the database manager module:
+  - Added saving, reading and removing databbase functions for various elements
+  - Created tests for the database module (https://github.com/COSC-499-W2025/capstone-project-team-12/pull/216)
+- Refactored various modules so that only the topic vectors are passed into the llm client instead of whole bundle (https://github.com/COSC-499-W2025/capstone-project-team-12/pull/232)
+
+### Next week
+- Record video presentation for milestone 1
+- More refactoring and adding guardrails for the llm client prompts
+
+### Reflection
+- The main issue this week was the lack of time to implement and make sure all componenets work together, it was a pretty busy week for me
+- A lot of small issues arised trying to put everything together
+
+<img width="958" height="487" alt="image" src="https://github.com/user-attachments/assets/e30a86b1-f406-4559-81a7-f4def8505b7f" />
+
 ### Week 12
 #### This week 
 - Implemented the local llm and containerized it into docker (https://github.com/COSC-499-W2025/capstone-project-team-12/issues/143)
