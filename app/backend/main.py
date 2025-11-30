@@ -342,6 +342,12 @@ def main() -> None:
                             )
                             print("Statistics bundle created successfully.\n")
                             
+                            # Extract topic vectors for LLM
+                            topic_vector_bundle = {
+                                "doc_topic_vectors": data_bundle.get("text_analysis", {}).get("doc_topic_vectors", []),
+                                "topic_term_vectors": data_bundle.get("text_analysis", {}).get("topic_term_vectors", [])
+                            }
+                            
                             #get user consent (hardcoded as True for now)
                             # TODO: ^^
                             online_consent: bool = True
@@ -359,10 +365,11 @@ def main() -> None:
                                 print("Using Local LLM...\n")
                                 llm_client = LocalLLMClient()
                             
+
                             print("Generating project summaries...\n")
                             
                             try: #for now I'll just use the standard summary, but we could implement logic to let user choose later
-                                medium_summary = llm_client.generate_summary(data_bundle)
+                                medium_summary = llm_client.generate_summary(topic_vector_bundle)
                                 print("=" * 60)
                                 print("STANDARD SUMMARY")
                                 print("=" * 60)
