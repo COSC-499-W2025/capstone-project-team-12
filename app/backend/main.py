@@ -344,8 +344,8 @@ def main() -> None:
                             
                             # Extract topic vectors for LLM
                             topic_vector_bundle = {
-                                "doc_topic_vectors": data_bundle.get("text_analysis", {}).get("doc_topic_vectors", []),
-                                "topic_term_vectors": data_bundle.get("text_analysis", {}).get("topic_term_vectors", [])
+                                "doc_topic_vectors": doc_topic_vectors,
+                                "topic_term_vectors": topic_term_vectors
                             }
                             
                             #get user consent (hardcoded as True for now)
@@ -365,7 +365,6 @@ def main() -> None:
                                 print("Using Local LLM...\n")
                                 llm_client = LocalLLMClient()
                             
-
                             print("Generating project summaries...\n")
                             
                             try: #for now I'll just use the standard summary, but we could implement logic to let user choose later
