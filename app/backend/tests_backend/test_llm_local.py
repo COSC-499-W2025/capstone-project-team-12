@@ -2,7 +2,6 @@ import requests
 import pytest
 
 from llm_local import LocalLLMClient
-from stats_cache import collect_stats
 
 class MockResponse:
     """Mock of requests.Response for Ollama API"""
@@ -41,13 +40,12 @@ def test_send_request_uses_ollama_format(monkeypatch):
 
     monkeypatch.setattr(requests, "post", fake_post)
 
-    bundle = collect_stats(
-        metadata_stats={"a.py": {"size": 10}},
-        text_analysis={"keywords": ["x"]},
-        project_analysis={"repositories": [{"total_commits": 1}]}
-    )
+    topic_vector_bundle = {
+        "doc_topic_vectors": [[0.5, 0.5]],
+        "topic_term_vectors": [[0.3, 0.7]]
+    }
     
-    resp = client.send_request(prompt="Hello", data_bundle=bundle)
+    resp = client.send_request(prompt="Hello", topic_vector_bundle=topic_vector_bundle)
 
     assert captured["url"].endswith("/api/generate")
     assert captured["timeout"] == 120  #we want longer timout for local
@@ -63,18 +61,17 @@ def test_generate_short_summary_returns_response(monkeypatch):
     """generate_short_summary should work with local LLM"""
     client = LocalLLMClient()
 
-    def fake_send(self, prompt, data_bundle):
+    def fake_send(self, prompt, topic_vector_bundle):
         return {"choices": [{"message": {"content": "• Local bullet 1\n• Local bullet 2"}}]}
 
     monkeypatch.setattr(LocalLLMClient, "send_request", fake_send)
 
-    bundle = collect_stats(
-        metadata_stats={"c.py": {"size": 30}},
-        text_analysis={"keywords": ["z"]},
-        project_analysis={"repositories": [{"total_commits": 3}]}
-    )
+    topic_vector_bundle = {
+        "doc_topic_vectors": [[0.5, 0.5]],
+        "topic_term_vectors": [[0.3, 0.7]]
+    }
     
-    out = client.generate_short_summary(bundle)
+    out = client.generate_short_summary(topic_vector_bundle)
     assert "Local bullet" in out
 
 
@@ -88,6 +85,6 @@ def test_send_request_throws_on_connection_error(monkeypatch):
     monkeypatch.setattr(requests, "post", fake_post_error)
 
     with pytest.raises(Exception) as exc_info:
-        client.send_request("prompt", data_bundle="{}")
+        client.send_request("prompt", topic_vector_bundle={})
     
     assert "failed after" in str(exc_info.value).lower()
