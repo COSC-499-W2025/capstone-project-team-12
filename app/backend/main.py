@@ -79,40 +79,6 @@ def validate_path(filepath: str) -> Path:
             size_gb: float = total_size / (1024 ** 3)
             raise ValueError(f"Folder too large: {size_gb:.2f}GB (max 4GB)")   
     return path
-    
-
-def run_all_backend_tests() -> None:
-    print("\nRunning all backend tests\n")
-
-    backend_root = Path(__file__).resolve().parent
-    tests_path = backend_root / "tests_backend"
-    
-    # Check if tests directory exists
-    if not Path(tests_path).exists():
-        print(f"Tests directory not found at {tests_path}")
-        return
-    
-    try:
-        result: subprocess.CompletedProcess = subprocess.run(
-            ["pytest", "-v", tests_path], 
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=300  # 5 minute timeout
-        )
-
-        print(result.stdout)
-        
-       # check=False means don't crash if pytest fails - we will handle the error ourselves
-        if result.returncode == 0: # 0 if all tests passed
-            print("\nAll tests passed.")
-        else:
-            print("\nSome tests failed.")
-    except KeyboardInterrupt:
-        print("\n\nTest execution cancelled by user.")
-        sys.exit(0)
-    except Exception as e:
-        print(f"Error running tests: {e}") # catches the error if something goes wrong instead of crashing program
 
 #pass entry by provided id from file_data_array
 def get_bin_data_by_Id(bin_Idx:int)->BinaryIO|None:
@@ -157,13 +123,13 @@ def binary_to_str(bin_data:List[BinaryIO])-> List[str]:
 
 def main() -> None:
     try:
-        choice: str = input("Would you like to run all backend tests? (y/n) \n> ").strip().lower()
+        choice: str = input("Do you give consent to access your files? (y/n) \n> ").strip().lower()
 
-        if choice in ("y", "yes"):
-            run_all_backend_tests()
+        if choice in ("n", "no"):
+            print("App requires access to file system to run. ")
             sys.exit(0)
 
-        elif choice in ("n", "no"):
+        elif choice in ("y", "yes"):
             while True: # looping so that prompts get asked until the user is successful or the user does not want to try again
                 
                 filepath: str = input("\nEnter a file path to process: \n>").strip()
