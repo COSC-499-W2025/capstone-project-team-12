@@ -18,7 +18,7 @@ class LocalLLMClient:
     def send_request(
         self, 
         prompt: str, 
-        data_bundle: str
+        topic_vector_bundle: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
         Send prompt + data bundle to local Ollama API and return response with automatic retry
@@ -34,8 +34,10 @@ class LocalLLMClient:
         
         #construct user message
         user_content = prompt
-        if data_bundle:
-            user_content = f"{prompt}\n\n--- Project Data ---\n{data_bundle}"
+        if topic_vector_bundle:
+            import json
+            vector_data = json.dumps(topic_vector_bundle, indent=2)
+            user_content = f"{prompt}\n\n--- Topic Vectors ---\n{vector_data}"
         
         payload = {
             "model": self.model,
@@ -92,7 +94,7 @@ class LocalLLMClient:
         else:
             raise requests.RequestException("All retry attempts failed with unknown error")
     
-    def generate_short_summary(self, data_bundle: str) -> str:
+    def generate_short_summary(self, topic_vector_bundle: Dict[str, Any]) -> str:
         """
         Generate a short summary using local Ollama (optimized for Phi-3 Mini)
         
@@ -105,10 +107,10 @@ class LocalLLMClient:
 Focus on: main purpose, key technologies used, and one major achievement.
 Keep it brief and clear."""
         
-        response = self.send_request(prompt=prompt, data_bundle=data_bundle)
+        response = self.send_request(prompt=prompt, topic_vector_bundle=topic_vector_bundle)
         return response["choices"][0]["message"]["content"].strip()
     
-    def generate_summary(self, data_bundle: str) -> str:
+    def generate_summary(self, topic_vector_bundle: Dict[str, Any]) -> str:
         """
         Generate a standard summary using local Ollama (optimized for Phi-3 Mini)
         
@@ -123,10 +125,10 @@ Keep it brief and clear."""
 Include: project purpose, your contributions, technologies used, and skills gained.
 Use clear, action-oriented language."""
         
-        response = self.send_request(prompt=prompt, data_bundle=data_bundle)
+        response = self.send_request(prompt=prompt, topic_vector_bundle=topic_vector_bundle)
         return response["choices"][0]["message"]["content"].strip()
     
-    def generate_long_summary(self, data_bundle: str) -> str:
+    def generate_long_summary(self, topic_vector_bundle: Dict[str, Any]) -> str:
         """
         Generate a detailed summary using local Ollama (optimized for Phi-3 Mini)
         
@@ -142,5 +144,5 @@ Cover: project goals, your specific contributions, tools and technologies,
 challenges overcome, and skills developed.
 Be specific but concise."""
         
-        response = self.send_request(prompt=prompt, data_bundle=data_bundle)
+        response = self.send_request(prompt=prompt, topic_vector_bundle=topic_vector_bundle)
         return response["choices"][0]["message"]["content"].strip()
