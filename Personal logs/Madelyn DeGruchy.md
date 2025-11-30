@@ -1,4 +1,21 @@
 # Madelyn DeGruchy Personal Log (85064962 - maddydeg)
+## Week 13 (11/24/2025 - 11/30/2025)
+- Updated the project analysis pipeline to separate the extraction data returned from the analysis data returned to allow for saving to their respective databases
+  - Moved extraction to the processing pipeline to ensure analysis is exclusively related to that analysis, as the file was beginning to get quite large
+  - Refactored the testing to move the extraction to the processing testing and added additional cases to improve coverage
+- Implemented the combined preprocess module to handle the data flow of the code and text pre-processing pipelines
+  - Included some minor logic fixes/updates and minor bug fixes in PII removal
+- Participated in team meetings and discussions with team members to resolve bugs as they came up
+
+### For Next Week
+- Record the video presentation and further plan for Wednesday's in-class presentation
+- Meet with macOS user to resolve the current no .git folder bug
+
+### Reflection
+- During the review process, a bug was encountered in the repository extraction, such that it is unable to find .git folders on macOS only. It would appear this bug has always existed on the system but my extraction code was only ever run by the windows users so it was not caught until now. The system can find the .git folder during initial processing to begin that pipeline, but then Repository Processing fails due to there being "no .git folder". I have been researching potential issues (--exclude flag has some weird bugs according to the known issues board for Docker, difference between how macOS and Windows handle hidden folders) but I have had trouble properly testing these fixes as a Windows user. I am planning to find a time at the start of the week to sit down with one of our Mac users to be able to run debugging on their system. 
+
+![Peer Evaluation Week 13](imgs/Madelyn%20DeGruchy%20Week%2013.png)
+
 ## Week 11 & 12 (11/10/2025-11/23/2025)
 - Completed the extraction of Git contribution metrics, and removed potential pieces that could include PII (commit messages)
   - Includes a refactor to move the analysis portion to a new file repository_analyzer.py
