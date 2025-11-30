@@ -42,7 +42,7 @@ def generate_topic_vectors(documents: list[list[str]], num_topics: int = 5):
 
     #dense topic vectors: basically topics per document
     doc_topic_vectors = [
-        [prob for _, prob in lda_model.get_document_topics(doc_bow, minimum_probability=0)]
+        [float(prob) for _, prob in lda_model.get_document_topics(doc_bow, minimum_probability=0)]
         for doc_bow in corpus
     ]
 
@@ -58,7 +58,7 @@ def generate_topic_vectors(documents: list[list[str]], num_topics: int = 5):
 
         #get the term_id - prob pairs from gensim
         for term_id, prob in lda_model.get_topic_terms(topic_id, topn=vocab_size):
-            term_probs[term_id] = prob
+            term_probs[term_id] = float(prob)
         
         #add to output list 
         topic_term_vectors.append(term_probs)
