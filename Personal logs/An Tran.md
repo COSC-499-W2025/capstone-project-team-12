@@ -1,5 +1,20 @@
 # An Tran Personal Log (79499364)
 
+## Week 13 (11/24/2025 - 11/30/2025)
+### Tasks
+- Refactor metadata analyzer to return a dictionary
+- Properly integrate metadata analysis to main.py
+
+### Completed:
+- Refactor metadata analyzer to return a dictionary
+- Add preview of metadata analysis results to main.py
+- Add metadata analysis to stats cache
+- Participated in team meeting
+
+### Reflection and plans for next week
+- Complete slides for presentation
+- Prepare for presentation in class on Wednesday
+
 ## Week 12 (11/17/2025 - 11/23/2025)
 ### Tasks
 - Implement metadata metadata analyzer
