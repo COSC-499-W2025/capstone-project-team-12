@@ -31,7 +31,8 @@
 - Refactored the testing to move the extraction to the processing testing and added additional cases to improve coverage
 - Implemented the combined preprocess module to handle the data flow of the code and text pre-processing pipelines
 - Included some minor logic fixes/updates and minor bug fixes in PII removal
-
+- Reworked Text and Preproc pipelines to allow for cleaner integration and adjusted testing accordingly
+- Resolved numerous bugs that arised during integration
 
 
 ### Burnup chart & Task Table
