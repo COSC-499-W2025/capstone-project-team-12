@@ -124,7 +124,8 @@ Overall this week we mainly focused on refactoring our existing code, so we have
 ### Work Done 
 - Participated in team meeting, prioritized taks to complete with a more focused path towards milestone 1, which was mainly refactoring and integration
 - spent a lot of time debugging code, and reviewing teammates PRs
-- Finished integrating main.py with the database and made it more user friendly 
+- Finished integrating main.py all the components and made it more user friendly (issue # 233)
+- Requested and stored user consent for future use. (issue # 234)
 
 ![alt text](<imgs/Sithara Chari Week 13.png>)
 
