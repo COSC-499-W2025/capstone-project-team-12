@@ -91,15 +91,18 @@ class FileManager:
             folder_nodes: Dict[str, Node] = {str(path): parent_node}
 
             # DEBUGGING CODE FIX
-            all_subpaths = list(path.rglob('*'))
-
-            # Explicitly add hidden files and folders (glob * doesn't match them on Unix)
-            try:
-                for hidden_item in path.rglob('.*'):
-                    if hidden_item not in all_subpaths:
-                        all_subpaths.append(hidden_item)
-            except Exception:
-                pass  # Some systems may not support this pattern
+            all_subpaths = []
+            # Method 1: Use iterdir recursively (more reliable cross-platform)
+            def walk_dir(dir_path: Path):
+                try:
+                    for item in dir_path.iterdir():
+                        all_subpaths.append(item)
+                        if item.is_dir():
+                            walk_dir(item)
+                except PermissionError:
+                    pass  # Skip directories we can't access
+    
+            walk_dir(path)
 
             for subpath in sorted(all_subpaths):
                 # added this to skip MAC artifacts when extracing zip files made with a mac
