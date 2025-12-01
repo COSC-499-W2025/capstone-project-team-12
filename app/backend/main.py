@@ -129,6 +129,19 @@ def binary_to_str(bin_data:List[BinaryIO])-> List[str]:
             result.append('')
     return result
 
+def diagnose_repo_node(repo_node: Node) -> None:
+    """Print detailed information about a repository node"""
+    print(f"\n{'='*60}")
+    print(f"Diagnosing repo_node: {repo_node.name}")
+    print(f"Node type: {getattr(repo_node, 'type', 'NO TYPE ATTR')}")
+    print(f"Has is_repo_head: {hasattr(repo_node, 'is_repo_head')}")
+    print(f"is_repo_head value: {getattr(repo_node, 'is_repo_head', 'N/A')}")
+    print(f"Number of children: {len(repo_node.children) if hasattr(repo_node, 'children') else 'NO CHILDREN'}")
+    print(f"\nChildren names:")
+    if hasattr(repo_node, 'children'):
+        for child in repo_node.children:
+            print(f"  - {child.name} (type: {getattr(child, 'type', 'unknown')})")
+    print(f"{'='*60}\n")
 
 def main() -> None:
     config_manager = ConfigManager() # Initialize Config Manager
@@ -290,6 +303,9 @@ def main() -> None:
                     if git_repos:
                         print_header("Repository Linking")
                         print(f"Detected {len(git_repos)} git repositories.")
+
+                        for repo in git_repos:
+                            diagnose_repo_node(repo)
                         github_username: str = input("Enter GitHub username to link (Press Enter to skip): \n> ").strip()
                         
                         if github_username:
@@ -298,12 +314,13 @@ def main() -> None:
                                 binary_data_array=binary_data
                             )
                             try:
-                                raw_git_data: bytes = repo_processor.process_repositories(git_repos)
-                                if raw_git_data:
+                                processed_git_repos: bytes = repo_processor.process_repositories(git_repos)
+                                if processed_git_repos:
                                     print_status("Repositories processed successfully.", "success")
-                                    repo_analyzer = RepositoryAnalyzer(github_username)
-                                    analyzed_repos = repo_analyzer.generate_project_insights(raw_git_data)
-                                    timeline = repo_analyzer.create_chronological_project_list(raw_git_data)
+                                    analyzer = RepositoryAnalyzer(github_username)
+                                    analyzer_repos: Dict[str, Any] = analyzer.generate_project_insights(processed_git_repos)
+                                    print_status(f"Analyzed {len(analyzer_repos)} repositories.", "success")
+                                    timeline = analyzer.create_chronological_project_list(processed_git_repos)
                                     print("\n--- Project Timeline ---")
                                     for project in timeline:
                                         print(f"• {project['name']}: {project['start_date']} - {project['end_date']}")
@@ -319,6 +336,11 @@ def main() -> None:
                         "topic_term_vectors": topic_term_vectors
                     } if doc_topic_vectors else {}
                     
+                    project_analysis_data = {
+                        "repositories": analyzer_repos if git_repos else {},
+                        "timeline": timeline
+                    } if git_repos else {}
+                    
                     try:
                         print_header("AI Summary Generation")
                         print_status("Collecting analysis statistics...", "info")
@@ -326,7 +348,7 @@ def main() -> None:
                             metadata_stats=metadata_results,
                             metadata_analysis=metadata_analysis,
                             text_analysis=text_analysis_data,
-                            project_analysis=analyzed_repos if analyzed_repos else {}
+                            project_analysis=project_analysis_data
                         )
                         
                         topn_keywords = 10
