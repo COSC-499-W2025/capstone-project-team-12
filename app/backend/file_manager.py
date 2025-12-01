@@ -90,7 +90,18 @@ class FileManager:
         elif path.is_dir():
             folder_nodes: Dict[str, Node] = {str(path): parent_node}
 
-            for subpath in sorted(path.rglob('*')):
+            # DEBUGGING CODE FIX
+            all_subpaths = list(path.rglob('*'))
+
+            # Explicitly add hidden files and folders (glob * doesn't match them on Unix)
+            try:
+                for hidden_item in path.rglob('.*'):
+                    if hidden_item not in all_subpaths:
+                        all_subpaths.append(hidden_item)
+            except Exception:
+                pass  # Some systems may not support this pattern
+
+            for subpath in sorted(all_subpaths):
                 # added this to skip MAC artifacts when extracing zip files made with a mac
                 if self._is_mac_artifact(subpath):
                     continue
