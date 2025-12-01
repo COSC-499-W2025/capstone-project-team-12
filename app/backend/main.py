@@ -371,18 +371,31 @@ def main() -> None:
                                     "top_topics": [{"topic_id": i, "prob": float(p)} for i, p in top_pairs]
                                 })
 
-
-
                             # Extract topic vectors for LLM
                             topic_vector_bundle = {
                                 "topic_keywords": topic_keywords,
                                 "top_topics": doc_top_topics,
                             }
                             
-                            #get user consent (hardcoded as True for now)
-                            # TODO: ^^
-                            online_consent: bool = True
-                            
+                            # Ask for user consent to use the online LLM
+                            print("\nThe application can use an online Large Language Model (LLM) to generate project summaries.")
+                            print("Using the online LLM may involve sending processed data (e.g., topic vectors) to an external server.")
+                            print("This data does not include raw file contents but may still contain sensitive information.")
+                            print("If you do not consent, a local LLM will be used instead, which does not send data outside your system.")
+
+                            while True:
+                                online_consent_input: str = input("\nDo you consent to using the online LLM? (y/n) \n> ").strip().lower()
+                                if online_consent_input in ("y", "yes"):
+                                    online_consent = True
+                                    print("You have consented to using the online LLM.")
+                                    break
+                                elif online_consent_input in ("n", "no"):
+                                    online_consent = False
+                                    print("You have opted to use the local LLM instead. Note that this can take up to 5 minutes.")
+                                    break
+                                else:
+                                    print("Invalid input. Please enter 'y' for yes or 'n' for no.")
+
                             #select appropriate LLM client based on user consent
                             if online_consent:
                                 print("Using Online LLM...")
