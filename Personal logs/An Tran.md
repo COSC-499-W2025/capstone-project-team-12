@@ -9,7 +9,9 @@
 - Refactor metadata analyzer to return a dictionary
 - Add preview of metadata analysis results to main.py
 - Add metadata analysis to stats cache
-- Participated in team meeting
+- Participated in team meeting and helped complete team contract
+
+![Week 13](imgs/An%20Tran%20week13.png)
 
 ### Reflection and plans for next week
 - Complete slides for presentation
