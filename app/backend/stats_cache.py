@@ -6,6 +6,7 @@ from dataclasses import is_dataclass, asdict
 def collect_stats(
         *,
         metadata_stats: Optional[Dict[str, Dict[str, Any]]] = None,
+        metadata_analysis: Optional[Dict[str, Any]] = None,
         text_analysis: Optional[dict[str, Any]] = None,
         project_analysis: Optional[dict[str, Any]] = None,
     ) -> str:
@@ -13,6 +14,7 @@ def collect_stats(
     try:
         pre_analysis_bundle: Dict[str, Any] = {
             "metadata_stats": _to_serializable(metadata_stats or {}),
+            "metadata_analysis": _to_serializable(metadata_analysis or {}),
             "text_analysis": _to_serializable(text_analysis or {}),
             "project_analysis": _to_serializable(project_analysis or {})
         }

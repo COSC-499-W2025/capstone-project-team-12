@@ -32,7 +32,7 @@ class OnlineLLMClient:
     def send_request(
         self, 
         prompt: str, 
-        data_bundle: str
+        topic_vector_bundle: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
         Send prompt + data bundle to LLM API and return response with automatic retry
@@ -53,8 +53,22 @@ class OnlineLLMClient:
         
         #construct user message
         user_content = prompt
-        if data_bundle:
-            user_content = f"{prompt}\n\n--- Project Data ---\n{data_bundle}"
+        if topic_vector_bundle:
+            import json
+            # Sanitize to ensure JSON-serializable (defensive against any remaining numpy types)
+            try:
+                vector_data = json.dumps(topic_vector_bundle, indent=2)
+            except TypeError:
+                # Fallback: coerce non-serializable values to str
+                def sanitize(obj):
+                    if isinstance(obj, dict):
+                        return {k: sanitize(v) for k, v in obj.items()}
+                    elif isinstance(obj, list):
+                        return [sanitize(x) for x in obj]
+                    else:
+                        return obj if isinstance(obj, (str, int, float, bool)) else str(obj)
+                vector_data = json.dumps(sanitize(topic_vector_bundle), indent=2)
+            user_content = f"{prompt}\n\n--- Topic Keywords ---\n{vector_data}"
         
         #build request payload
         payload = {
@@ -116,7 +130,7 @@ class OnlineLLMClient:
             #would probably never reach here, but just in case
             raise requests.RequestException("All retry attempts failed with unknown error")
     
-    def generate_short_summary(self, data_bundle: str) -> str:
+    def generate_short_summary(self, topic_vector_bundle: Dict[str, Any]) -> str:
         """
         Generate a short resume ready summary
         
@@ -137,10 +151,10 @@ Use action-oriented, professional language that is easy to scan. No extra text, 
 
 # Use action-oriented, professional language that is easy to scan. No extra text, greetings, or emojis."""
         
-        response = self.send_request(prompt=prompt, data_bundle=data_bundle)
+        response = self.send_request(prompt=prompt, topic_vector_bundle=topic_vector_bundle)
         return response["choices"][0]["message"]["content"].strip()
     
-    def generate_summary(self, data_bundle: str) -> str:
+    def generate_summary(self, topic_vector_bundle: Dict[str, Any]) -> str:
         """
         Generate a standard resume ready professional summary
         
@@ -164,10 +178,10 @@ Use strong action verbs (e.g., "developed", "optimized", "designed"), maintain a
 
 # Use strong action verbs (e.g., "spearheaded", "developed", "optimized"), maintain an active and confident tone, and tailor the language for LinkedIn. Avoid redundancy; keep each bullet impactful and easy to scan. Do not include greetings, emojis, extraneous text, or anything outside the bullet list."""
         
-        response = self.send_request(prompt=prompt, data_bundle=data_bundle)
+        response = self.send_request(prompt=prompt, topic_vector_bundle=topic_vector_bundle)
         return response["choices"][0]["message"]["content"].strip()
     
-    def generate_long_summary(self, data_bundle: str) -> str:
+    def generate_long_summary(self, topic_vector_bundle: Dict[str, Any]) -> str:
         """
         Generate a comprehensive resume ready summary
         
@@ -193,5 +207,5 @@ Maintain an active, confident, growth-oriented tone, tailor for LinkedIn, avoid 
 
 # Maintain an active, confident, growth-oriented tone, tailor for LinkedIn, avoid redundancy, keep bullets crisp and skimmable. Do not include introductory or closing text, salutations, or emojis."""
         
-        response = self.send_request(prompt=prompt, data_bundle=data_bundle)
+        response = self.send_request(prompt=prompt, topic_vector_bundle=topic_vector_bundle)
         return response["choices"][0]["message"]["content"].strip()

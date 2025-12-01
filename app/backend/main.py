@@ -183,16 +183,18 @@ def main() -> None:
                         
                         metadata_extractor: MetadataExtractor = MetadataExtractor()
                         metadata_results: Dict[str, Dict[str, Any]] = metadata_extractor.extract_all_metadata(processed_tree, binary_data)
-                        
                         print("Metadata extracted successfully in Metadata Manager.\n")
                         
                         total_files: int = len(metadata_results)
                         if total_files > 0:
-                            print(f"   Processed metadata for {total_files} files")
+                            print(f"Processed metadata for {total_files} files")
 
                         metadata_analyzer: MetadataAnalyzer = MetadataAnalyzer(metadata_results)
-                        analysis_results = metadata_analyzer.analyze_all()
+                        metadata_analysis = metadata_analyzer.analyze_all()
                         print("Metadata analysis completed successfully in Metadata Analyzer.\n")
+                        print("Extension Statistics:")
+                        for ext, stats in metadata_analysis['extension_stats'].items():
+                            print(f"{ext}: {stats['count']} files ({stats['percentage']}%), {stats['total_size']} bytes, {stats['category']}")
 
                         git_repos: List[Node] = tree_processor.get_git_repos() #check for git repos before processing repos
 
@@ -270,7 +272,7 @@ def main() -> None:
 
                                 print("Running topic modeling...")
 
-                                lda_model, doc_topic_vectors, topic_term_vectors = generate_topic_vectors(final_bow)
+                                lda_model, dictionary, doc_topic_vectors, topic_term_vectors = generate_topic_vectors(final_bow)
 
                                 print("Successfully generated topic vectors.")
                                 print(f"- Number of documents: {len(doc_topic_vectors)}")
@@ -287,56 +289,121 @@ def main() -> None:
                         except Exception as e:
                             print(f"Error during text/PII processing: {e}")
 
-
-                        if git_repos:
-                            # prompt user for github username to link repos
-                            github_username: str = input("Git repositories detected in the file tree. Please enter your GitHub username to link them. To skip this processing, please press enter: \n> ").strip()
-                            if github_username:
-                                # Validate binary data from FileManager before passing it on
-                                repo_processor: RepositoryProcessor = RepositoryProcessor(
-                                    username=github_username,
-                                    binary_data_array=binary_data
-                                )
-                                try:
-                                    processed_git_repos: bytes = repo_processor.process_repositories(git_repos)
-                                    if processed_git_repos:
-                                        print(f"repos successfully processed {processed_git_repos}")
-                                        analyzer = RepositoryAnalyzer(github_username)
-                                        timeline = analyzer.create_chronological_project_list(processed_git_repos)
-                                        for project in timeline:
-                                            print(f"{project['name']}: {project['start_date']} - {project['end_date']}")
-                                except Exception as e:
-                                    # Catch unexpected errors during repository processing so the app doesn't crash
-                                    print(f"Repository processing failed: {e}")
-
-
-                            else:
-                                print("Skipping Git repository linking as no username was provided.\n")
-
-                        #stat cache + llm pipeline
-
-                        #prepare text analysis data for stats cache
-                        text_analysis_data = {
-                            "num_documents": len(doc_topic_vectors),
-                            "num_topics": len(topic_term_vectors),
-                            "doc_topic_vectors": doc_topic_vectors,
-                            "topic_term_vectors": topic_term_vectors
-                        } if doc_topic_vectors else {}
+                    elif fm_result["status"] == "error":
+                        print(f"There was an error loading the file to File Manager: {fm_result.get('message', 'Unknown error')}\n")
+                        break
                         
-                        #prepare project analysis data for stats cache
-                        project_analysis_data = {
-                            "projects": timeline
-                        } if timeline else {}
+
+                    if git_repos:
+                        # prompt user for github username to link repos
+                        github_username: str = input("Git repositories detected in the file tree. Please enter your GitHub username to link them. To skip this processing, please press enter: \n> ").strip()
+                        if github_username:
+                            # Validate binary data from FileManager before passing it on
+                            repo_processor: RepositoryProcessor = RepositoryProcessor(
+                                username=github_username,
+                                binary_data_array=binary_data
+                            )
+                            try:
+                                raw_repo_data: List[Dict[str, Any]] = repo_processor.process_repositories(git_repos)
+                                print(f"Processed {len(raw_repo_data)} Git repositories successfully in Repository Processor.\n")
+
+                                repo_analyzer: RepositoryAnalyzer = RepositoryAnalyzer(github_username)
+                                analyzed_repos: Dict[str, Any] = repo_analyzer.generate_project_insights(raw_repo_data)
+                                print(f"Analyzed {len(analyzed_repos)} Git repositories successfully in Repository Analyzer.\n")
+                                
+                                # Print detailed info for each repository
+                                print("\n=== Repository Details ===\n")
+                                print(analyzed_repos)
+
+                                # Print generated timelines
+                                print("\n=== Project and Skill Timelines===\n")
+                                all_imports = repo_analyzer.get_all_repo_import_stats(raw_repo_data)
+                                skill_timeline = repo_analyzer.sort_all_repo_imports_chronologically(all_imports)
+                                print(f"Skills: {skill_timeline}\n")
+
+                                project_timeline = repo_analyzer.create_chronological_project_list(raw_repo_data)
+                                print(f"Projects: {project_timeline}\n")
+                            except Exception as e:
+                                # Catch unexpected errors during repository processing so the app doesn't crash
+                                print(f"Repository processing failed: {e}")
+
+
+                        else:
+                            print("Skipping Git repository linking as no username was provided.\n")
+
+                    #stat cache + llm pipeline
+
+                    #prepare text analysis data for stats cache
+                    text_analysis_data = {
+                        "num_documents": len(doc_topic_vectors),
+                        "num_topics": len(topic_term_vectors),
+                        "doc_topic_vectors": doc_topic_vectors,
+                        "topic_term_vectors": topic_term_vectors
+                    } if doc_topic_vectors else {}
+                    
+                    # collect all statistics into a single bundle
+                    try:
+                        print("\nCollecting analysis statistics...")
+                        data_bundle = collect_stats(
+                            metadata_stats=metadata_results,
+                            metadata_analysis=metadata_analysis,
+                            text_analysis=text_analysis_data,
+                            project_analysis=analyzed_repos if git_repos else {}
+                        )
+                        print("Statistics bundle created successfully.\n")
+                        
+                        #get user consent (hardcoded as True for now)
+                        # TODO: ^^
+                        online_consent: bool = True
                         
                         # collect all statistics into a single bundle
                         try:
                             print("\nCollecting analysis statistics...")
                             data_bundle = collect_stats(
                                 metadata_stats=metadata_results,
+                                metadata_analysis=metadata_analysis,
                                 text_analysis=text_analysis_data,
                                 project_analysis=project_analysis_data
                             )
                             print("Statistics bundle created successfully.\n")
+                            
+
+                            topn_keywords = 10  # small, readable set per topic
+                            topic_keywords = []
+                            if lda_model is not None and dictionary is not None:
+                                num_topics = len(topic_term_vectors) if topic_term_vectors else 0
+                                for topic_id in range(num_topics):
+                                    # show_topic returns list[(word, prob)]
+                                    words = [w for (w, _) in lda_model.show_topic(topic_id, topn=topn_keywords)]
+                                    topic_keywords.append({
+                                        "topic_id": topic_id,
+                                        "keywords": words
+                                    })
+
+                            # doc top topics (optional, compact summary)
+                            doc_top_topics = []
+                            for doc_idx, vec in enumerate(doc_topic_vectors or []):
+                                if not vec:
+                                    doc_top_topics.append({"doc_id": doc_idx, "top_topics": []})
+                                    continue
+                                # pick top-2 topics for the document
+                                top_pairs = sorted(
+                                    [(i, p) for i, p in enumerate(vec)],
+                                    key=lambda x: x[1],
+                                    reverse=True
+                                )[:2]
+                                doc_top_topics.append({
+                                    "doc_id": doc_idx,
+                                    "top_topics": [{"topic_id": i, "prob": float(p)} for i, p in top_pairs]
+                                })
+
+
+
+                            # Extract topic vectors for LLM
+                            topic_vector_bundle = {
+                                "topic_keywords": topic_keywords,
+                                "top_topics": doc_top_topics,
+                            }
                             
                             #get user consent (hardcoded as True for now)
                             # TODO: ^^
@@ -354,11 +421,23 @@ def main() -> None:
                             else:
                                 print("Using Local LLM...\n")
                                 llm_client = LocalLLMClient()
+                        else:
+                            print("Using Local LLM...\n")
+                            llm_client = LocalLLMClient()
+                        
+                        print("Generating project summaries...\n")
+                        
+                        try: #for now I'll just use the standard summary, but we could implement logic to let user choose later
+                            medium_summary = llm_client.generate_summary(data_bundle)
+                            print("=" * 60)
+                            print("STANDARD SUMMARY")
+                            print("=" * 60)
+                            print(medium_summary)
+                            print()
                             
-                            print("Generating project summaries...\n")
                             
                             try: #for now I'll just use the standard summary, but we could implement logic to let user choose later
-                                medium_summary = llm_client.generate_summary(data_bundle)
+                                medium_summary = llm_client.generate_summary(topic_vector_bundle)
                                 print("=" * 60)
                                 print("STANDARD SUMMARY")
                                 print("=" * 60)
@@ -371,13 +450,12 @@ def main() -> None:
                                 print("Proceeding without summary.\n")
                         
                         except Exception as e:
-                            print(f"Error collecting statistics: {e}")
-                            print("Proceeding without LLM summaries.\n")
-
-                    elif fm_result["status"] == "error":
-                        print(f"There was an error loading the file to File Manager: {fm_result.get('message', 'Unknown error')}\n")
-
-                    break
+                            print(f"Error generating summary: {e}")
+                            print("Proceeding without summary.\n")
+                    
+                    except Exception as e:
+                        print(f"Error collecting statistics: {e}")
+                        print("Proceeding without LLM summaries.\n")
                     
                 
                 except Exception as e:

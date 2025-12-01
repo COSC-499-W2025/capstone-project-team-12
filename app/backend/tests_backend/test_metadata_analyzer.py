@@ -99,21 +99,21 @@ class TestMetadataAnalyzer:
         empty_analyzer = MetadataAnalyzer({})
         results = empty_analyzer.analyze_all()
         
-        assert results.basic_stats.total_files == 0
-        assert len(results.extension_stats) == 0
-        assert len(results.skill_stats) == 0
+        assert results['basic_stats']['total_files'] == 0
+        assert len(results['extension_stats']) == 0
+        assert len(results['skill_stats']) == 0
 
     def test_basic_stats_calculation(self):
-        basic_stats = self.results.basic_stats
-        assert basic_stats.total_files == 8
-        assert basic_stats.total_size == 10838
-        assert basic_stats.total_lines == 732
-        assert basic_stats.total_words == 2467
-        assert basic_stats.total_characters == 15767
+        basic_stats = self.results['basic_stats']
+        assert basic_stats['total_files'] == 8
+        assert basic_stats['total_size'] == 10838
+        assert basic_stats['total_lines'] == 732
+        assert basic_stats['total_words'] == 2467
+        assert basic_stats['total_characters'] == 15767
 
     def test_extension_stats_calculation(self):
         """Test extension statistics calculation"""
-        extension_stats = self.results.extension_stats
+        extension_stats = self.results['extension_stats']
 
         # test a few extensions
         assert '.py' in extension_stats
@@ -123,13 +123,13 @@ class TestMetadataAnalyzer:
         # test the
         py_stats = extension_stats.get('.py')
         assert py_stats is not None
-        assert py_stats.count == 2
-        assert py_stats.total_size == 5120
+        assert py_stats['count'] == 2
+        assert py_stats['total_size'] == 5120
 
     def test_skill_stats_calculation(self):
         """Test skill statistics calculation"""
-        skill_stats = self.results.skill_stats
-        primary_skills = self.results.primary_skills
+        skill_stats = self.results['skill_stats']
+        primary_skills = self.results['primary_skills']
         
         assert len(skill_stats) == 5
         assert 'Backend Development' in skill_stats
@@ -139,36 +139,52 @@ class TestMetadataAnalyzer:
 
     def test_date_stats_calculation(self):
         """Test date statistics calculation"""
-        date_stats = self.results.date_stats
+        date_stats = self.results['date_stats']
 
         # test creation dates are properly extracted
-        assert len(date_stats.by_creation_date) == 6
-        assert '2025-10' in date_stats.by_creation_date
-        assert '2024-01' in date_stats.by_creation_date
+        assert len(date_stats['by_creation_date']) == 6
+        assert '2025-10' in date_stats['by_creation_date']
+        assert '2024-01' in date_stats['by_creation_date']
 
         # test modification dates are properly extracted
-        assert len(date_stats.by_modified_date) == 3
-        assert '2025-11' in date_stats.by_modified_date
-        assert '2025-07' in date_stats.by_modified_date
+        assert len(date_stats['by_modified_date']) == 3
+        assert '2025-11' in date_stats['by_modified_date']
+        assert '2025-07' in date_stats['by_modified_date']
 
         # test filepath saved with dates
-        assert 'project/test.py' in date_stats.by_creation_date['2025-05']
-        assert 'project/README.md' in date_stats.by_creation_date['2025-01']
-        assert 'project/docker-compose.yaml' in date_stats.by_modified_date['2025-10']
-        assert 'project/test.py' in date_stats.by_modified_date['2025-11']
+        assert 'project/test.py' in date_stats['by_creation_date']['2025-05']
+        assert 'project/README.md' in date_stats['by_creation_date']['2025-01']
+        assert 'project/docker-compose.yaml' in date_stats['by_modified_date']['2025-10']
+        assert 'project/test.py' in date_stats['by_modified_date']['2025-11']
 
         # test that dates are sorted in descending order (most recent first)
-        creation_dates = list(date_stats.by_creation_date.keys())
-        modification_dates = list(date_stats.by_modified_date.keys())
+        creation_dates = list(date_stats['by_creation_date'].keys())
+        modification_dates = list(date_stats['by_modified_date'].keys())
         assert creation_dates == sorted(creation_dates, reverse=True)
         assert modification_dates == sorted(modification_dates, reverse=True)
 
         # test activity
-        assert date_stats.recent_activity_count == 4
-        assert date_stats.activity_level == "high"
+        assert date_stats['recent_activity_count'] == 4
+        assert date_stats['activity_level'] == "high"
 
     def test_extension_classification(self):
         """Test extension classification"""
         assert self.analyzer._classify_extension('.py') == 'Backend Development'
         assert self.analyzer._classify_extension('.js') == 'Web Development'
         assert self.analyzer._classify_extension('.md') == 'Documentation'
+
+    def test_percentages_calculation(self):
+        """Test percentage calculations in stats"""
+        extension_stats = self.results['extension_stats']
+        skill_stats = self.results['skill_stats']
+        total_files = self.results['basic_stats']['total_files']
+
+        # check percentages in extension stats
+        for ext, stats in extension_stats.items():
+            expected_percentage = (stats['count'] / total_files) * 100
+            assert abs(stats['percentage'] - expected_percentage) < 0.01  # allow small floating point error
+
+        # check percentages in skill stats
+        for skill_name, stats in skill_stats.items():
+            expected_percentage = (stats['file_count'] / total_files) * 100
+            assert abs(stats['percentage'] - expected_percentage) < 0.01

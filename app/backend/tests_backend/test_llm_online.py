@@ -3,7 +3,6 @@ import requests
 import pytest
 
 from llm_online import OnlineLLMClient
-from stats_cache import collect_stats
 
 #mock replacement for requests
 class MockResponse:
@@ -62,12 +61,11 @@ def test_send_request_builds_and_posts_payload(monkeypatch):
 
     monkeypatch.setattr(requests, "post", fake_post)
 
-    bundle = collect_stats( #prepare mock bundle
-        metadata_stats={"a.py": {"size": 10}},
-        text_analysis={"keywords": ["x"]},
-        project_analysis={"repositories": [{"total_commits": 1}]}
-    )
-    resp = client.send_request(prompt="Hello", data_bundle=bundle)
+    topic_vector_bundle = {
+        "doc_topic_vectors": [[0.5, 0.5]],
+        "topic_term_vectors": [[0.3, 0.7]]
+    }
+    resp = client.send_request(prompt="Hello", topic_vector_bundle=topic_vector_bundle)
 
     #check headers and payload
     assert captured["url"].endswith("/chat/completions")
@@ -80,24 +78,22 @@ def test_send_request_builds_and_posts_payload(monkeypatch):
 
 
 def test_data_bundle_is_appended_to_message(monkeypatch):
-    """The data_bundle should be present in the message content sent to the API."""
+    """The topic_vector_bundle should be present in the message content sent to the API."""
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
     client = OnlineLLMClient()
 
     def fake_post(url, headers=None, json=None, timeout=None):
         content = json["messages"][0]["content"]
-        assert "metadata_stats" in content
+        assert "doc_topic_vectors" in content
         return MockResponse({"choices": [{"message": {"content": "ok"}}]})
 
     monkeypatch.setattr(requests, "post", fake_post)
 
-    #preparebundle
-    bundle = collect_stats(
-        metadata_stats={"b.py": {"size": 20}},
-        text_analysis={"keywords": ["y"]},
-        project_analysis={"repositories": [{"total_commits": 2}]}
-    )
-    client.send_request(prompt="Summarize", data_bundle=bundle)
+    topic_vector_bundle = {
+        "doc_topic_vectors": [[0.5, 0.5]],
+        "topic_term_vectors": [[0.3, 0.7]]
+    }
+    client.send_request(prompt="Summarize", topic_vector_bundle=topic_vector_bundle)
 
 
 def test_generate_short_summary_returns_response(monkeypatch):
@@ -105,17 +101,16 @@ def test_generate_short_summary_returns_response(monkeypatch):
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
     client = OnlineLLMClient()
 
-    def fake_send(self, prompt, data_bundle):
+    def fake_send(self, prompt, topic_vector_bundle):
         return {"choices": [{"message": {"content": "• Short bullet 1\n• Short bullet 2"}}]}
 
     monkeypatch.setattr(OnlineLLMClient, "send_request", fake_send)
 
-    bundle = collect_stats(
-        metadata_stats={"c.py": {"size": 30}},
-        text_analysis={"keywords": ["z"]},
-        project_analysis={"repositories": [{"total_commits": 3}]}
-    )
-    out = client.generate_short_summary(bundle)
+    topic_vector_bundle = {
+        "doc_topic_vectors": [[0.5, 0.5]],
+        "topic_term_vectors": [[0.3, 0.7]]
+    }
+    out = client.generate_short_summary(topic_vector_bundle)
     assert "Short bullet 1" in out
     assert out.count("•") >= 1
 
@@ -131,4 +126,4 @@ def test_send_request_throws_on_http_error(monkeypatch):
     monkeypatch.setattr(requests, "post", fake_post_error)
 
     with pytest.raises(requests.HTTPError):
-        client.send_request("prompt", data_bundle="{}")
+        client.send_request("prompt", topic_vector_bundle={})
