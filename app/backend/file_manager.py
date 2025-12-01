@@ -4,6 +4,7 @@ import zipfile
 import tempfile
 import shutil
 from anytree import Node, RenderTree
+import os
 
 class FileManager:
     def __init__(self):
@@ -112,25 +113,27 @@ class FileManager:
                     for item in items:
                         debug_stats['total_items'] += 1
                         all_subpaths.append(item)
-                        
+
                         # DEBUG: Log item details
                         is_hidden = item.name.startswith('.')
                         if is_hidden:
                             debug_stats['hidden_items'] += 1
                             print(f"{indent}  [HIDDEN] {item.name} (is_dir={item.is_dir()})", flush=True)
-                        
+
+                        # Handle .git (accept directory or file)
                         if item.name == '.git':
+                            git_path = item.resolve()
+                            print(f"DEBUG: .git detected at {git_path} (is_dir={item.is_dir()}, is_file={item.is_file()})")
+
                             debug_stats['git_folders'] += 1
-                            print(f"{indent}  ✓ FOUND .git folder at: {item}", flush=True)
-                            print(f"{indent}    .git is_dir: {item.is_dir()}", flush=True)
-                            print(f"{indent}    .git exists: {item.exists()}", flush=True)
-                            print(f"{indent}    .git absolute: {item.absolute()}", flush=True)
-                        
+
+                        # Recurse into directories
                         if item.is_dir():
                             debug_stats['directories'] += 1
                             walk_dir(item, depth + 1)
                         else:
                             debug_stats['files'] += 1
+
                             
                 except PermissionError as e:
                     debug_stats['permission_errors'] += 1
@@ -165,9 +168,25 @@ class FileManager:
             
             print("="*60 + "\n", flush=True)
             
+            
             for subpath in sorted(all_subpaths):
                 # DEBUG: Track what happens to .git folders
                 if subpath.name == '.git':
+                    parent_folder_node = self._get_or_create_folder_nodes(
+                        subpath.parent, folder_nodes, path, parent_node
+                    )
+
+                    # Always attach a Node for .git
+                    git_node = Node(
+                        ".git",
+                        parent=parent_folder_node,          # attach under repo root
+                        type="directory",
+                        filepath=str(subpath),
+                        is_repo_head=False           # still can mark repo root separately
+                    )
+
+                    folder_nodes[str(subpath)] = git_node
+
                     print(f"DEBUG: Processing .git folder: {subpath}", flush=True)
                 
                 # added this to skip MAC artifacts when extracing zip files made with a mac
