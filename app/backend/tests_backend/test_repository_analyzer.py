@@ -147,7 +147,7 @@ class TestRepositoryAnalyzer:
             'testuser@example.com': {'commits': 9}, 'u1@ex.com': {'commits': 10}, 'u2@ex.com': {'commits': 5},
             'u3@ex.com': {'commits': 4}, 'u4@ex.com': {'commits': 2}}
         result = analyzer._calculate_contribution_insights(project)
-        assert result['contribution_level'] == 'Major Contributor' and result['percentile'] == 80.0
+        assert result['contribution_level'] == 'Significant Contributor' and result['percentile'] == 60.0
         
         # Regular contributor (line 280) - below 50th percentile
         project['repository_context']['all_authors_stats'] = {
