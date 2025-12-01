@@ -134,7 +134,7 @@ def main() -> None:
     config_manager = ConfigManager() # Initialize Config Manager
     
     try:
-        print_header("Codebase Analyzer v1.0")
+        print_header("Artifact Mining App")
         
         has_file_access = config_manager.get_consent(
             key="file_access_consent", 
