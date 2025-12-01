@@ -129,6 +129,19 @@ def binary_to_str(bin_data:List[BinaryIO])-> List[str]:
             result.append('')
     return result
 
+def diagnose_repo_node(repo_node: Node) -> None:
+    """Print detailed information about a repository node"""
+    print(f"\n{'='*60}")
+    print(f"Diagnosing repo_node: {repo_node.name}")
+    print(f"Node type: {getattr(repo_node, 'type', 'NO TYPE ATTR')}")
+    print(f"Has is_repo_head: {hasattr(repo_node, 'is_repo_head')}")
+    print(f"is_repo_head value: {getattr(repo_node, 'is_repo_head', 'N/A')}")
+    print(f"Number of children: {len(repo_node.children) if hasattr(repo_node, 'children') else 'NO CHILDREN'}")
+    print(f"\nChildren names:")
+    if hasattr(repo_node, 'children'):
+        for child in repo_node.children:
+            print(f"  - {child.name} (type: {getattr(child, 'type', 'unknown')})")
+    print(f"{'='*60}\n")
 
 def main() -> None:
     config_manager = ConfigManager() # Initialize Config Manager
@@ -290,6 +303,10 @@ def main() -> None:
                     if git_repos:
                         print_header("Repository Linking")
                         print(f"Detected {len(git_repos)} git repositories.")
+
+                        for repo in git_repos:
+                            diagnose_repo_node(repo)
+
                         github_username: str = input("Enter GitHub username to link (Press Enter to skip): \n> ").strip()
                         
                         if github_username:
