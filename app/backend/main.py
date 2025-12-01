@@ -298,11 +298,12 @@ def main() -> None:
                                 binary_data_array=binary_data
                             )
                             try:
-                                processed_git_repos: bytes = repo_processor.process_repositories(git_repos)
-                                if processed_git_repos:
+                                raw_git_data: bytes = repo_processor.process_repositories(git_repos)
+                                if raw_git_data:
                                     print_status("Repositories processed successfully.", "success")
-                                    analyzer = RepositoryAnalyzer(github_username)
-                                    timeline = analyzer.create_chronological_project_list(processed_git_repos)
+                                    repo_analyzer = RepositoryAnalyzer(github_username)
+                                    analyzed_repos = repo_analyzer.generate_project_insights(raw_git_data)
+                                    timeline = repo_analyzer.create_chronological_project_list(raw_git_data)
                                     print("\n--- Project Timeline ---")
                                     for project in timeline:
                                         print(f"• {project['name']}: {project['start_date']} - {project['end_date']}")
@@ -318,10 +319,6 @@ def main() -> None:
                         "topic_term_vectors": topic_term_vectors
                     } if doc_topic_vectors else {}
                     
-                    project_analysis_data = {
-                        "projects": timeline
-                    } if timeline else {}
-                    
                     try:
                         print_header("AI Summary Generation")
                         print_status("Collecting analysis statistics...", "info")
@@ -329,7 +326,7 @@ def main() -> None:
                             metadata_stats=metadata_results,
                             metadata_analysis=metadata_analysis,
                             text_analysis=text_analysis_data,
-                            project_analysis=project_analysis_data
+                            project_analysis=analyzed_repos if analyzed_repos else {}
                         )
                         
                         topn_keywords = 10
