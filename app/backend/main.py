@@ -11,10 +11,13 @@ from repository_processor import RepositoryProcessor
 from metadata_extractor import MetadataExtractor
 from metadata_analyzer import MetadataAnalyzer
 from repository_analyzer import RepositoryAnalyzer
-from text_preprocessor import text_preprocess
+from combined_preprocess import combined_preprocess
 from pii_remover import remove_pii
 from cache.bow_cache import BoWCache, BoWCacheKey
 from topic_vectors import generate_topic_vectors
+from stats_cache import collect_stats
+from llm_online import OnlineLLMClient
+from llm_local import LocalLLMClient
 import hashlib
 
 
@@ -113,6 +116,7 @@ def run_all_backend_tests() -> None:
 
 #pass entry by provided id from file_data_array
 def get_bin_data_by_Id(bin_Idx:int)->BinaryIO|None:
+    global file_data_list
     if file_data_list is None or len(file_data_list) == 0:
         print("Empty List: Initialize by calling File")
         return None
@@ -120,6 +124,7 @@ def get_bin_data_by_Id(bin_Idx:int)->BinaryIO|None:
 
 def get_bin_data_by_IdList(bin_Idx_list:List[int])->List[BinaryIO]:
     #check if files are loaded
+    global file_data_list
     if file_data_list is None or len(file_data_list) == 0:
         print("Empty List: Initialize by calling File")
         return None
@@ -130,15 +135,25 @@ def get_bin_data_by_IdList(bin_Idx_list:List[int])->List[BinaryIO]:
         response_List.append(get_bin_data_by_Id(bin_Idx))
     return response_List
 
-def convert_binary_to_text(node_array:List[Node])->List[BinaryIO|None]:
-    """ Converts binary data to text strings for text preprocessing """
-    text_data_list: List[str] = []
-    bin_Idx_list: List[int] = []
-    for node in node_array:
-        bin_Id = node.file_data['binary_index']
-        bin_Idx_list.append(bin_Id)
-    text_data_list = [str(x) for x in get_bin_data_by_IdList(bin_Idx_list)]
-    return text_data_list
+def get_bin_data_by_Nodes(nodes:List[Node])->[BinaryIO|None]:
+    """Retrives all the data for passed tree nodes as strings in a list"""
+    if nodes is None:
+        raise ValueError("Error preparing datalist in main!: No nodes given!")
+        return
+    
+    IdList: List[int] = []
+    for node in nodes:
+        IdList.append(node.file_data['binary_index'])
+    return get_bin_data_by_IdList(IdList)
+
+def binary_to_str(bin_data:List[BinaryIO])-> List[str]:
+    result = []
+    for data in bin_data:
+        try:
+            result.append(data.decode('utf-8', errors='ignore') if data else '')
+        except (AttributeError, UnicodeDecodeError):
+            result.append('')
+    return result
 
 def main() -> None:
     try:
@@ -150,6 +165,7 @@ def main() -> None:
 
         elif choice in ("n", "no"):
             while True: # looping so that prompts get asked until the user is successful or the user does not want to try again
+                
                 filepath: str = input("\nEnter a file path to process: \n>").strip()
                 try:
                     path: Path = validate_path(filepath) # validate using method above
@@ -201,35 +217,45 @@ def main() -> None:
                         
                         metadata_extractor: MetadataExtractor = MetadataExtractor()
                         metadata_results: Dict[str, Dict[str, Any]] = metadata_extractor.extract_all_metadata(processed_tree, binary_data)
-                        
                         print("Metadata extracted successfully in Metadata Manager.\n")
                         
                         total_files: int = len(metadata_results)
                         if total_files > 0:
-                            print(f"   Processed metadata for {total_files} files")
+                            print(f"Processed metadata for {total_files} files")
 
                         metadata_analyzer: MetadataAnalyzer = MetadataAnalyzer(metadata_results)
-                        analysis_results = metadata_analyzer.analyze_all()
+                        metadata_analysis = metadata_analyzer.analyze_all()
                         print("Metadata analysis completed successfully in Metadata Analyzer.\n")
+                        print("Extension Statistics:")
+                        for ext, stats in metadata_analysis['extension_stats'].items():
+                            print(f"{ext}: {stats['count']} files ({stats['percentage']}%), {stats['total_size']} bytes, {stats['category']}")
 
                         git_repos: List[Node] = tree_processor.get_git_repos() #check for git repos before processing repos
+
+                        #initialize variables for text and project analysis
+                        doc_topic_vectors: list = []
+                        topic_term_vectors: list = []
+                        timeline: list = []
 
                         # Run text preprocessing pipeline + store pipeline results in BoW Cache
                         try:
                             text_nodes: List[Node] = tree_processor.get_text_files()
-                            if text_nodes:
-                                print(f"Found {len(text_nodes)} text files. Running BoW pipeline...")
+                            code_nodes: List[Node] = tree_processor.get_code_files()
+                            if text_nodes or code_nodes:
+                                print(f"Found {len(text_nodes)} text files and {len(code_nodes)} code files. Running BoW pipeline...")
 
                                 # with the current setup, we assume all text files use the same preprocessing steps
                                 preprocess_signature = {
                                     "lemmatizer": True,
                                     "stopwords": "nltk_english_default",
                                     "pii_removal": True,
-                                    "filters": ["text"]
+                                    "filters": ["text", "code"],
+                                    "normalize_code": True
                                 }
 
                                 # build repo_id by hashing joined file paths
-                                file_paths = [getattr(text_file, "filepath", str(text_file.name)) for text_file in text_nodes]
+                                all_nodes: List[Node] = text_nodes + code_nodes
+                                file_paths = [getattr(file, "filepath", str(file.name)) for file in all_nodes]
                                 joined_paths = "|".join(file_paths)
                                 repo_id = hashlib.md5(joined_paths.encode()).hexdigest()
 
@@ -239,38 +265,57 @@ def main() -> None:
                                 # initialize cache and key
                                 key = BoWCacheKey(repo_id, head_commit, preprocess_signature)
                                 cache = BoWCache()
-
+                                # Initialize final_bow to store cache or newly processed BoW
+                                final_bow: List[List[str]] = []
                                 # check cache for existing BoW
                                 if cache.has(key):
                                     print(f"Cache hit for BoW (repo_id={repo_id})")
                                     cached = cache.get(key)
                                     if cached is not None:
-                                        return cached # return cached BoW
-                                    print("Cache corrupted or unreadable - regenerating...")
+                                        final_bow = cached
+                                        print(f"Successfully retrieved BoW for {len(final_bow)} document(s) from Cache. Ready for text analysis.\n")
+                                        
+                                    else: 
+                                        print("Cache corrupted or unreadable - regenerating...")
 
-                                # if we reach here, we have a cache miss
-                                print("Cache miss - running text preprocessing pipeline...")
+                                if not cache.has(key) or cached is None:
+                                    # if we reach here, we have a cache miss
+                                    print("Cache miss - running text preprocessing pipeline...")
 
-                                # convert binary data to text data to use in for preprocessing
-                                text_data: List[str] = convert_binary_to_text(text_nodes)
+                                    # Get binary data for all files
+                                    text_binary_data: List[BinaryIO|None] = get_bin_data_by_Nodes(text_nodes) if text_nodes else []
+                                    code_binary_data: List[BinaryIO|None] = get_bin_data_by_Nodes(code_nodes) if code_nodes else []
+
+
+                                    # convert binary data to strings
+                                    text_data: List[str] = binary_to_str(text_binary_data) if text_nodes else []
+                                    code_data: List[str] = binary_to_str(code_binary_data) if code_nodes else []
+
+                                    # run combined preprocessing
+                                    processed_docs = combined_preprocess(text_nodes, text_data, code_nodes, code_data, normalize=True)
+                                    
+                                    # PII removals
+                                    anonymized_docs = remove_pii(processed_docs)
                                 
-                                # run text preprocessing
-                                processed_docs = text_preprocess(text_data)
-                                anonymized_docs = remove_pii(processed_docs)
-                                final_bow: list[list[str]] = anonymized_docs
+                                    final_bow = anonymized_docs
 
-                                # save to cache
-                                cache.set(key, final_bow)
+                                    # save to cache
+                                    cache.set(key, final_bow)
 
                                 print(f"Successfully built BoW for {len(final_bow)} document(s) and saved it to Cache. Ready for text analysis.\n")
 
                                 print("Running topic modeling...")
 
-                                lda_model, doc_topic_vectors, topic_term_vectors = generate_topic_vectors(final_bow)
+                                lda_model, dictionary, doc_topic_vectors, topic_term_vectors = generate_topic_vectors(final_bow)
 
                                 print("Successfully generated topic vectors.")
                                 print(f"- Number of documents: {len(doc_topic_vectors)}")
                                 print(f"- Number of topics: {len(topic_term_vectors)}")
+                                # After generating topics in main.py:
+                                print("\nTop words per topic:")
+                                for i in range(5):  # 5 topics
+                                    top_words = lda_model.show_topic(i, topn=10)
+                                    print(f"Topic {i}: {', '.join([word for word, prob in top_words])}")
                                 print("Text analysis complete.\n")
                                 
                             else:
@@ -278,6 +323,10 @@ def main() -> None:
                         except Exception as e:
                             print(f"Error during text/PII processing: {e}")
 
+                    elif fm_result["status"] == "error":
+                        print(f"There was an error loading the file to File Manager: {fm_result.get('message', 'Unknown error')}\n")
+                        break
+                        
 
                     if git_repos:
                         # prompt user for github username to link repos
@@ -296,13 +345,9 @@ def main() -> None:
                                 analyzed_repos: Dict[str, Any] = repo_analyzer.generate_project_insights(raw_repo_data)
                                 print(f"Analyzed {len(analyzed_repos)} Git repositories successfully in Repository Analyzer.\n")
                                 
-                                # Print summary of portfolio analysis
-                                print("\n ===Portfolio Summary===\n")
-                                print(analyzed_repos['summary'])
-                                
                                 # Print detailed info for each repository
                                 print("\n=== Repository Details ===\n")
-                                print(analyzed_repos['projects'])
+                                print(analyzed_repos)
 
                                 # Print generated timelines
                                 print("\n=== Project and Skill Timelines===\n")
@@ -320,10 +365,115 @@ def main() -> None:
                         else:
                             print("Skipping Git repository linking as no username was provided.\n")
 
-                    elif fm_result["status"] == "error":
-                        print(f"There was an error loading the file to File Manager: {fm_result.get('message', 'Unknown error')}\n")
+                    #stat cache + llm pipeline
 
-                    break
+                    #prepare text analysis data for stats cache
+                    text_analysis_data = {
+                        "num_documents": len(doc_topic_vectors),
+                        "num_topics": len(topic_term_vectors),
+                        "doc_topic_vectors": doc_topic_vectors,
+                        "topic_term_vectors": topic_term_vectors
+                    } if doc_topic_vectors else {}
+                    
+                    # collect all statistics into a single bundle
+                    try:
+                        print("\nCollecting analysis statistics...")
+                        data_bundle = collect_stats(
+                            metadata_stats=metadata_results,
+                            metadata_analysis=metadata_analysis,
+                            text_analysis=text_analysis_data,
+                            project_analysis=analyzed_repos if git_repos else {}
+                        )
+                        print("Statistics bundle created successfully.\n")
+                        
+                        #get user consent (hardcoded as True for now)
+                        # TODO: ^^
+                        online_consent: bool = True
+                        topn_keywords = 10  # small, readable set per topic
+                        topic_keywords = []
+                        if lda_model is not None and dictionary is not None:
+                            num_topics = len(topic_term_vectors) if topic_term_vectors else 0
+                            for topic_id in range(num_topics):
+                                # show_topic returns list[(word, prob)]
+                                words = [w for (w, _) in lda_model.show_topic(topic_id, topn=topn_keywords)]
+                                topic_keywords.append({
+                                    "topic_id": topic_id,
+                                    "keywords": words
+                                })
+
+                        # doc top topics (optional, compact summary)
+                        doc_top_topics = []
+                        for doc_idx, vec in enumerate(doc_topic_vectors or []):
+                            if not vec:
+                                doc_top_topics.append({"doc_id": doc_idx, "top_topics": []})
+                                continue
+                            # pick top-2 topics for the document
+                            top_pairs = sorted(
+                                [(i, p) for i, p in enumerate(vec)],
+                                key=lambda x: x[1],
+                                reverse=True
+                            )[:2]
+                            doc_top_topics.append({
+                                "doc_id": doc_idx,
+                                "top_topics": [{"topic_id": i, "prob": float(p)} for i, p in top_pairs]
+                            })
+
+
+
+                        # Extract topic vectors for LLM
+                        topic_vector_bundle = {
+                            "topic_keywords": topic_keywords,
+                            "top_topics": doc_top_topics,
+                        }
+                        
+                        #get user consent (hardcoded as True for now)
+                        # TODO: ^^
+                        online_consent: bool = True
+                        
+                        #select appropriate LLM client based on user consent
+                        if online_consent:
+                            print("Using Online LLM...")
+                            try:
+                                llm_client = OnlineLLMClient()
+                            except ValueError as e:
+                                print(f"Online LLM initialization failed: {e}")
+                                print("Falling back to Local LLM...\n")
+                                llm_client = LocalLLMClient()
+                        else:
+                            print("Using Local LLM...\n")
+                            llm_client = LocalLLMClient()
+                        
+                        print("Generating project summaries...\n")
+                        
+                        try: #for now I'll just use the standard summary, but we could implement logic to let user choose later
+                            medium_summary = llm_client.generate_summary(data_bundle)
+                            print("=" * 60)
+                            print("STANDARD SUMMARY")
+                            print("=" * 60)
+                            print(medium_summary)
+                            print()
+                            
+                            
+                            try: #for now I'll just use the standard summary, but we could implement logic to let user choose later
+                                medium_summary = llm_client.generate_summary(topic_vector_bundle)
+                                print("=" * 60)
+                                print("STANDARD SUMMARY")
+                                print("=" * 60)
+                                print(medium_summary)
+                                print()
+                                
+                                
+                            except Exception as e:
+                                print(f"Error generating summary: {e}")
+                                print("Proceeding without summary.\n")
+                        
+                        except Exception as e:
+                            print(f"Error generating summary: {e}")
+                            print("Proceeding without summary.\n")
+                    
+                    except Exception as e:
+                        print(f"Error collecting statistics: {e}")
+                        print("Proceeding without LLM summaries.\n")
                     
                 
                 except Exception as e:
