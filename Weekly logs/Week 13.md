@@ -35,6 +35,8 @@
 
 
 ### Burnup chart & Task Table
+<img width="921" height="482" alt="image" src="https://github.com/user-attachments/assets/7d45c92d-5594-4885-95aa-cfc82c1d154b" />
+<img width="1191" height="414" alt="image" src="https://github.com/user-attachments/assets/d9e7547f-3258-465f-8681-322b053cf848" />
 
 
 ### In Progress
