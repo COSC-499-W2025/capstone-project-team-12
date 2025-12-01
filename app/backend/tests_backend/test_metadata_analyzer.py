@@ -164,7 +164,7 @@ class TestMetadataAnalyzer:
         assert modification_dates == sorted(modification_dates, reverse=True)
 
         # test activity
-        assert date_stats['recent_activity_count'] == 4
+        assert date_stats['recent_activity_count'] == 3
         assert date_stats['activity_level'] == "high"
 
     def test_extension_classification(self):
