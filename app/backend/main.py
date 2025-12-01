@@ -135,7 +135,7 @@ def get_bin_data_by_IdList(bin_Idx_list:List[int])->List[BinaryIO]:
         response_List.append(get_bin_data_by_Id(bin_Idx))
     return response_List
 
-def get_bin_data_by_Nodes(nodes:List[Node])->[BinaryIO|None]:
+def get_bin_data_by_Nodes(nodes:List[Node])->List[BinaryIO|None]:
     """Retrives all the data for passed tree nodes as strings in a list"""
     if nodes is None:
         raise ValueError("Error preparing datalist in main!: No nodes given!")
