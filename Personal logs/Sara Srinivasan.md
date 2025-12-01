@@ -1,13 +1,35 @@
 # Sara Srinivasan Personal Log (10801751)
 
+## Week 13
+
+### Work Done
+
+- Led discussion of tasks for week and assigned tasks during meeting
+- Establish plan for team to follow throughout the week
+- Reworked text preprocess and code preprocess as pre-step to integration
+- Reworked testing for both of the above to match new functionality
+- Investigated and fixed difficult bugs and cleared up misunderstandings regarding component roles
+- Contributed to shared team slides
+- Prepared with team for presentation.
+
+### Quiz Response
+
+![Week 12 Response](imgs/Sara%20Srinivasan%20Week%2013.png)
+
+### Review and Plans
+
+Productive week for personally, assuming the last couple bugs get squashed before sunday deadline
+All that is left is to tie up a few loose ends in the repo. Prepare and deliver the presentation.
+
+
 ## Week 11 and 12
 
 ### Work Done
 
 - Dev-Ops
-    - Setup and wrote initialization for database
-    - Fixed Docker bad config leading to high build times
-    - Added dates for numerous issues and PRs in Github Proj
+  - Setup and wrote initialization for database
+  - Fixed Docker bad config leading to high build times
+  - Added dates for numerous issues and PRs in Github Proj
 - Code
   - DB Access util functions module
   - Component Testing for DB Utils Module

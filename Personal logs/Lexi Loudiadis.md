@@ -1,5 +1,25 @@
 # Lexi Loudiadis (93546844) Personal Log
 
+## Week 13 (11/24/2025 - 11/30/2025)
+
+- Finished the implementation of our project analysis, which uses import lines to extract skills in Git repos. Ensure milestone requirements were satisfied. Included relevant testing
+- Reviewed teammates' PRs and helped debug issues that arose due to integration of different modules in our backend entrypoint
+- Participated in writing the team contract
+- Working on our slide deck
+
+### In Progress
+- While reviewing Maddy's PR I discovered a bug in how Mac computers are handling files. We discovered that, while the OS on my Mac was seeing the .git file in our test repo, somehow this file was getting dropped from the node when running our pipeline. As a result, PyDriller could not extract commit info since it requires a .git file. Maddy and I have been working on debugging this and will continue resolving this issue early next week.  
+
+### What's Next
+- Preparing for our presentation
+- Continuing to debug and test for our M1 deliverable
+
+### Reflection
+- All work planned for this week was accomplished, and some additional testing and debugging was done on other teammates' PRs to ensure integration was going well.
+
+![Type of tasks I worked on](imgs/Week%2013%20Lexi.png)
+
+
 ## Week 12 (11/17/2025 - 11/23/2025)
 
 - Addressed a circular imports bug that ended up in our main branch
