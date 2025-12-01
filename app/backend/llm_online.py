@@ -55,8 +55,20 @@ class OnlineLLMClient:
         user_content = prompt
         if topic_vector_bundle:
             import json
-            vector_data = json.dumps(topic_vector_bundle, indent=2)
-            user_content = f"{prompt}\n\n--- Topic Vectors ---\n{vector_data}"
+            # Sanitize to ensure JSON-serializable (defensive against any remaining numpy types)
+            try:
+                vector_data = json.dumps(topic_vector_bundle, indent=2)
+            except TypeError:
+                # Fallback: coerce non-serializable values to str
+                def sanitize(obj):
+                    if isinstance(obj, dict):
+                        return {k: sanitize(v) for k, v in obj.items()}
+                    elif isinstance(obj, list):
+                        return [sanitize(x) for x in obj]
+                    else:
+                        return obj if isinstance(obj, (str, int, float, bool)) else str(obj)
+                vector_data = json.dumps(sanitize(topic_vector_bundle), indent=2)
+            user_content = f"{prompt}\n\n--- Topic Keywords ---\n{vector_data}"
         
         #build request payload
         payload = {

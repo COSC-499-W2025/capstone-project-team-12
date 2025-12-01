@@ -1,6 +1,7 @@
+from typing import Dict, Any
+import json
 import time
 import requests
-from typing import Dict, Any
 
 class LocalLLMClient:
     
@@ -21,7 +22,7 @@ class LocalLLMClient:
         topic_vector_bundle: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
-        Send prompt + data bundle to local Ollama API and return response with automatic retry
+        Send prompt + keywords bundle to local Ollama API and return response with automatic retry
         
         Args:
             prompt: The instruction/question to send
@@ -35,10 +36,21 @@ class LocalLLMClient:
         #construct user message
         user_content = prompt
         if topic_vector_bundle:
-            import json
-            vector_data = json.dumps(topic_vector_bundle, indent=2)
-            user_content = f"{prompt}\n\n--- Topic Vectors ---\n{vector_data}"
-        
+            # bundle is now topic keywords + doc top topics (plain strings/floats)
+            try:
+                vector_data = json.dumps(topic_vector_bundle, indent=2)
+            except TypeError:
+                # as a safeguard, coerce any non-serializable values to str
+                def sanitize(obj):
+                    if isinstance(obj, dict):
+                        return {k: sanitize(v) for k, v in obj.items()}
+                    elif isinstance(obj, list):
+                        return [sanitize(x) for x in obj]
+                    else:
+                        return obj if isinstance(obj, (str, int, float, bool)) else str(obj)
+                vector_data = json.dumps(sanitize(topic_vector_bundle), indent=2)
+            user_content = f"{prompt}\n\n--- Topic Keywords ---\n{vector_data}"
+
         payload = {
             "model": self.model,
             "prompt": user_content,
@@ -49,7 +61,7 @@ class LocalLLMClient:
         last_exception = None
         for attempt in range(self.max_retries):
             try:
-                response = requests.post(url, json=payload, timeout=120)  # Longer timeout for local inference
+                response = requests.post(url, json=payload, timeout=300)  # Longer timeout for local inference
                 response.raise_for_status()
                 
                 #convert Ollama format to OpenRouter-like format for consistency
@@ -102,10 +114,10 @@ class LocalLLMClient:
             
         Returns: Short summary string
         """
-        # TODO: Optimize prompt for Phi-3 Mini - simpler, more direct instructions
-        prompt = """Create a short professional summary with 2-3 bullet points.
-Focus on: main purpose, key technologies used, and one major achievement.
-Keep it brief and clear."""
+        prompt = (
+            "Create a concise professional summary using the topic keywords and doc top topics. "
+            "Use 2-3 bullet points."
+        )
         
         response = self.send_request(prompt=prompt, topic_vector_bundle=topic_vector_bundle)
         return response["choices"][0]["message"]["content"].strip()
@@ -120,10 +132,10 @@ Keep it brief and clear."""
         Returns:
             Standard summary string
         """
-        # TODO: Optimize prompt for Phi-3 Mini
-        prompt = """Create a professional summary with 4-5 bullet points.
-Include: project purpose, your contributions, technologies used, and skills gained.
-Use clear, action-oriented language."""
+        prompt = (
+            "Generate a professional summary from the topic keywords and document top topics. "
+            "Use 4-5 bullet points highlighting strengths."
+        )
         
         response = self.send_request(prompt=prompt, topic_vector_bundle=topic_vector_bundle)
         return response["choices"][0]["message"]["content"].strip()
@@ -138,11 +150,10 @@ Use clear, action-oriented language."""
         Returns:
             Long summary string
         """
-        # TODO: Optimize prompt for Phi-3 Mini
-        prompt = """Create a detailed professional summary with 5-7 bullet points.
-Cover: project goals, your specific contributions, tools and technologies, 
-challenges overcome, and skills developed.
-Be specific but concise."""
+        prompt = (
+            "Generate a detailed professional summary from the topic keywords and doc top topics. "
+            "Use 5-7 bullet points and include notable themes."
+        )
         
         response = self.send_request(prompt=prompt, topic_vector_bundle=topic_vector_bundle)
         return response["choices"][0]["message"]["content"].strip()
