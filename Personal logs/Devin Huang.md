@@ -8,6 +8,9 @@
   - Added saving, reading and removing databbase functions for various elements
   - Created tests for the database module (https://github.com/COSC-499-W2025/capstone-project-team-12/pull/216)
 - Refactored various modules so that only the topic vectors are passed into the llm client instead of whole bundle (https://github.com/COSC-499-W2025/capstone-project-team-12/pull/232)
+- With the help of Sithara and Sara, found and fixed multiple bugs with the pipeline.
+- Fixed an issue with the response time with the local llm.
+  - Updated `main.py`, `topic_vectors.py` and both llm modules (mostly prompt changes)
 
 ### Next week
 - Record video presentation for milestone 1
