@@ -306,7 +306,7 @@ def main() -> None:
 
                                 print("Running topic modeling...")
 
-                                lda_model, doc_topic_vectors, topic_term_vectors = generate_topic_vectors(final_bow)
+                                lda_model, dictionary, doc_topic_vectors, topic_term_vectors = generate_topic_vectors(final_bow)
 
                                 print("Successfully generated topic vectors.")
                                 print(f"- Number of documents: {len(doc_topic_vectors)}")
@@ -390,14 +390,70 @@ def main() -> None:
                         # TODO: ^^
                         online_consent: bool = True
                         
-                        #select appropriate LLM client based on user consent
-                        if online_consent:
-                            print("Using Online LLM...")
-                            try:
-                                llm_client = OnlineLLMClient()
-                            except ValueError as e:
-                                print(f"Online LLM initialization failed: {e}")
-                                print("Falling back to Local LLM...\n")
+                        # collect all statistics into a single bundle
+                        try:
+                            print("\nCollecting analysis statistics...")
+                            data_bundle = collect_stats(
+                                metadata_stats=metadata_results,
+                                metadata_analysis=metadata_analysis,
+                                text_analysis=text_analysis_data,
+                                project_analysis=project_analysis_data
+                            )
+                            print("Statistics bundle created successfully.\n")
+                            
+
+                            topn_keywords = 10  # small, readable set per topic
+                            topic_keywords = []
+                            if lda_model is not None and dictionary is not None:
+                                num_topics = len(topic_term_vectors) if topic_term_vectors else 0
+                                for topic_id in range(num_topics):
+                                    # show_topic returns list[(word, prob)]
+                                    words = [w for (w, _) in lda_model.show_topic(topic_id, topn=topn_keywords)]
+                                    topic_keywords.append({
+                                        "topic_id": topic_id,
+                                        "keywords": words
+                                    })
+
+                            # doc top topics (optional, compact summary)
+                            doc_top_topics = []
+                            for doc_idx, vec in enumerate(doc_topic_vectors or []):
+                                if not vec:
+                                    doc_top_topics.append({"doc_id": doc_idx, "top_topics": []})
+                                    continue
+                                # pick top-2 topics for the document
+                                top_pairs = sorted(
+                                    [(i, p) for i, p in enumerate(vec)],
+                                    key=lambda x: x[1],
+                                    reverse=True
+                                )[:2]
+                                doc_top_topics.append({
+                                    "doc_id": doc_idx,
+                                    "top_topics": [{"topic_id": i, "prob": float(p)} for i, p in top_pairs]
+                                })
+
+
+
+                            # Extract topic vectors for LLM
+                            topic_vector_bundle = {
+                                "topic_keywords": topic_keywords,
+                                "top_topics": doc_top_topics,
+                            }
+                            
+                            #get user consent (hardcoded as True for now)
+                            # TODO: ^^
+                            online_consent: bool = True
+                            
+                            #select appropriate LLM client based on user consent
+                            if online_consent:
+                                print("Using Online LLM...")
+                                try:
+                                    llm_client = OnlineLLMClient()
+                                except ValueError as e:
+                                    print(f"Online LLM initialization failed: {e}")
+                                    print("Falling back to Local LLM...\n")
+                                    llm_client = LocalLLMClient()
+                            else:
+                                print("Using Local LLM...\n")
                                 llm_client = LocalLLMClient()
                         else:
                             print("Using Local LLM...\n")
@@ -414,6 +470,19 @@ def main() -> None:
                             print()
                             
                             
+                            try: #for now I'll just use the standard summary, but we could implement logic to let user choose later
+                                medium_summary = llm_client.generate_summary(topic_vector_bundle)
+                                print("=" * 60)
+                                print("STANDARD SUMMARY")
+                                print("=" * 60)
+                                print(medium_summary)
+                                print()
+                                
+                                
+                            except Exception as e:
+                                print(f"Error generating summary: {e}")
+                                print("Proceeding without summary.\n")
+                        
                         except Exception as e:
                             print(f"Error generating summary: {e}")
                             print("Proceeding without summary.\n")
