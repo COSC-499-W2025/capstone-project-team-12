@@ -262,7 +262,7 @@ class MetadataAnalyzer:
         try:
             categories = {
                 'DevOps': {'.dockerfile', '.yml', '.yaml', '.sh', '.bash', '.env', '.ini', '.cfg'},
-                'Documentation': {'.txt', '.md', '.docx', '.doc', '.pdf', '.rtf', '.tex'},
+                'Documentation': {'.txt', '.md', '.docx', '.doc', '.pdf', '.rtf'},
                 'Web Development': {'.html', '.htm', '.css', '.js', '.ts', '.jsx', '.tsx', '.vue'},
                 'Mobile App Development': {'.kt', '.swift', '.m', '.dart', '.xml', '.gradle'},
                 'Data Science': {'.ipynb', '.r', '.rmd'},

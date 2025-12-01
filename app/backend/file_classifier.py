@@ -44,5 +44,5 @@ def _isCode(ext: str) -> bool:
 
 def _isText(ext: str) -> bool:
     '''Check if extension is a text file extension'''
-    text_extensions: set[str] = {'.txt', '.md', '.rtf', '.pdf', '.doc', '.docx', '.tex'}
+    text_extensions: set[str] = {'.txt', '.md', '.rtf', '.pdf', '.doc', '.docx'}
     return ext in text_extensions
