@@ -265,7 +265,7 @@ class RepositoryAnalyzer:
         rank: int = sorted_emails.index(user_email) + 1  if user_email in sorted_emails else None
 
         total_authors: int = len(all_authors_stats)
-        percentile: float = ((total_authors - rank) / total_authors) * 100 if rank else None
+        percentile: float = ((total_authors - rank + 1) / total_authors) * 100 if rank else None
 
         # Determine contribution level based on rank
         if total_authors == 1:

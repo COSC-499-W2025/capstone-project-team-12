@@ -183,7 +183,3 @@ class TestRepositoryAnalyzer:
         project['repository_context']['total_commits_all_authors'] = len(project['user_commits'])
         result = analyzer._generate_collaboration_insights(project)
         assert not result['is_collaborative'] and result['team_size'] == 1
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
