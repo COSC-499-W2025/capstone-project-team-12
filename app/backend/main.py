@@ -3,8 +3,9 @@ import sys
 import subprocess
 from pathlib import Path
 from anytree import Node
-from tree_processor import TreeProcessor
-from typing import List,BinaryIO, Dict, Any
+from typing import List, BinaryIO, Dict, Any
+import hashlib
+import json
 from file_manager import FileManager
 from tree_processor import TreeProcessor
 from repository_processor import RepositoryProcessor
@@ -18,10 +19,25 @@ from topic_vectors import generate_topic_vectors
 from stats_cache import collect_stats
 from llm_online import OnlineLLMClient
 from llm_local import LocalLLMClient
-import hashlib
 
+file_data_list: List = []
+file_access_consent: bool = None 
+online_llm_consent: bool = None 
 
-file_data_list : List = []
+#UI Helper Functions 
+def print_separator(char="=", length=60):
+    print(char * length)
+
+def print_header(title):
+    print("\n" + "=" * 60)
+    print(f" {title.upper()}")
+    print("=" * 60)
+
+def print_status(message, status="info"):
+    symbols = {"success": "[+]", "error": "[-]", "warning": "[!]", "info": "[*]"}
+    symbol = symbols.get(status, "[*]")
+    print(f"{symbol} {message}")
+
 
 def validate_path(filepath: str) -> Path:
     max_size_bytes: int = 4 * 1024 * 1024 * 1024  # 4gb limit
@@ -29,7 +45,6 @@ def validate_path(filepath: str) -> Path:
     def _is_rar_file(path: Path) -> bool:
         return path.suffix.lower() in ['.rar', '.r00', '.r01']
     
-    #helper method to find the total size of directory
     def _get_directory_size(path: Path) -> int:
         total: int = 0
         try:
@@ -44,12 +59,10 @@ def validate_path(filepath: str) -> Path:
             raise ValueError(f"Cannot access directory: {e}")
         return total
 
-    #remove quotations marks if user pastes file path in as input
     filepath = filepath.strip().strip('"').strip("'")
     if not filepath:
         raise ValueError("Filepath cannot be empty")
     
-    #to ensure that directory looks at paths absolutely
     try:
         path: Path = Path(filepath).expanduser().resolve()
     except (OSError, RuntimeError) as e:
@@ -58,7 +71,6 @@ def validate_path(filepath: str) -> Path:
     if not path.exists():
         raise FileNotFoundError(f"Path not found: {filepath}")
     
-    #pass path to helper method to check if it is a RAR file
     if path.is_file() and _is_rar_file(path):
         raise ValueError(f"RAR files are not supported: {filepath}")
     
@@ -71,38 +83,33 @@ def validate_path(filepath: str) -> Path:
         except (OSError, PermissionError) as e:
             raise ValueError(f"Cannot access file: {e}")
 
-    #if path given is a directory    
     elif path.is_dir():
-        #helper method to get directory size
         total_size: int = _get_directory_size(path)
         if total_size > max_size_bytes:
             size_gb: float = total_size / (1024 ** 3)
             raise ValueError(f"Folder too large: {size_gb:.2f}GB (max 4GB)")   
     return path
+    
 
-#pass entry by provided id from file_data_array
 def get_bin_data_by_Id(bin_Idx:int)->BinaryIO|None:
     global file_data_list
     if file_data_list is None or len(file_data_list) == 0:
-        print("Empty List: Initialize by calling File")
+        print_status("Empty List: Initialize by calling File", "error")
         return None
     return file_data_list[bin_Idx]
 
 def get_bin_data_by_IdList(bin_Idx_list:List[int])->List[BinaryIO]:
-    #check if files are loaded
     global file_data_list
     if file_data_list is None or len(file_data_list) == 0:
-        print("Empty List: Initialize by calling File")
+        print_status("Empty List: Initialize by calling File", "error")
         return None
     
-    #collect binaries    
     response_List: List[BinaryIO|None] = []
     for bin_Idx in bin_Idx_list:
         response_List.append(get_bin_data_by_Id(bin_Idx))
     return response_List
 
 def get_bin_data_by_Nodes(nodes:List[Node])->[BinaryIO|None]:
-    """Retrives all the data for passed tree nodes as strings in a list"""
     if nodes is None:
         raise ValueError("Error preparing datalist in main!: No nodes given!")
         return
@@ -121,96 +128,107 @@ def binary_to_str(bin_data:List[BinaryIO])-> List[str]:
             result.append('')
     return result
 
+
 def main() -> None:
     try:
-        choice: str = input("Do you provide permission to access your files? (y/n) \n> ").strip().lower()
+        print_header("Artifact Mining v1.0")
+        print("This tool analyzes directory structures, extracts metadata,")
+        print("and generates AI-powered summaries of your code.")
+        
+        choice: str = input("\nDo you provide permission to access your files? (y/n) \n> ").strip().lower()
 
         if choice in ("n", "no"):
-            print("Access to files is needed for app to run.")
+            print("Access to files is needed for the app to run. Exiting.")
             sys.exit(0)
 
         elif choice in ("y", "yes"):
-            while True: # looping so that prompts get asked until the user is successful or the user does not want to try again
+            while True: 
+                print_separator("-")
+                filepath: str = input("Enter a file path to process (or 'q' to quit): \n> ").strip()
                 
-                filepath: str = input("\nEnter a file path to process: \n>").strip()
+                if filepath.lower() == 'q':
+                    print("Exiting.")
+                    sys.exit(0)
+
                 try:
-                    path: Path = validate_path(filepath) # validate using method above
-                    print("\nPath is valid. Loading file in File Manager...\n")
+                    path: Path = validate_path(filepath)
+                    print_status(f"Path valid: {path}", "success")
+                    print_status("Loading file manager...", "info")
 
                     file_manager: FileManager = FileManager()
                     
-                    # fm_result type left as Dict[str, Any] because FileManager returns different structures depending on success/error
                     fm_result: Dict[str, str | Node | None] = file_manager.load_from_filepath(str(path))
 
-                    # Handle KeyError - check if expected keys exist
                     if "status" not in fm_result:
-                        print("FileManager did not return expected status.")
+                        print_status("FileManager did not return expected status.", "error")
                         break
 
-                    if fm_result["status"] == "success": # what is returned from load_from_filepath
-                        print(f"File path loaded successfully in File Manager: {fm_result.get('message', 'No message')}\n")
+                    if fm_result["status"] == "success": 
+                        print_status(f"File Manager: {fm_result.get('message', 'No message')}", "success")
 
-                        # Store binary data globally for text preprocessing access
                         global file_data_list
                         file_data_list = fm_result.get("binary_data", [])
                         if not file_data_list:
-                            print("FileManager returned no binary data. Text preprocessing may fail.")
+                            print_status("No binary data returned. Text preprocessing may fail.", "warning")
                         else:
-                            print(f"Loaded {len(file_data_list)} binary file(s) into global file_data_list.")
+                            print_status(f"Loaded {len(file_data_list)} binary file(s).", "success")
 
-
-                        if "tree" not in fm_result or fm_result["tree"] is None:  # makes sure FileManager returns a tree
-                            print("ERROR: FileManager did not return a tree.")
+                        if "tree" not in fm_result or fm_result["tree"] is None:
+                            print_status("FileManager did not return a tree.", "error")
                             break
-                        file_tree: Node = fm_result["tree"] # if successful, store the root node of the tree
+                        file_tree: Node = fm_result["tree"] 
 
-                        # Handle TreeProcessor exceptions
                         try:
                             tree_processor: TreeProcessor = TreeProcessor()
-                            processed_tree: Node = tree_processor.process_file_tree(file_tree) # send the tree to Tree Processor
-                            print("Tree processed successfully in Tree Processor.\n") # end here for now until file classifier is refactored
+                            processed_tree: Node = tree_processor.process_file_tree(file_tree)
+                            print_status("Tree structure processed successfully.", "success")
                         except (ValueError, TypeError, RuntimeError) as e:
-                            print(f"Tree processing failed: {e}")
+                            print_status(f"Tree processing failed: {e}", "error")
                             break
                         except Exception as e:
-                            print(f"Error processing tree: {e}")
+                            print_status(f"Error processing tree: {e}", "error")
                             break
 
                         binary_data: List[bytes] = fm_result.get("binary_data")
                         if not isinstance(binary_data, list):
-                            print("Warning: FileManager returned no binary data or in unexpected format. Proceeding with empty binary array.")
+                            print_status("Warning: Binary data format unexpected. Proceeding empty.", "warning")
                             binary_data = []
                         
+                        print_header("Metadata Analysis")
                         metadata_extractor: MetadataExtractor = MetadataExtractor()
                         metadata_results: Dict[str, Dict[str, Any]] = metadata_extractor.extract_all_metadata(processed_tree, binary_data)
-                        print("Metadata extracted successfully in Metadata Manager.\n")
                         
                         total_files: int = len(metadata_results)
                         if total_files > 0:
-                            print(f"Processed metadata for {total_files} files")
+                            print_status(f"Processed metadata for {total_files} files", "success")
 
                         metadata_analyzer: MetadataAnalyzer = MetadataAnalyzer(metadata_results)
                         metadata_analysis = metadata_analyzer.analyze_all()
-                        print("Metadata analysis completed successfully in Metadata Analyzer.\n")
-                        print("Extension Statistics:")
+                        
+                        print("\n--- File Extension Statistics ---")
+                        # Formatted table for stats
+                        print(f"{'Extension':<10} | {'Count':<8} | {'Size':<15} | {'Category'}")
+                        print("-" * 50)
                         for ext, stats in metadata_analysis['extension_stats'].items():
-                            print(f"{ext}: {stats['count']} files ({stats['percentage']}%), {stats['total_size']} bytes, {stats['category']}")
+                            print(f"{ext:<10} | {stats['count']:<8} | {stats['total_size']:<15} | {stats['category']}")
 
-                        git_repos: List[Node] = tree_processor.get_git_repos() #check for git repos before processing repos
+                        git_repos: List[Node] = tree_processor.get_git_repos() 
 
-                        #initialize variables for text and project analysis
                         doc_topic_vectors: list = []
                         topic_term_vectors: list = []
                         timeline: list = []
+                        dictionary = None
+                        lda_model = None
 
-                        # Run text preprocessing pipeline + store pipeline results in BoW Cache
                         try:
                             text_nodes: List[Node] = tree_processor.get_text_files()
                             code_nodes: List[Node] = tree_processor.get_code_files()
+                            
                             if text_nodes or code_nodes:
-                                print(f"Found {len(text_nodes)} text files and {len(code_nodes)} code files. Running BoW pipeline...")
+                                print_header("Content Analysis")
+                                print_status(f"Found {len(text_nodes)} text files and {len(code_nodes)} code files.", "info")
+                                print_status("Running Bag-of-Words (BoW) pipeline...", "info")
 
-                                # with the current setup, we assume all text files use the same preprocessing steps
                                 preprocess_signature = {
                                     "lemmatizer": True,
                                     "stopwords": "nltk_english_default",
@@ -219,82 +237,58 @@ def main() -> None:
                                     "normalize_code": True
                                 }
 
-                                # build repo_id by hashing joined file paths
                                 all_nodes: List[Node] = text_nodes + code_nodes
                                 file_paths = [getattr(file, "filepath", str(file.name)) for file in all_nodes]
                                 joined_paths = "|".join(file_paths)
                                 repo_id = hashlib.md5(joined_paths.encode()).hexdigest()
-
-                                # no git commit info for text files
                                 head_commit = None
 
-                                # initialize cache and key
                                 key = BoWCacheKey(repo_id, head_commit, preprocess_signature)
                                 cache = BoWCache()
-                                # Initialize final_bow to store cache or newly processed BoW
                                 final_bow: List[List[str]] = []
-                                # check cache for existing BoW
+
                                 if cache.has(key):
-                                    print(f"Cache hit for BoW (repo_id={repo_id})")
                                     cached = cache.get(key)
                                     if cached is not None:
                                         final_bow = cached
-                                        print(f"Successfully retrieved BoW for {len(final_bow)} document(s) from Cache. Ready for text analysis.\n")
-                                        
+                                        print_status(f"Cache hit! Retrieved BoW for {len(final_bow)} documents.", "success")
                                     else: 
-                                        print("Cache corrupted or unreadable - regenerating...")
+                                        print_status("Cache corrupted - regenerating...", "warning")
 
                                 if not cache.has(key) or cached is None:
-                                    # if we reach here, we have a cache miss
-                                    print("Cache miss - running text preprocessing pipeline...")
+                                    print_status("Cache miss - processing text...", "info")
+                                    text_binary_data = get_bin_data_by_Nodes(text_nodes) if text_nodes else []
+                                    code_binary_data = get_bin_data_by_Nodes(code_nodes) if code_nodes else []
+                                    text_data = binary_to_str(text_binary_data) if text_nodes else []
+                                    code_data = binary_to_str(code_binary_data) if code_nodes else []
 
-                                    # Get binary data for all files
-                                    text_binary_data: List[BinaryIO|None] = get_bin_data_by_Nodes(text_nodes) if text_nodes else []
-                                    code_binary_data: List[BinaryIO|None] = get_bin_data_by_Nodes(code_nodes) if code_nodes else []
-
-
-                                    # convert binary data to strings
-                                    text_data: List[str] = binary_to_str(text_binary_data) if text_nodes else []
-                                    code_data: List[str] = binary_to_str(code_binary_data) if code_nodes else []
-
-                                    # run combined preprocessing
                                     processed_docs = combined_preprocess(text_nodes, text_data, code_nodes, code_data, normalize=True)
-                                    
-                                    # PII removals
                                     anonymized_docs = remove_pii(processed_docs)
-                                
                                     final_bow = anonymized_docs
-
-                                    # save to cache
                                     cache.set(key, final_bow)
+                                    print_status(f"Processed and cached {len(final_bow)} documents.", "success")
 
-                                print(f"Successfully built BoW for {len(final_bow)} document(s) and saved it to Cache. Ready for text analysis.\n")
-
-                                print("Running topic modeling...")
-
+                                print_status("Generating topic models...", "info")
                                 lda_model, dictionary, doc_topic_vectors, topic_term_vectors = generate_topic_vectors(final_bow)
+                                print_status(f"Generated {len(topic_term_vectors)} topics from {len(doc_topic_vectors)} documents.", "success")
 
-                                print("Successfully generated topic vectors.")
-                                print(f"- Number of documents: {len(doc_topic_vectors)}")
-                                print(f"- Number of topics: {len(topic_term_vectors)}")
-                                # After generating topics in main.py:
-                                print("\nTop words per topic:")
-                                for i in range(5):  # 5 topics
-                                    top_words = lda_model.show_topic(i, topn=10)
-                                    print(f"Topic {i}: {', '.join([word for word, prob in top_words])}")
-                                print("Text analysis complete.\n")
+                                print("\n--- Top Topics Identified ---")
+                                for i in range(min(5, len(topic_term_vectors))):
+                                    top_words = lda_model.show_topic(i, topn=5) # Reduced to 5 for cleanliness
+                                    words_str = ", ".join([word for word, prob in top_words])
+                                    print(f"Topic {i}: {words_str}")
                                 
                             else:
-                                print("No text files found to preprocess.")
+                                print_status("No text/code files found to process.", "warning")
                         except Exception as e:
-                            print(f"Error during text/PII processing: {e}")
-
+                            print_status(f"Error during content analysis: {e}", "error")
 
                         if git_repos:
-                            # prompt user for github username to link repos
-                            github_username: str = input("Git repositories detected in the file tree. Please enter your GitHub username to link them. To skip this processing, please press enter: \n> ").strip()
+                            print_header("Repository Linking")
+                            print(f"Detected {len(git_repos)} git repositories.")
+                            github_username: str = input("Enter GitHub username to link (Press Enter to skip): \n> ").strip()
+                            
                             if github_username:
-                                # Validate binary data from FileManager before passing it on
                                 repo_processor: RepositoryProcessor = RepositoryProcessor(
                                     username=github_username,
                                     binary_data_array=binary_data
@@ -302,22 +296,17 @@ def main() -> None:
                                 try:
                                     processed_git_repos: bytes = repo_processor.process_repositories(git_repos)
                                     if processed_git_repos:
-                                        print(f"repos successfully processed {processed_git_repos}")
+                                        print_status("Repositories processed successfully.", "success")
                                         analyzer = RepositoryAnalyzer(github_username)
                                         timeline = analyzer.create_chronological_project_list(processed_git_repos)
+                                        print("\n--- Project Timeline ---")
                                         for project in timeline:
-                                            print(f"{project['name']}: {project['start_date']} - {project['end_date']}")
+                                            print(f"• {project['name']}: {project['start_date']} - {project['end_date']}")
                                 except Exception as e:
-                                    # Catch unexpected errors during repository processing so the app doesn't crash
-                                    print(f"Repository processing failed: {e}")
-
-
+                                    print_status(f"Repository processing failed: {e}", "error")
                             else:
-                                print("Skipping Git repository linking as no username was provided.\n")
-
-                        #stat cache + llm pipeline
-
-                        #prepare text analysis data for stats cache
+                                print_status("Skipping Git linking.", "info")
+                        
                         text_analysis_data = {
                             "num_documents": len(doc_topic_vectors),
                             "num_topics": len(topic_term_vectors),
@@ -325,119 +314,107 @@ def main() -> None:
                             "topic_term_vectors": topic_term_vectors
                         } if doc_topic_vectors else {}
                         
-                        #prepare project analysis data for stats cache
                         project_analysis_data = {
                             "projects": timeline
                         } if timeline else {}
                         
-                        # collect all statistics into a single bundle
                         try:
-                            print("\nCollecting analysis statistics...")
+                            print_header("AI Summary Generation")
+                            print_status("Collecting analysis statistics...", "info")
                             data_bundle = collect_stats(
                                 metadata_stats=metadata_results,
                                 metadata_analysis=metadata_analysis,
                                 text_analysis=text_analysis_data,
                                 project_analysis=project_analysis_data
                             )
-                            print("Statistics bundle created successfully.\n")
                             
-
-                            topn_keywords = 10  # small, readable set per topic
+                            # Prepare Topic Vectors for LLM
+                            topn_keywords = 10
                             topic_keywords = []
                             if lda_model is not None and dictionary is not None:
                                 num_topics = len(topic_term_vectors) if topic_term_vectors else 0
                                 for topic_id in range(num_topics):
-                                    # show_topic returns list[(word, prob)]
                                     words = [w for (w, _) in lda_model.show_topic(topic_id, topn=topn_keywords)]
-                                    topic_keywords.append({
-                                        "topic_id": topic_id,
-                                        "keywords": words
-                                    })
+                                    topic_keywords.append({"topic_id": topic_id, "keywords": words})
 
-                            # doc top topics (optional, compact summary)
                             doc_top_topics = []
                             for doc_idx, vec in enumerate(doc_topic_vectors or []):
                                 if not vec:
                                     doc_top_topics.append({"doc_id": doc_idx, "top_topics": []})
                                     continue
-                                # pick top-2 topics for the document
-                                top_pairs = sorted(
-                                    [(i, p) for i, p in enumerate(vec)],
-                                    key=lambda x: x[1],
-                                    reverse=True
-                                )[:2]
+                                top_pairs = sorted([(i, p) for i, p in enumerate(vec)], key=lambda x: x[1], reverse=True)[:2]
                                 doc_top_topics.append({
                                     "doc_id": doc_idx,
                                     "top_topics": [{"topic_id": i, "prob": float(p)} for i, p in top_pairs]
                                 })
 
-                            # Extract topic vectors for LLM
                             topic_vector_bundle = {
                                 "topic_keywords": topic_keywords,
                                 "top_topics": doc_top_topics,
                             }
                             
-                            # Ask for user consent to use the online LLM
-                            print("\nThe application can use an online Large Language Model (LLM) to generate project summaries.")
-                            print("Using the online LLM may involve sending processed data (e.g., topic vectors) to an external server.")
-                            print("This data does not include raw file contents but may still contain sensitive information.")
-                            print("If you do not consent, a local LLM will be used instead, which does not send data outside your system.")
+                            print("\n" + "*" * 60)
+                            print(" PRIVACY NOTICE")
+                            print("*" * 60)
+                            print("The application can use an Online LLM to generate summaries.")
+                            print("1. ONLINE: Sends processed vectors (No raw code) to external server.")
+                            print("   - Pros: Faster, higher quality summary.")
+                            print("   - Cons: Data leaves your machine.")
+                            print("2. LOCAL: Runs entirely on your device.")
+                            print("   - Pros: 100% Private.")
+                            print("   - Cons: Slower (up to 5 mins per attempt), requires RAM.")
+                            print("-" * 60)
 
                             while True:
-                                online_consent_input: str = input("\nDo you consent to using the online LLM? (y/n) \n> ").strip().lower()
+                                online_consent_input: str = input("Do you consent to using the ONLINE LLM? (y/n) \n> ").strip().lower()
                                 if online_consent_input in ("y", "yes"):
                                     online_consent = True
-                                    print("You have consented to using the online LLM.")
+                                    print_status("Mode: Online LLM", "success")
                                     break
                                 elif online_consent_input in ("n", "no"):
                                     online_consent = False
-                                    print("You have opted to use the local LLM instead. Note that this can take up to 5 minutes.")
+                                    print_status("Mode: Local LLM", "success")
                                     break
                                 else:
-                                    print("Invalid input. Please enter 'y' for yes or 'n' for no.")
+                                    print("Invalid input. Please enter 'y' or 'n'.")
 
-                            #select appropriate LLM client based on user consent
                             if online_consent:
-                                print("Using Online LLM...")
                                 try:
                                     llm_client = OnlineLLMClient()
                                 except ValueError as e:
-                                    print(f"Online LLM initialization failed: {e}")
-                                    print("Falling back to Local LLM...\n")
+                                    print_status(f"Online Init failed: {e}. Falling back to Local.", "error")
                                     llm_client = LocalLLMClient()
                             else:
-                                print("Using Local LLM...\n")
                                 llm_client = LocalLLMClient()
                             
-                            print("Generating project summaries...\n")
+                            print_status("Generating project summary (this may take a moment)...", "info")
                             
-                            try: #for now I'll just use the standard summary, but we could implement logic to let user choose later
+                            try:
                                 medium_summary = llm_client.generate_summary(topic_vector_bundle)
-                                print("=" * 60)
-                                print("STANDARD SUMMARY")
-                                print("=" * 60)
+                                print_header("Standard Summary")
                                 print(medium_summary)
-                                print()
-                                
+                                print("=" * 60 + "\n")
                                 
                             except Exception as e:
-                                print(f"Error generating summary: {e}")
-                                print("Proceeding without summary.\n")
+                                print_status(f"Error generating summary: {e}", "error")
                         
                         except Exception as e:
-                            print(f"Error collecting statistics: {e}")
-                            print("Proceeding without LLM summaries.\n")
+                            print_status(f"Error collecting statistics: {e}", "error")
 
                     elif fm_result["status"] == "error":
-                        print(f"There was an error loading the file to File Manager: {fm_result.get('message', 'Unknown error')}\n")
+                        print_status(f"Load Error: {fm_result.get('message', 'Unknown error')}", "error")
 
-                    break
-                    
+                    # Ask to continue
+                    cont = input("\nProcess another file? (y/n): ").lower()
+                    if cont not in ('y', 'yes'):
+                        print("\nExiting. Goodbye!")
+                        sys.exit(0)
+                        
+                    break 
                 
                 except Exception as e:
-                    print(f"\nFile path is not valid: {e}")
-                    retry: str = input("\nWould you like to try again? (y/n) \n> ").strip().lower()
-
+                    print_status(f"File path is not valid: {e}", "error")
+                    retry: str = input("\nTry again? (y/n) \n> ").strip().lower()
                     if retry in ("n", "no"):
                         print("\nExiting.")
                         break
