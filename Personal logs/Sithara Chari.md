@@ -116,3 +116,21 @@ Overall this week we mainly focused on refactoring our existing code, so we have
 - I didn't have time to work on main.py so that will be done next week mostly 
 - Next week since we have no more new components to code, we will just polishing up everything we have and storing everything in the db, and getting ready for the presentation.
 
+
+## Week 13
+## TODOs
+- Integrate all components into main.py which is the entrypoint to our app
+
+### Work Done 
+- Participated in team meeting, prioritized taks to complete with a more focused path towards milestone 1, which was mainly refactoring and integration
+- spent a lot of time debugging code, and reviewing teammates PRs
+- Finished integrating main.py with the database and made it more user friendly 
+
+![alt text](<imgs/Sithara Chari Week 13.png>)
+
+
+### Review and future plans 
+- We found a lot more bugs in our code than we epxected, so a lot of time was spent trying to get those fixed so that we had a working app 
+- continue to work on the presentation 
+
+
