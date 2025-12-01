@@ -1,3 +1,7 @@
+from pathlib import Path
+from pydriller import Repository
+from pydriller.domain.commit import Commit
+from anytree import Node
 from typing import Any, Dict, List, Set
 from datetime import datetime
 import re
@@ -7,7 +11,7 @@ class RepositoryAnalyzer:
 
     def __init__(self, username: str):
         self.username = username
-
+    
     # Regex patterns for import statements in various languages
     # Python: from X import Y -> captures X; import X, Y -> captures X, Y
     PYTHON_IMPORT_RE = re.compile(r'^\s*(?:from\s+([a-zA-Z0-9_\.]+)\s+import|import\s+([a-zA-Z0-9_\., ]+))', re.MULTILINE)
@@ -25,40 +29,154 @@ class RepositoryAnalyzer:
     GENERIC_IMPORT_RE = re.compile(r'\b(import|require|include)\b.*?[\'"<]([\w\./-]+)[\'">]', re.MULTILINE)
 
 
-    def generate_project_insights(self, project_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        # Generate insights from extracted project data
+    def analyze_repository(self, repo_node: Node, git_folder_path: Path) -> Dict[str, Any]:
+        # Analyze a single repository using PyDriller to extract commit information
+        try:
+            repo: Repository = Repository(str(git_folder_path))
+            
+            # Initalize data collectors
+            commits_data: List[Dict[str, Any]] = []
+            user_dates: List[datetime] = []
+            all_authors_stats: Dict[str, Dict[str, int]] = {}
 
-        # Filter out any projects that failed to process
-        valid_projects: List[Dict[str, Any]] = [
-            project for project in project_data if project.get('status') == 'success'
-        ]
+            user_email: str | None = None
 
-        if not valid_projects:
-            return []
+            # Initialize statistic accumulators
+            total_files_modified: int = 0
+            total_lines_added: int = 0
+            total_lines_deleted: int = 0
+            change_types: Set[str] = set()
 
-        # Compute importance scores & rankings (requires all valid projects for normalization)
-        ranked_projects: List[Dict[str, Any]] = self.rank_importance_of_projects(valid_projects)
+            # Initialize all user stats
+            all_commits_total: int = 0
+            repo_total_lines_added: int = 0
+            repo_total_lines_deleted: int = 0
+            repo_total_files_modified: int = 0
+            
+            # TODO: how to use commit info to rank importance of project
+            # ^ can look at types, total lines added/deleted, # of files modified?
+            
+            # Traverse commits here to ensure only a single pass
+            for commit in repo.traverse_commits():
+                all_commits_total += 1
 
-        # Generate insights for each project
-        projects_insights: List[Dict[str, Any]] = []
-        for idx, project in enumerate(ranked_projects):
-            project_insight: Dict[str, Any] = {
-                'repository_name': project.get('repository_name', 'Unknown'),
-                'importance_rank': idx + 1,
-                'importance_score': round(project.get('importance', 0), 4),
-                'contribution_analysis': self._calculate_contribution_insights(project),
-                'collaboration_insights': self._generate_collaboration_insights(project),
-                'testing_insights': self._generate_testing_insights(project),
-                'imports_summary': self.extract_repo_import_stats(project)
+                commit_email: str = commit.author.email.lower() if commit.author and commit.author.email else ""
+
+                # Will return the Github privacy email with username so extract username (ex: 12345+yourusername@users.noreply.github.com)
+                commit_username: str = commit.author.email.split('@')[0].split('+')[-1].lower()
+
+                # Track stats for all users
+                if commit_email not in all_authors_stats:
+                    all_authors_stats[commit_email] = {
+                        'commits': 0,
+                        'lines_added': 0,
+                        'lines_deleted': 0,
+                        'files_modified': 0
+                    }
+                
+                commit_lines_added = 0
+                commit_lines_deleted = 0
+                commit_files = 0
+                for mod in (commit.modified_files or []):
+                    commit_files += 1
+                    commit_lines_added += mod.added_lines if mod.added_lines is not None else 0
+                    commit_lines_deleted += mod.deleted_lines if mod.deleted_lines is not None else 0
+                    repo_total_lines_added += mod.added_lines if mod.added_lines is not None else 0
+                    repo_total_lines_deleted += mod.deleted_lines if mod.deleted_lines is not None else 0
+                    repo_total_files_modified += 1
+                    if commit_username == self.username:
+                        if mod.change_type:
+                            change_types.add(mod.change_type.name)
+                
+                all_authors_stats[commit_email]['commits'] += 1
+                all_authors_stats[commit_email]['lines_added'] += commit_lines_added
+                all_authors_stats[commit_email]['lines_deleted'] += commit_lines_deleted
+                all_authors_stats[commit_email]['files_modified'] += commit_files
+
+                # Only consider the commits of the user for analysis
+                if commit_username == self.username:
+                    # Builds the commit info
+                    user_email = commit_email  # Capture user's actual email (GitHub privacy or personal)
+                    commit_info = self._build_commit_info(commit)
+                    commits_data.append(commit_info)
+
+                    # Track project dates
+                    if commit.author_date:
+                        user_dates.append(commit.author_date)
+                    
+                    # Update all statistics within the traversal to ensure single pass
+                    total_files_modified += commit_files
+                    total_lines_added += commit_lines_added
+                    total_lines_deleted += commit_lines_deleted
+            # Calculate metrics
+            user_contribution_rank: Dict[str, Any] = self._calculate_contribution_rank(
+                all_authors_stats,
+                user_email
+            )
+            test_ratio: Dict[str, Any] = self._calculate_code_test_ratio(commits_data)
+            date_range: Dict[str, Any] = self._calculate_date_range(user_dates)
+            is_collaborative: bool = len(all_authors_stats) > 1 if all_authors_stats else len(commits_data) < all_commits_total
+
+            return {
+                # Basic Information for the repository
+                'repository_name': repo_node.name if repo_node.name else "Unknown",
+                'repository_path': str(git_folder_path) if git_folder_path else "Unknown",
+                'status': 'success',
+
+                # Project type (individual vs collaborative)
+                'commits': commits_data if commits_data else "Unknown",
+                'commit_count': len(commits_data) if commits_data else 0,
+                'is_collaborative': is_collaborative,
+
+                # Use date_range Dict[str, Any] found from helper method
+                **date_range,
+
+                # derived statistics from commits
+                'statistics': {
+                    'total_files_modified': total_files_modified,
+                    'total_lines_added': total_lines_added,
+                    'total_lines_deleted': total_lines_deleted,
+                    'change_types': list(change_types)
+                },
+                'repository_context': {
+                    'total_contributors': len(all_authors_stats),
+                    'total_commits_all_authors': all_commits_total,
+                    'repo_total_lines_added': repo_total_lines_added,
+                    'repo_total_lines_deleted': repo_total_lines_deleted,
+                    'repo_total_files_modified': repo_total_files_modified,
+                    
+                },
+                'user_contribution_rank': user_contribution_rank, # Reflects teamwork insights
+                'code_vs_test_ratio': test_ratio
             }
-            projects_insights.append(project_insight)
+        except Exception as e:
+            return {
+                'repository_name': repo_node.name,
+                'repository_path': str(git_folder_path),
+                'status': 'error',
+                'error_message': str(e)
+            }
 
-        return projects_insights
+    def _build_commit_info(self, commit: Commit) -> Dict[str, Any]:
+        # builds the basic info for individual commits
+        return {
+            'hash': commit.hash if commit.hash else "Unknown",
+            'date': commit.author_date.isoformat() if commit.author_date else "Unknown",
+            'modified_files': [
+                {
+                    'filename': mod.filename if mod.filename else "Unknown",
+                    'change_type': mod.change_type.name if mod.change_type else "UNKNOWN",
+                    'added_lines': mod.added_lines if mod.added_lines is not None else 0,
+                    'deleted_lines': mod.deleted_lines if mod.deleted_lines is not None else 0
+                }
+                for mod in (commit.modified_files or [])
+            ]
+        }
 
-    def extract_repo_import_stats(self, project: Dict[str, Any]) -> Dict[str, Any]:
+
+    def extract_repo_import_stats(self, repo: Repository, repo_name: str) -> Dict[str, Any]:
         """
         Extracts the import statistics for all files modified by the user in one repo.
-        Uses the modified files from the raw data extracted in the processor
         Returns a dict with repository_name and imports_summary. For each import, we track:
         - frequency
         - start_date
@@ -67,32 +185,31 @@ class RepositoryAnalyzer:
 
         Doing this allows us to find skills and technologies the user has worked with over time.
         """
-        repo_name = project.get('repository_name', 'Unknown')
-        commits_data: List[Dict[str, Any]] = project.get('user_commits', [])
+
+        commit_username = self.username
         imports_data: Dict[str, Dict[str, Any]] = {}
 
-        # Loop through all commits in the raw data
-        for commit in commits_data:
-            commit_date_str = commit.get('date')
-            if not commit_date_str:
-                continue
-            
-            try:
-                commit_date = datetime.fromisoformat(commit_date_str)
-            except (ValueError, TypeError):
+        # loop through all commits in the repository
+        for commit in repo.traverse_commits():
+            c_username = commit.author.email.split('@')[0].split('+')[-1].lower()
+            if c_username != commit_username:
+                continue # skip commits not by the user
+
+            commit_date = commit.author_date
+            if not commit_date:
                 continue
 
-            # Loop through all modified files in the commit
-            for mod in commit.get('modified_files', []):
-                src = mod.get('source_code', '')
+            # loop through all modified files in the commit
+            for mod in (commit.modified_files or []):
+                src = mod.source_code or ""
                 if not src.strip():
                     continue
 
-                # Get file extension to determine language
-                filename = mod.get('filename', 'unknown')
+                # get file extension to determine language
+                filename = mod.filename or "unknown"
                 ext = filename.split('.')[-1].lower() if '.' in filename else ""
 
-                # Extract imports based on programming language using regex patterns
+                # extract imports based on programming language using regex patterns
                 imports: List[str] = []
                 if ext == "py":
                     matches = self.PYTHON_IMPORT_RE.findall(src)
@@ -124,7 +241,7 @@ class RepositoryAnalyzer:
                     if commit_date > imports_data[imp]["end_date"]:
                         imports_data[imp]["end_date"] = commit_date
 
-        # Convert dates and calculate duration
+        # convert dates and calculate duration
         for imp, data in imports_data.items():
             start = data["start_date"]
             end = data["end_date"]
@@ -132,9 +249,14 @@ class RepositoryAnalyzer:
             data["end_date"] = end.isoformat() if end else None
             data["duration_days"] = (end - start).days if start and end else None
 
-        return imports_data   
+        # imports_summary has frequency, start_date, end_date and duration_days for each import in the repo
+        return {
+            "repository_name": repo_name,
+            "imports_summary": imports_data
+        }
+    
 
-    def get_all_repo_import_stats(self, project_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def get_all_repo_import_stats(self, repo_nodes: List[Node]) -> List[Dict[str, Any]]:
         """
         Get the import statistics for all repos that were modified by the user.
         Returns a list of dicts (one per repository), each containing:
@@ -144,30 +266,22 @@ class RepositoryAnalyzer:
 
         repo_summaries: List[Dict[str, Any]] = []
 
-        for project in project_data:
-            if project.get('status') != 'success':
-                repo_summaries.append({
-                    "repository_name": project.get('repository_name', 'Unknown'),
-                    "imports_summary": {},
-                    "error": project.get('error_message', 'Unknown error')
-                })
-                continue
-            
+        for repo_node in repo_nodes:
             try:
-                imports_summary = self.extract_repo_import_stats(project)
+                git_folder_path: Path = self._extract_git_folder(repo_node)
+                repo = Repository(str(git_folder_path))
+                summary = self.extract_repo_import_stats(repo, repo_node.name)
+                repo_summaries.append(summary)
+            except Exception as e: # In case of error, log and continue
                 repo_summaries.append({
-                    "repository_name": project.get('repository_name', 'Unknown'),
-                    "imports_summary": imports_summary
-                })
-            except Exception as e:
-                repo_summaries.append({
-                    "repository_name": project.get('repository_name', 'Unknown'),
+                    "repository_name": repo_node.name,
                     "imports_summary": {},
                     "error": str(e)
                 })
 
         return repo_summaries
     
+
     def sort_repo_imports_in_chronological_order(self, repo_summary: Dict[str, Any]) -> Dict[str, Any]:
         """
         Sorts the imports of a single repo in chronological order by start_date DESC
@@ -214,38 +328,32 @@ class RepositoryAnalyzer:
         for entry in aggregated:
             entry.pop("start_dt", None)
 
-        return aggregated 
+        return aggregated
 
-    def _generate_collaboration_insights(self, project: Dict[str, Any]) -> Dict[str, Any]:
-        # Analyze collaboration patterns and team dynamics
-        context: Dict[str, Any] = project.get('repository_context', {})
-        total_contributors: int = context.get('total_contributors', 1)
-        is_collaborative: bool = context.get('is_collaborative', False)
 
-        # Calculate the user's share of total work
-        user_commits: int = len(project.get('user_commits', []))
-        total_commits: int = context.get('total_commits_all_authors', user_commits)
-        contribution_share: float = (user_commits / total_commits * 100) if total_commits > 0 else 0.0
+    def _calculate_date_range(self, dates: List[datetime]) -> Dict[str, Any]:
+        # Calculate the start and end date for timeline and duration
+        if not dates:
+            return{
+                'start_date': None,
+                'end_date': None,
+                'duration_days': None,
+                'duration_seconds': None
+            }
+        
+        start_date: datetime = min(dates)
+        end_date: datetime = max(dates)
+        duration: datetime = end_date - start_date
 
-        return {
-            'is_collaborative': is_collaborative,
-            'team_size': total_contributors,
-            'user_contribution_share_percentage': round(contribution_share, 2)
+        return{
+            'start_date': start_date.isoformat(),
+            'end_date': end_date.isoformat(),
+            'duration_days': duration.days,
+            'duration_seconds': int(duration.total_seconds())
         }
     
-    def _calculate_contribution_insights(self, project: Dict[str, Any]) -> Dict[str,Any]:
-        # Determines user's contribution rank and level within the project
-        context: Dict[str, Any] = project.get('repository_context', {})
-        all_authors_stats: Dict[str, Dict[str, int]] = context.get('all_authors_stats', {})
-
-        # TODO: Rework this and processor to anonymize emails to ensure no PII is stored
-        # For now, we find the user's email from all_authors_stats
-        user_email: str | None = None
-        for email in all_authors_stats.keys(): 
-            if self.username.lower() in email.lower():
-                user_email = email
-                break
-
+    def _calculate_contribution_rank(self, all_authors_stats: Dict[str, Dict[str, int]], user_email: str | None) -> Dict[str,Any]:
+        # Calculate the user's contribution rank among all authors
         if not user_email or user_email not in all_authors_stats:
             return {
                 'contribution_level': 'Unknown',
@@ -265,7 +373,7 @@ class RepositoryAnalyzer:
         rank: int = sorted_emails.index(user_email) + 1  if user_email in sorted_emails else None
 
         total_authors: int = len(all_authors_stats)
-        percentile: float = ((total_authors - rank + 1) / total_authors) * 100 if rank else None
+        percentile: float = ((total_authors - rank) / total_authors) * 100 if rank else None
 
         # Determine contribution level based on rank
         if total_authors == 1:
@@ -285,16 +393,14 @@ class RepositoryAnalyzer:
             'percentile': round(percentile, 2) if percentile is not None else None,
         }
     
-    def _generate_testing_insights(self, project: Dict[str, Any]) -> Dict[str, Any]:
+    def _calculate_code_test_ratio(self, commits_data: List[Dict[str, Any]]) -> Dict[str, Any]:
         # Calculate the ratio of code to test files modified
-        commits_data: List[Dict[str, Any]] = project.get('user_commits', [])
-        
         test_files: int = 0
         code_files: int = 0
         test_lines_added: int = 0
         code_lines_added: int = 0
 
-        # Potential test patterns, can be expanded later
+        # Potential code patterns, can be expanded later
         test_patterns = ['test_', '_test', 'tests/', '/tests/', '/test/','test/','spec_', '_spec', 'specs/', '/specs/', 'spec.', '.spec']
 
         for commit in commits_data:
@@ -330,23 +436,23 @@ class RepositoryAnalyzer:
         """ Ranks project importance based on the number of commits from a user, the number of lines added by the user, and the
         duration of the project """
 
-        # Extract all values into lists
-        commits_vals = [len(p.get('user_commits', [])) for p in projects]
-        lines_vals = [p.get('statistics', {}).get('user_lines_added', 0) for p in projects]
-        duration_vals = [p.get('dates', {}).get('duration_days', 0) for p in projects]
+        # extract all values into lists
+        commits_vals = [p.get('commit_count', 0) for p in projects]
+        lines_vals = [p.get('statistics', {}).get('total_lines_added', 0) for p in projects]
+        duration_vals = [p.get('duration_days', 0) for p in projects]
 
-        # Find min and max for each measure
-        min_commits = min(commits_vals) if commits_vals else 0
-        max_commits = max(commits_vals) if commits_vals else 0
-        min_lines = min(lines_vals) if lines_vals else 0
-        max_lines = max(lines_vals) if lines_vals else 0
-        min_duration = min(duration_vals) if duration_vals else 0
-        max_duration = max(duration_vals) if duration_vals else 0
+        # find min and max for each measure
+        min_commits = min(commits_vals)
+        max_commits = max(commits_vals)
+        min_lines = min (lines_vals)
+        max_lines = max(lines_vals)
+        min_duration = min(duration_vals)
+        max_duration = max(duration_vals)
 
         for project in projects:
-            commits = len(project.get('user_commits', []))
-            lines = project.get('statistics', {}).get('user_lines_added', 0)
-            duration = project.get('dates', {}).get('duration_days', 0)
+            commits = project.get('commit_count', 0)
+            lines = project.get('statistics', {}).get('total_lines_added', 0)
+            duration = project.get('duration_days', 0)
 
             norm_commits = self.normalize_for_rankings(commits, max_commits, min_commits)
             norm_lines_added = self.normalize_for_rankings(lines, max_lines, min_lines)
@@ -369,7 +475,7 @@ class RepositoryAnalyzer:
         if not all_repo_data:
             return []
         
-        projects = [proj for proj in all_repo_data if proj.get('status') == 'success']
+        projects = self.create_chronological_project_list(all_repo_data)
         ranked_projects = self.rank_importance_of_projects(projects)
 
         return ranked_projects[:3] if ranked_projects else []
@@ -380,15 +486,13 @@ class RepositoryAnalyzer:
         # TODO: determine what parts of a project should be displayed on the timeline
         # ^ This will determine what needs to be returned here
 
-        # all_repo_data is the raw data returned from the repository processor
         projects: List[Dict[str, Any]] = []
 
         for repo in all_repo_data:
             if repo.get('status') != 'success':
                 continue
             
-            dates = repo.get('dates',{})
-            start_date = dates.get('start_date')
+            start_date = repo.get('start_date')
 
             if not start_date or not isinstance(start_date, str):
                 continue
@@ -396,16 +500,19 @@ class RepositoryAnalyzer:
             project_info = {
                 'name': repo.get('repository_name', 'Unknown'),
                 'start_date': start_date,
-                'end_date': dates.get('end_date'),
-                'duration_days': dates.get('duration_days', 0)
+                'end_date': repo.get('end_date'),
+                'duration_days': repo.get('duration_days', 0),
+                'commit_count': repo.get('commit_count', 0),
+                'is_collaborative': repo.get('is_collaborative', False),
+                'total_lines_added': repo.get('statistics', {}).get('total_lines_added', 0),
+                'total_lines_deleted': repo.get('statistics', {}).get('total_lines_deleted', 0),
+                'files_modified': repo.get('statistics', {}).get('total_files_modified', 0)
             }
 
             projects.append(project_info)
 
-        # Sort all projects by the start date (most recent first)
+        # Sort all projects by the start date
         if projects:
             projects.sort(key = lambda x: x['start_date'], reverse = True)
 
         return projects
-
-    
