@@ -25,8 +25,10 @@ class TreeProcessor:
             for node in PreOrderIter(root):
                 try:
                     if node.name == ".git" and node.parent:
-                        node.parent.is_repo_head = True  # Update existing attribute
-                        self.git_repos.append(node.parent)  # Store the node, not the path
+                        print(f"TREEPROCESSOR: Marking {node.parent.name} as repo_head", flush=True)
+                        print(f"  .git node has {len(node.children)} children", flush=True)
+                        node.parent.is_repo_head = True
+                        self.git_repos.append(node.parent)
                     
                     # Classify files (update the existing classification attribute)
                     if hasattr(node, 'type') and node.type == "file":
