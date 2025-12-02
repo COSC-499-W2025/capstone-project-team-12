@@ -188,6 +188,33 @@ class FileManager:
                     folder_nodes[str(subpath)] = git_node
 
                     print(f"DEBUG: Processing .git folder: {subpath}", flush=True)
+
+                     # Try to walk into .git to populate its contents
+                    try:
+                        print(f"  → Attempting to traverse .git contents...", flush=True)
+                        
+                        # Check if we can actually list contents
+                        git_contents = list(subpath.iterdir())
+                        print(f"  → .git contains {len(git_contents)} items", flush=True)
+                        
+                        if git_contents:
+                            for git_item in git_contents:
+                                print(f"    - {git_item.name} ({'dir' if git_item.is_dir() else 'file'})", flush=True)
+                            
+                            # Recursively process .git contents
+                            walk_dir(subpath, depth=0)
+                            print(f"  ✓ Successfully traversed .git", flush=True)
+                        else:
+                            print(f"  ⚠️  .git is empty or unreadable", flush=True)
+                            
+                    except NotADirectoryError as e:
+                        print(f"  ✗ .git is not actually a directory: {e}", flush=True)
+                    except PermissionError as e:
+                        print(f"  ✗ Permission denied accessing .git: {e}", flush=True)
+                    except Exception as e:
+                        print(f"  ✗ Error traversing .git: {type(e).__name__}: {e}", flush=True)
+                    
+                    continue
                 
                 # added this to skip MAC artifacts when extracing zip files made with a mac
                 if self._is_mac_artifact(subpath):
