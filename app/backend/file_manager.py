@@ -170,79 +170,24 @@ class FileManager:
             
             
             for subpath in sorted(all_subpaths):
-                # HANDLE .git SPECIALLY (both file-based worktrees and directory-based)
+                # DEBUG: Track what happens to .git folders
                 if subpath.name == '.git':
-                    print(f"DEBUG: Found .git at: {subpath}", flush=True)
-                    print(f"  Type: {'file' if subpath.is_file() else 'dir' if subpath.is_dir() else 'other'}", flush=True)
-                    
                     parent_folder_node = self._get_or_create_folder_nodes(
                         subpath.parent, folder_nodes, path, parent_node
                     )
-                    
-                    # If .git is a file (worktree/submodule reference), resolve it
-                    if subpath.is_file():
-                        print(f"  ⚠️  .git is a file (submodule/worktree reference)", flush=True)
-                        try:
-                            content = subpath.read_text().strip()
-                            print(f"    Content: {content[:100]}", flush=True)
-                            
-                            if content.startswith('gitdir:'):
-                                gitdir_path = content.split('gitdir:')[1].strip()
-                                actual_git_path = (subpath.parent / gitdir_path).resolve()
-                                print(f"    Resolves to: {actual_git_path}", flush=True)
-                                
-                                if actual_git_path.exists() and actual_git_path.is_dir():
-                                    print(f"  → Using resolved .git directory", flush=True)
-                                    subpath = actual_git_path  # Replace with actual directory
-                                else:
-                                    print(f"  ✗ Resolved path doesn't exist, skipping", flush=True)
-                                    continue
-                            else:
-                                print(f"  ✗ .git file has unexpected format, skipping", flush=True)
-                                continue
-                        except Exception as e:
-                            print(f"  ✗ Error reading .git file: {e}", flush=True)
-                            continue
-                    
-                    # Now subpath should be a directory (either original or resolved)
-                    if not subpath.is_dir():
-                        print(f"  ✗ .git is not a directory and couldn't be resolved, skipping", flush=True)
-                        continue
-                    
-                    # Create .git node
+
+                    # Always attach a Node for .git
                     git_node = Node(
                         ".git",
-                        parent=parent_folder_node,
+                        parent=parent_folder_node,          # attach under repo root
                         type="directory",
                         filepath=str(subpath),
-                        is_repo_head=False
+                        is_repo_head=False           # still can mark repo root separately
                     )
+
                     folder_nodes[str(subpath)] = git_node
-                    print(f"  ✓ Created .git directory node", flush=True)
-                    
-                    # Populate .git with its contents
-                    try:
-                        print(f"  → Traversing .git contents...", flush=True)
-                        git_contents = list(subpath.iterdir())
-                        print(f"  → .git contains {len(git_contents)} items", flush=True)
-                        
-                        if git_contents:
-                            for git_item in git_contents[:5]:  # Show first 5
-                                print(f"    - {git_item.name} ({'dir' if git_item.is_dir() else 'file'})", flush=True)
-                            
-                            # Add all .git contents to be processed
-                            for git_item in git_contents:
-                                if git_item not in all_subpaths:
-                                    all_subpaths.append(git_item)
-                            
-                            print(f"  ✓ Added {len(git_contents)} items from .git to processing queue", flush=True)
-                        else:
-                            print(f"  ⚠️  .git is empty", flush=True)
-                            
-                    except Exception as e:
-                        print(f"  ✗ Error reading .git contents: {type(e).__name__}: {e}", flush=True)
-                    
-                    continue  # Skip rest of loop for .git
+
+                    print(f"DEBUG: Processing .git folder: {subpath}", flush=True)
                 
                 # added this to skip MAC artifacts when extracing zip files made with a mac
                 if self._is_mac_artifact(subpath):
