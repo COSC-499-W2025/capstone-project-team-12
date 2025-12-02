@@ -298,7 +298,7 @@ def main() -> None:
                                 binary_data_array=binary_data
                             )
                             try:
-                                processed_git_repos: bytes = repo_processor.process_repositories(git_repos)
+                                processed_git_repos: List[Dict[str, Any]] = repo_processor.process_repositories(git_repos)
                                 if processed_git_repos:
                                     print_status("Repositories processed successfully.", "success")
                                     analyzer = RepositoryAnalyzer(github_username)
