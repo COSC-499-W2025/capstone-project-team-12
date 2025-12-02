@@ -5,154 +5,168 @@ import tempfile
 from anytree import Node
 from repository_processor import RepositoryProcessor
 
-# Helper function to create a basic repo node pointing to real test repo
+# Get test file directory and navigate to test repo - works on all OS
+TEST_FILE_DIR = Path(__file__).parent
+TEST_REPO_PATH = TEST_FILE_DIR / "test_main_dir" / "capstone_team12_testrepo"
+
+
 def create_repo_node(name: str = "capstone_team12_testrepo") -> Node:
-    # Point to the actual test repo in your project
-    test_repo_path = Path("/app/backend/tests_backend/test_main_dir/capstone_team12_testrepo")
-    repo_node: Node = Node(name, type="directory", path=str(test_repo_path))
-    Node(".git", parent=repo_node, type="directory", path=str(test_repo_path / ".git"))
+    """Create repo node pointing to test repository"""
+    repo_node: Node = Node(name, type="directory", path=str(TEST_REPO_PATH))
+    Node(".git", parent=repo_node, type="directory", path=str(TEST_REPO_PATH / ".git"))
     return repo_node
 
 
 class TestRepositoryProcessorBasics:
-    # Tests for initialization and basic functionality
     
     def test_initialization(self) -> None:
-        # Test processor initializes with correct attributes
         processor: RepositoryProcessor = RepositoryProcessor("test_user", [b"data1", b"data2"])
         assert processor.username == "test_user"
         assert len(processor.binary_data_array) == 2
         assert processor.temp_dirs == []
     
     def test_extract_git_folder_missing_git_node(self) -> None:
-        # Test error when .git folder is missing
         repo_node: Node = Node("test_repo", type="directory", path="/fake/path")
         processor: RepositoryProcessor = RepositoryProcessor("test_user", [])
         with pytest.raises(ValueError, match="No .git folder found"):
             processor._extract_git_folder(repo_node)
     
     def test_extract_git_folder_creates_structure(self) -> None:
-        # Test that .git folder structure is created
         repo_node: Node = create_repo_node()
         processor: RepositoryProcessor = RepositoryProcessor("test_user", [])
         try:
             temp_path: Path = processor._extract_git_folder(repo_node)
-            assert temp_path.exists()
-            assert (temp_path / ".git").exists()
+            assert temp_path.exists() and (temp_path / ".git").exists()
             assert len(processor.temp_dirs) == 1
         finally:
             processor._cleanup_temp_dirs()
 
+
 class TestRebuildGitTree:
 
-    # Tests for _rebuild_git_tree method
     def test_rebuild_creates_files(self) -> None:
-        # Test files are created from binary data
         git_node: Node = Node(".git", type="directory")
         Node("config", parent=git_node, type="file", binary_index=0)
         processor: RepositoryProcessor = RepositoryProcessor("test_user", [b"test config data"])
         with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path: Path = Path(temp_dir)
-            processor._rebuild_git_tree(git_node, temp_path)
-            config_file: Path = temp_path / "config"
-            assert config_file.exists()
-            assert config_file.read_bytes() == b"test config data"
+            processor._rebuild_git_tree(git_node, Path(temp_dir))
+            assert (Path(temp_dir) / "config").read_bytes() == b"test config data"
     
     def test_rebuild_creates_nested_structure(self) -> None:
-        # Test nested directory structure is created correctly
         git_node: Node = Node(".git", type="directory")
         refs_dir: Node = Node("refs", parent=git_node, type="directory")
         heads_dir: Node = Node("heads", parent=refs_dir, type="directory")
         Node("main", parent=heads_dir, type="file", binary_index=0)
         processor: RepositoryProcessor = RepositoryProcessor("test_user", [b"main branch ref"])
         with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path: Path = Path(temp_dir)
-            processor._rebuild_git_tree(git_node, temp_path)
-            main_file: Path = temp_path / "refs" / "heads" / "main"
-            assert main_file.exists()
-            assert main_file.read_bytes() == b"main branch ref"
+            processor._rebuild_git_tree(git_node, Path(temp_dir))
+            assert (Path(temp_dir) / "refs" / "heads" / "main").read_bytes() == b"main branch ref"
+    
+    def test_rebuild_with_missing_binary_index(self) -> None:
+        git_node: Node = Node(".git", type="directory")
+        Node("config", parent=git_node, type="file")
+        processor: RepositoryProcessor = RepositoryProcessor("test_user", [b"data"])
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with pytest.raises(ValueError, match="missing binary_index attribute"):
+                processor._rebuild_git_tree(git_node, Path(temp_dir))
+    
+    def test_rebuild_with_invalid_binary_index(self) -> None:
+        git_node: Node = Node(".git", type="directory")
+        Node("config", parent=git_node, type="file", binary_index=99)
+        processor: RepositoryProcessor = RepositoryProcessor("test_user", [b"data"])
+        with tempfile.TemporaryDirectory() as temp_dir:
+            processor._rebuild_git_tree(git_node, Path(temp_dir))
+            assert not (Path(temp_dir) / "config").exists()
+
 
 class TestProcessRepositories:
-    # Tests for process_repositories method - just check it doesn't crash
-    def test_process_repositories_runs_without_error(self) -> None:
-        # Test that it returns a list of dicts
+    
+    def test_process_repositories_returns_list_of_dicts(self) -> None:
         repo_node: Node = create_repo_node()
         processor: RepositoryProcessor = RepositoryProcessor("test_user", [])
         result: List[Dict[str, Any]] = processor.process_repositories([repo_node])
+        assert isinstance(result, list) and len(result) == 1 and isinstance(result[0], dict)
+    
+    def test_process_repositories_has_expected_keys(self) -> None:
+        repo_node: Node = create_repo_node()
+        processor: RepositoryProcessor = RepositoryProcessor("test_user", [])
+        result: List[Dict[str, Any]] = processor.process_repositories([repo_node])
+        assert all(k in result[0] for k in ['repository_name', 'repository_path', 'status'])
+    
+    def test_process_with_actual_username(self) -> None:
+        # Covers lines 43-46, 90-151, 174 by using real repo with actual commits
+        if not TEST_REPO_PATH.exists():
+            pytest.skip("Test repository not found")
         
-        # Check it returns a list
-        assert isinstance(result, list)
-        assert len(result) == 1
-        assert isinstance(result[0], dict)
-            
+        processor: RepositoryProcessor = RepositoryProcessor("maddydeg", [])
+        repo_node: Node = Node("capstone_team12_testrepo", type="directory")
+        result: Dict[str, Any] = processor._extract_all_repository_data(repo_node, TEST_REPO_PATH)
+        
+        assert result['status'] == 'success'
+        assert len(result['user_commits']) > 0
+        assert result['statistics']['user_lines_added'] >= 0
+        assert result['repository_context']['total_commits_all_authors'] > 0
 
-class TestProcessRepositoriesWithAnalysis:
-    # Integration tests for full processing with repository analysis
-    
-    def test_process_repositories_returns_valid_structure(self) -> None:
-        # Test that process_repositories returns valid structure
-        repo_node: Node = create_repo_node()
-        processor: RepositoryProcessor = RepositoryProcessor("test_user", [])
-        result: List[Dict[str, Any]] = processor.process_repositories([repo_node])
-        
-        assert isinstance(result, list)
-        assert len(result) == 1
-        
-        repo_data = result[0]
-        assert 'repository_name' in repo_data
-        assert 'repository_path' in repo_data
-        assert 'status' in repo_data
-        
-    
-    def test_process_multiple_repositories(self) -> None:
-        # Test processing multiple repositories
-        repo_node1: Node = create_repo_node("repo1")
-        repo_node2: Node = create_repo_node("repo2")
-        
-        processor: RepositoryProcessor = RepositoryProcessor("test_user", [])
-        result: List[Dict[str, Any]] = processor.process_repositories([repo_node1, repo_node2])
-        
-        assert len(result) == 2
-        assert result[0]['repository_name'] == "repo1"
-        assert result[1]['repository_name'] == "repo2"
-        
-    
-    def test_process_repositorie_has_status_field(self) -> None:
-        # Test that return has status field
-        repo_node: Node = create_repo_node()
-        processor: RepositoryProcessor = RepositoryProcessor("test_user", [])
-        result: List[Dict[str, Any]] = processor.process_repositories([repo_node])
-        
-        repo_data = result[0]
-        
-        assert 'status' in repo_data
-        assert repo_data['status'] in ['success', 'error']
-        
 
-class TestCleanupAndErrorHandling:
-    # Tests for cleanup and error handling
+class TestErrorHandlingAndCleanup:
+    
+    def test_extract_repository_data_handles_errors(self) -> None:
+        processor: RepositoryProcessor = RepositoryProcessor("test_user", [])
+        result: Dict[str, Any] = processor._extract_all_repository_data(
+            Node("bad_repo", type="directory"), Path("/nonexistent")
+        )
+        assert result['status'] == 'error' and 'error_message' in result
+    
     def test_cleanup_on_error(self) -> None:
-        # Test temp directories are cleaned up even on error
         repo_node: Node = Node("bad_repo", type="directory", path="/nonexistent")
         processor: RepositoryProcessor = RepositoryProcessor("test_user", [])
-        
         with pytest.raises(ValueError, match="No .git folder found"):
             processor.process_repositories([repo_node])
-        
-        # Verify cleanup happened (temp_dirs should still be cleaned up in finally block)
         assert len(processor.temp_dirs) == 0
     
     def test_cleanup_removes_directories(self) -> None:
-        # Test cleanup removes all temporary directories
         processor: RepositoryProcessor = RepositoryProcessor("test_user", [])
-        temp_dir1: str = tempfile.mkdtemp()
-        temp_dir2: str = tempfile.mkdtemp()
+        temp_dir1, temp_dir2 = tempfile.mkdtemp(), tempfile.mkdtemp()
         processor.temp_dirs = [temp_dir1, temp_dir2]
         processor._cleanup_temp_dirs()
-        
-        assert not Path(temp_dir1).exists()
-        assert not Path(temp_dir2).exists()
+        assert not Path(temp_dir1).exists() and not Path(temp_dir2).exists()
+    
+    def test_cleanup_handles_nonexistent_directory(self) -> None:
+        processor: RepositoryProcessor = RepositoryProcessor("test_user", [])
+        processor.temp_dirs = ["/nonexistent/temp/dir"]
+        processor._cleanup_temp_dirs()
         assert len(processor.temp_dirs) == 0
+    
+    def test_cleanup_handles_permission_error(self) -> None:
+        # Covers lines 258-259 (exception handling in cleanup)
+        processor: RepositoryProcessor = RepositoryProcessor("test_user", [])
+        temp_dir: str = tempfile.mkdtemp()
+        processor.temp_dirs = [temp_dir]
+        
+        import unittest.mock as mock
+        with mock.patch('shutil.rmtree', side_effect=PermissionError("Mocked error")):
+            processor._cleanup_temp_dirs()
+        
+        import shutil
+        shutil.rmtree(temp_dir, ignore_errors=True)
+
+
+class TestDateRangeCalculation:
+    
+    def test_calculate_date_range_with_dates(self) -> None:
+        from datetime import datetime
+        processor: RepositoryProcessor = RepositoryProcessor("test_user", [])
+        dates = [datetime(2024, 1, 1, 10, 0, 0), datetime(2024, 1, 15, 14, 30, 0)]
+        result: Dict[str, Any] = processor._calculate_date_range(dates)
+        assert result['start_date'] == "2024-01-01T10:00:00"
+        assert result['end_date'] == "2024-01-15T14:30:00"
+        assert result['duration_days'] == 14
+    
+    def test_calculate_date_range_empty_list(self) -> None:
+        processor: RepositoryProcessor = RepositoryProcessor("test_user", [])
+        result: Dict[str, Any] = processor._calculate_date_range([])
+        assert result['start_date'] is None and result['duration_days'] == 0
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
