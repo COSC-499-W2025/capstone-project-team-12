@@ -302,8 +302,8 @@ def main() -> None:
                                 if processed_git_repos:
                                     print_status("Repositories processed successfully.", "success")
                                     analyzer = RepositoryAnalyzer(github_username)
-                                    analyzer_repos: Dict[str, Any] = analyzer.generate_project_insights(processed_git_repos)
-                                    print_status(f"Analyzed {len(analyzer_repos)} repositories.", "success")
+                                    analyzed_repos: Dict[str, Any] = analyzer.generate_project_insights(processed_git_repos)
+                                    print_status(f"Analyzed {len(analyzed_repos)} repositories.", "success")
                                     timeline = analyzer.create_chronological_project_list(processed_git_repos)
                                     print("\n--- Project Timeline ---")
                                     for project in timeline:
@@ -321,7 +321,7 @@ def main() -> None:
                     } if doc_topic_vectors else {}
                     
                     project_analysis_data = {
-                        "repositories": analyzer_repos if git_repos else {},
+                        "repositories": analyzed_repos if git_repos else {},
                         "timeline": timeline
                     } if git_repos else {}
                     
