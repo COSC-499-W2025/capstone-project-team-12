@@ -133,8 +133,12 @@ class LocalLLMClient:
             Standard summary string
         """
         prompt = (
-            "Generate a professional summary from the topic keywords and document top topics. "
-            "Use 4-5 bullet points highlighting strengths."
+            "Write a resume-style summary using the provided keywords. Output 4–5 bullet points."
+            "Rules:"
+            "- Start each bullet with an action verb."
+            "- Make each bullet an achievement or impact."
+            "- Keep bullets short and professional."
+            "- Do not describe the keywords; turn them into accomplishments."
         )
         
         response = self.send_request(prompt=prompt, topic_vector_bundle=topic_vector_bundle)
