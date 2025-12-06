@@ -18,9 +18,14 @@ services:
       - backend_db
       - local_llm  
     volumes:
-      - ./backend/configs:/app/configs 
+      - ./backend/configs:/app/configs
+      - ${REPOS_PATH}:/app/repos  # User's repository path from .env
+      # Optional additional paths (uncomment in .env if needed)
+      # - ${REPOS_PATH_2}:/app/repos2
+      # - ${REPOS_PATH_3}:/app/repos3
     env_file:
-    - ./database/db_conn.env
+      - ./database/db_conn.env
+      
   backend_db:
     build:
       dockerfile: db.dockerfile
@@ -39,7 +44,7 @@ services:
       - 11434:11434  #exposed for tests, still might change
     volumes:
       - ollama_data:/root/.ollama  #persist model cache
-    mem_limit: 4g  #4gb ram limit, might change tho. Also currently only limiting wheh docker compose up, no swarm
+    mem_limit: 4g  #4gb ram limit, might change tho. Also currently only limiting when docker compose up, no swarm
     mem_reservation: 2g 
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
@@ -48,7 +53,7 @@ services:
       start_period: 60s
       retries: 3
 
-#named volume for model persistence
+# Named volume for model persistence
 volumes:
   ollama_data:
     driver: local
