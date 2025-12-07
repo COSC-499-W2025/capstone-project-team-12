@@ -1,5 +1,21 @@
 # An Tran Personal Log (79499364)
 
+## Week 14 (12/01/2025 - 12/07/2025)
+### Tasks completed
+- Contributed to slides and present Milestone 1 presentation
+- Integrated database with main.py
+  - Generated insights and tracked data are saved in database
+  - Add option to view all results saved in database
+  - Add option to view a specific result in database
+  - Add option to delete all data saved in database
+  - Add option to delete a specific result saved in database
+- Minor refactor so file classifier and metadata analyzer tests pass again
+- Attended weekly team meeting
+
+### Reflection and plans for future
+- All tasks assigned were accomplished
+- Prepare for future milestone during winter break
+
 ## Week 13 (11/24/2025 - 11/30/2025)
 ### Tasks
 - Refactor metadata analyzer to return a dictionary
