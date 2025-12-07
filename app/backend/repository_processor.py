@@ -10,9 +10,10 @@ from pydriller.domain.commit import Commit
 class RepositoryProcessor:
     # Rebuilds .git folders from binary data and extracts raw repository information
 
-    def __init__(self, username: str, binary_data_array: List[bytes]) -> None:
+    def __init__(self, username: str, binary_data_array: List[bytes], user_email: str = None) -> None:
         self.username: str = username.lower()
         self.binary_data_array: List[bytes] = binary_data_array
+        self.user_email: str = user_email.lower() if user_email else None
         self.temp_dirs: List[str] = []
 
     def process_repositories(self, repo_nodes: List[Node]) -> List[Dict[str, Any]]:
@@ -70,8 +71,7 @@ class RepositoryProcessor:
         commits_data: List[Dict[str, Any]] = []
         user_dates: List[datetime] = []
         all_authors_stats: Dict[str, Dict[str, int]] = {}
-
-        user_email: str | None = None
+        user_emails: Set[str] = set()
 
         # Initialize statistic accumulators
         user_files_modified: int = 0
@@ -103,6 +103,9 @@ class RepositoryProcessor:
                     'files_modified': 0
                 }
             
+            # Check if this commit belongs to the target user by username or email
+            is_user_commit: bool = (commit_username == self.username) or (self.user_email and commit_email == self.user_email)
+
             # Calculate stats for this commit
             commit_lines_added: int = 0
             commit_lines_deleted: int = 0
@@ -119,7 +122,7 @@ class RepositoryProcessor:
                 repo_total_files_modified += 1
                 
                 # Track change types for the user
-                if commit_username == self.username and mod.change_type:
+                if is_user_commit and mod.change_type:
                     change_types.add(mod.change_type.name)
             
             all_authors_stats[commit_email]['commits'] += 1
@@ -128,10 +131,10 @@ class RepositoryProcessor:
             all_authors_stats[commit_email]['files_modified'] += commit_files
 
             # Only consider the commits of the user for detailed data
-            if commit_username == self.username:
-                # Capture user's actual email (GitHub privacy or personal)
-                # This should not be saved or passed to LLM, but is included for future processing purposes
-                user_email = commit_email  
+            if is_user_commit: 
+
+                # Track user emails incase personal and private versions are used
+                user_emails.add(commit_email)
 
                 # Builds the commit info
                 commit_info = self._build_commit_info(commit)
@@ -147,6 +150,24 @@ class RepositoryProcessor:
                 user_lines_deleted += commit_lines_deleted
 
         is_collaborative: bool = len(all_authors_stats) > 1 if all_authors_stats else len(commits_data) < repo_total_commits
+
+        # Combine multiple user emails if needed
+        if len(user_emails) > 1:
+            combined_stats: Dict[str, int] = {
+                'commits': 0,
+                'lines_added': 0,
+                'lines_deleted': 0,
+                'files_modified': 0
+            }
+
+            for email in user_emails:
+                if email in all_authors_stats:
+                    for key in combined_stats:
+                        combined_stats[key] += all_authors_stats[email][key]
+                    del all_authors_stats[email]
+            
+            combined_key: str = self.user_email if self.user_email else self.username
+            all_authors_stats[combined_key] = combined_stats
 
         return {
             'user_commits_data': commits_data,
