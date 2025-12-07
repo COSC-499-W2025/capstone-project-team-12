@@ -19,10 +19,11 @@ services:
       - local_llm  
     volumes:
       - ./backend/configs:/app/configs
-      - ${REPOS_PATH}:/app/repos  # User's repository path from .env
-      # Optional additional paths (uncomment in .env if needed)
-      # - ${REPOS_PATH_2}:/app/repos2
-      # - ${REPOS_PATH_3}:/app/repos3
+      # CHANGED: Use explicit bind mount syntax
+      - type: bind
+        source: ${REPOS_PATH}
+        target: /app/repos
+        read_only: true
     env_file:
       - ./database/db_conn.env
       
