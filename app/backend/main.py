@@ -308,10 +308,12 @@ def main() -> None:
                                 binary_data_array=binary_data,
                                 user_email=user_email if user_email else None
                             )
+                            
                             try:
                                 processed_git_repos: List[Dict[str, Any]] = repo_processor.process_repositories(git_repos)
                                 if processed_git_repos:
                                     print_status("Repositories processed successfully.", "success")
+                                    
                                     analyzer = RepositoryAnalyzer(github_username)
                                     analyzed_repos: Dict[str, Any] = analyzer.generate_project_insights(processed_git_repos)
                                     print_status(f"Analyzed {len(analyzed_repos)} repositories.", "success")
@@ -321,6 +323,8 @@ def main() -> None:
                                         print(f"• {project['name']}: {project['start_date']} - {project['end_date']}")
                             except Exception as e:
                                 print_status(f"Repository processing failed: {e}", "error")
+                                import traceback
+                                traceback.print_exc()
                         else:
                             print_status("Skipping Git linking.", "info")
                     
