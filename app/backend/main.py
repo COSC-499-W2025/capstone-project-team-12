@@ -131,7 +131,6 @@ def binary_to_str(bin_data:List[BinaryIO])-> List[str]:
             result.append('')
     return result
 
-
 def main() -> None:
     config_manager = ConfigManager() # Initialize Config Manager
     database_manager = DatabaseManager()  # Initialize Database Manager
@@ -300,6 +299,7 @@ def main() -> None:
                     if git_repos:
                         print_header("Repository Linking")
                         print(f"Detected {len(git_repos)} git repositories.")
+
                         github_username: str = input("Enter GitHub username to link (Press Enter to skip): \n> ").strip()
                         
                         if github_username:
@@ -307,12 +307,14 @@ def main() -> None:
                                 username=github_username,
                                 binary_data_array=binary_data
                             )
+                            
                             try:
                                 processed_git_repos = repo_processor.process_repositories(git_repos)
                                 if not processed_git_repos:
                                     print_status("No repositores to process.", "error")
                                 else:
                                     print_status("Repositories processed successfully.", "success")
+                                    
                                     analyzer = RepositoryAnalyzer(github_username)
 
                                     #Generate the insights for ALL projects (not just what is displayed to allow for storage in db)
@@ -336,6 +338,8 @@ def main() -> None:
                                     
                             except Exception as e:
                                 print_status(f"Repository processing failed: {e}", "error")
+                                import traceback
+                                traceback.print_exc()
                         else:
                             print_status("Skipping Git linking.", "info")
                     

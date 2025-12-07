@@ -25,8 +25,8 @@ class TreeProcessor:
             for node in PreOrderIter(root):
                 try:
                     if node.name == ".git" and node.parent:
-                        node.parent.is_repo_head = True  # Update existing attribute
-                        self.git_repos.append(node.parent)  # Store the node, not the path
+                        node.parent.is_repo_head = True
+                        self.git_repos.append(node.parent)
                     
                     # Classify files (update the existing classification attribute)
                     if hasattr(node, 'type') and node.type == "file":
