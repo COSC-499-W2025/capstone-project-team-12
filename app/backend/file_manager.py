@@ -4,7 +4,6 @@ import zipfile
 import tempfile
 import shutil
 from anytree import Node, RenderTree
-import os
 
 class FileManager:
     def __init__(self):
@@ -90,118 +89,17 @@ class FileManager:
         # Handle directories (now includes empty ones)
         elif path.is_dir():
             folder_nodes: Dict[str, Node] = {str(path): parent_node}
-            all_subpaths = []
-            
-            # DEBUG: Counters
-            debug_stats = {
-                'total_items': 0,
-                'hidden_items': 0,
-                'git_folders': 0,
-                'directories': 0,
-                'files': 0,
-                'permission_errors': 0
-            }
-            
-            def walk_dir(dir_path: Path, depth=0):
-                indent = "  " * depth
-                print(f"{indent}Scanning: {dir_path.name}", flush=True)
-                
-                try:
-                    items = list(dir_path.iterdir())
-                    print(f"{indent}  Found {len(items)} items", flush=True)
-                    
-                    for item in items:
-                        debug_stats['total_items'] += 1
-                        all_subpaths.append(item)
 
-                        # DEBUG: Log item details
-                        is_hidden = item.name.startswith('.')
-                        if is_hidden:
-                            debug_stats['hidden_items'] += 1
-                            print(f"{indent}  [HIDDEN] {item.name} (is_dir={item.is_dir()})", flush=True)
-
-                        # Handle .git (accept directory or file)
-                        if item.name == '.git':
-                            git_path = item.resolve()
-                            print(f"DEBUG: .git detected at {git_path} (is_dir={item.is_dir()}, is_file={item.is_file()})")
-
-                            debug_stats['git_folders'] += 1
-
-                        # Recurse into directories
-                        if item.is_dir():
-                            debug_stats['directories'] += 1
-                            walk_dir(item, depth + 1)
-                        else:
-                            debug_stats['files'] += 1
-
-                            
-                except PermissionError as e:
-                    debug_stats['permission_errors'] += 1
-                    print(f"{indent}  [PERMISSION DENIED] {dir_path}: {e}", flush=True)
-                except Exception as e:
-                    print(f"{indent}  [ERROR] {dir_path}: {type(e).__name__}: {e}", flush=True)
-            
-            print("\n" + "="*60, flush=True)
-            print("DEBUG: Starting directory walk...", flush=True)
-            print("="*60, flush=True)
-            walk_dir(path)
-            
-            print("\n" + "="*60, flush=True)
-            print("DEBUG: Walk complete - Statistics:", flush=True)
-            print("="*60, flush=True)
-            for key, value in debug_stats.items():
-                print(f"  {key}: {value}", flush=True)
-            print(f"  Total paths collected: {len(all_subpaths)}", flush=True)
-            print(f"  Unique paths: {len(set(all_subpaths))}", flush=True)
-            
-            # DEBUG: List all hidden items found
-            hidden_items = [p for p in all_subpaths if p.name.startswith('.')]
-            print(f"\n  All hidden items found:", flush=True)
-            for hidden in hidden_items:
-                print(f"    - {hidden.name} ({'dir' if hidden.is_dir() else 'file'})", flush=True)
-            
-            # DEBUG: Check if .git specifically made it into the list
-            git_folders_in_list = [p for p in all_subpaths if p.name == '.git']
-            print(f"\n  .git folders in all_subpaths: {len(git_folders_in_list)}", flush=True)
-            for git in git_folders_in_list:
-                print(f"    - {git}", flush=True)
-            
-            print("="*60 + "\n", flush=True)
-            
-            
-            for subpath in sorted(all_subpaths):
-                # DEBUG: Track what happens to .git folders
-                if subpath.name == '.git':
-                    parent_folder_node = self._get_or_create_folder_nodes(
-                        subpath.parent, folder_nodes, path, parent_node
-                    )
-
-                    # Always attach a Node for .git
-                    git_node = Node(
-                        ".git",
-                        parent=parent_folder_node,          # attach under repo root
-                        type="directory",
-                        filepath=str(subpath),
-                        is_repo_head=False           # still can mark repo root separately
-                    )
-
-                    folder_nodes[str(subpath)] = git_node
-
-                    print(f"DEBUG: Processing .git folder: {subpath}", flush=True)
-                
+            for subpath in sorted(path.rglob('*')):
                 # added this to skip MAC artifacts when extracing zip files made with a mac
                 if self._is_mac_artifact(subpath):
-                    if subpath.name == '.git':
-                        print(f"  ⚠️  .git skipped by _is_mac_artifact check!", flush=True)
                     continue
-                
+
                 # Ensure all subdirectories are represented, even if empty
                 if subpath.is_dir():
-                    if subpath.name == '.git':
-                        print(f"  ✓ .git recognized as directory, calling _get_or_create_folder_nodes", flush=True)
                     self._get_or_create_folder_nodes(subpath, folder_nodes, path, parent_node)
                     continue
-                
+
                 # Skip unsupported or invalid files
                 if self._is_rar_file(subpath):
                     continue
@@ -402,41 +300,3 @@ class FileManager:
                 print(f"{pre}{node.name} ({size_kb:.1f} KB)")
             else:
                 print(f"{pre}{node.name}/")
-
-
-
-#to test the function of this class 
-if __name__ == "__main__":
-    import os
-    print(f"Current working directory: {os.getcwd()}")
-    
-    file_manager = FileManager()
-    filepath = input("Enter file or folder path: ")
-    result = file_manager.load_from_filepath(filepath)
-
-    print("\n" + "="*60)
-    if result['status'] == 'success':
-        print(f"✓ {result['message']}")
-        print("\nTree structure:")
-        file_manager.print_tree()
-        
-        print("\n" + "-"*60)
-        print("Flat file list:")
-        for file_obj in file_manager.file_objects:
-            size_kb = file_obj['size_bytes'] / 1024
-            binary_index = file_obj.get('binary_index')
-            print(f"  • {file_obj['filename']} ({size_kb:.1f} KB) [binary_index={binary_index}]")
-
-        print("\n" + "-"*60)
-        print(f"Total binary objects stored: {len(file_manager.binary_data_array)}")
-
-        get_binary_array_test = input("Would you like to retrieve the binary array? y/n")
-
-        if get_binary_array_test == "y":
-            result_array = file_manager.get_binary_array()
-            print(result_array)
-
-
-    else:
-        print(f"✗ Error: {result['message']}")
-    print("="*60)
