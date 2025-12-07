@@ -130,7 +130,6 @@ def binary_to_str(bin_data:List[BinaryIO])-> List[str]:
             result.append('')
     return result
 
-
 def main() -> None:
     config_manager = ConfigManager() # Initialize Config Manager
     database_manager = DatabaseManager()  # Initialize Database Manager
@@ -298,6 +297,7 @@ def main() -> None:
                     if git_repos:
                         print_header("Repository Linking")
                         print(f"Detected {len(git_repos)} git repositories.")
+
                         github_username: str = input("Enter GitHub username to link (Press Enter to skip): \n> ").strip()
                         
                         if github_username:
@@ -306,10 +306,12 @@ def main() -> None:
                                 binary_data_array=binary_data
                             )
                             try:
-                                processed_git_repos = repo_processor.process_repositories(git_repos)
+                                processed_git_repos: List[Dict[str, Any]] = repo_processor.process_repositories(git_repos)
                                 if processed_git_repos:
                                     print_status("Repositories processed successfully.", "success")
                                     analyzer = RepositoryAnalyzer(github_username)
+                                    analyzed_repos: Dict[str, Any] = analyzer.generate_project_insights(processed_git_repos)
+                                    print_status(f"Analyzed {len(analyzed_repos)} repositories.", "success")
                                     timeline = analyzer.create_chronological_project_list(processed_git_repos)
                                     print("\n--- Project Timeline ---")
                                     for project in timeline:
@@ -327,8 +329,9 @@ def main() -> None:
                     } if doc_topic_vectors else {}
                     
                     project_analysis_data = {
-                        "projects": timeline
-                    } if timeline else {}
+                        "repositories": analyzed_repos if git_repos else {},
+                        "timeline": timeline
+                    } if git_repos else {}
                     
                     try:
                         print_header("AI Summary Generation")
