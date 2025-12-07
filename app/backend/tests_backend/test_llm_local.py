@@ -48,7 +48,7 @@ def test_send_request_uses_ollama_format(monkeypatch):
     resp = client.send_request(prompt="Hello", topic_vector_bundle=topic_vector_bundle)
 
     assert captured["url"].endswith("/api/generate")
-    assert captured["timeout"] == 120  #we want longer timout for local
+    assert captured["timeout"] == 300  #we want longer timout for local
     assert captured["json"]["model"] == "phi3:mini"
     assert captured["json"]["stream"] == False
     assert "prompt" in captured["json"]
