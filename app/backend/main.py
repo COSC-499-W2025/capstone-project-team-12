@@ -20,6 +20,7 @@ from stats_cache import collect_stats
 from llm_online import OnlineLLMClient
 from llm_local import LocalLLMClient
 from config_manager import ConfigManager
+from database_manager import DatabaseManager
 
 file_data_list: List = []
 file_access_consent: bool = None 
@@ -129,22 +130,10 @@ def binary_to_str(bin_data:List[BinaryIO])-> List[str]:
             result.append('')
     return result
 
-def diagnose_repo_node(repo_node: Node) -> None:
-    """Print detailed information about a repository node"""
-    print(f"\n{'='*60}")
-    print(f"Diagnosing repo_node: {repo_node.name}")
-    print(f"Node type: {getattr(repo_node, 'type', 'NO TYPE ATTR')}")
-    print(f"Has is_repo_head: {hasattr(repo_node, 'is_repo_head')}")
-    print(f"is_repo_head value: {getattr(repo_node, 'is_repo_head', 'N/A')}")
-    print(f"Number of children: {len(repo_node.children) if hasattr(repo_node, 'children') else 'NO CHILDREN'}")
-    print(f"\nChildren names:")
-    if hasattr(repo_node, 'children'):
-        for child in repo_node.children:
-            print(f"  - {child.name} (type: {getattr(child, 'type', 'unknown')})")
-    print(f"{'='*60}\n")
-
 def main() -> None:
     config_manager = ConfigManager() # Initialize Config Manager
+    database_manager = DatabaseManager()  # Initialize Database Manager
+    # database_manager.wipe_all_data()  # Wipe existing data for fresh start
     
     try:
         print_header("Artifact Mining App")
@@ -156,17 +145,20 @@ def main() -> None:
         )
 
         if not has_file_access:
-            print("Access to files is required. Exiting.")
+            print("Access to files is required.")
             sys.exit(0)
 
         # MAIN LOOP 
         while True: 
             print_separator("-")
-            filepath: str = input("Enter a file path to process (or 'q' to quit): \n> ").strip()
+            filepath: str = input("Enter a file path to process ('q' to quit, 'd' to view database): \n> ").strip()
             
             if filepath.lower() == 'q':
                 print("Exiting.")
                 sys.exit(0)
+
+            if filepath.lower() == 'd':
+                break
 
             try:
                 path: Path = validate_path(filepath)
@@ -224,10 +216,10 @@ def main() -> None:
                     metadata_analysis = metadata_analyzer.analyze_all()
                     
                     print("\n--- File Extension Statistics ---")
-                    print(f"{'Extension':<10} | {'Count':<8} | {'Size':<15} | {'Category'}")
-                    print("-" * 50)
+                    print(f"{'Extension':<10} | {'Count':<8} | {'Size':<15} | {'Percentage':<8} | {'Category'}")
+                    print("-" * 70)
                     for ext, stats in metadata_analysis['extension_stats'].items():
-                        print(f"{ext:<10} | {stats['count']:<8} | {stats['total_size']:<15} | {stats['category']}")
+                        print(f"{ext:<10} | {stats['count']:<8} | {stats['total_size']:<15} | {stats['percentage']:<8}% | {stats['category']}")
 
                     git_repos: List[Node] = tree_processor.get_git_repos() 
 
@@ -300,12 +292,12 @@ def main() -> None:
                     except Exception as e:
                         print_status(f"Error during content analysis: {e}", "error")
 
+                    processed_git_repos: bytes = None
+
                     if git_repos:
                         print_header("Repository Linking")
                         print(f"Detected {len(git_repos)} git repositories.")
 
-                        for repo in git_repos:
-                            diagnose_repo_node(repo)
 
                         github_username: str = input("Enter GitHub username to link (Press Enter to skip): \n> ").strip()
                         
@@ -506,14 +498,27 @@ def main() -> None:
 
                 elif fm_result["status"] == "error":
                     print_status(f"Load Error: {fm_result.get('message', 'Unknown error')}", "error")
+                
+                # save tracked data and insights to database
+                try:
+                    result_id: int = database_manager.create_new_result() # create new result entry in the database
+                    # save tracked data
+                    database_manager.save_tracked_data(result_id, metadata_results, final_bow, project_analysis_data)
+
+                    # save insights
+                    database_manager.save_metadata_analysis(result_id, metadata_analysis)
+                    database_manager.save_text_analysis(result_id, doc_topic_vectors, topic_term_vectors)
+                    database_manager.save_repository_analysis(result_id, processed_git_repos, timeline)
+                    database_manager.save_resume_points(result_id, medium_summary)
+                except Exception as e:
+                    print_status(f"Error saving result to database: {e}", "error")
+                    result_id = -1
+
 
                 # Ask to continue
                 cont = input("\nProcess another file? (y/n): ").lower()
-                if cont not in ('y', 'yes'):
-                    print("\nExiting. Goodbye!")
-                    sys.exit(0)
-                    
-                break 
+                if cont in ('y', 'yes'):
+                    continue
             
             except Exception as e:
                 print_status(f"File path is not valid: {e}", "error")
@@ -525,6 +530,93 @@ def main() -> None:
         else:
             print("\nInput invalid - try again (y/n) ")
 
+        # View all saved insights from database
+        try:
+            view_results = input("View all stored results? (y/n): ").lower()
+            if view_results in ('y', 'yes'):
+                all_results: List[Dict] = database_manager.get_all_results_summary()
+                print_header("All Stored Results Summary")
+                for res in all_results:
+                    print(f"Result ID: {res['result_id']}")
+                    print("\nMetadata insights:")
+                    print(f"{'Extension':<10} | {'Count':<8} | {'Size':<15} | {'Percentage':<8} | {'Category'}")
+                    print("-" * 70)
+                    
+                    meta_insights = res['metadata_insights']
+                    for ext, stats in meta_insights['extension_stats'].items():
+                        print(f"{ext:<10} | {stats['count']:<8} | {stats['total_size']:<15} | {stats['percentage']:<8}% | {stats['category']}")
+                    print(f"\nPrimary skills: {', '.join(meta_insights['primary_skills'])}\n")
+        except Exception as e:
+            print_status(f"Error retrieving all results: {e}", "error")
+        
+        # View specific result by ID
+        view_result = input("\nView a specific result by ID? (y/n): ").lower()
+        if view_result in ('y', 'yes'):
+            while True:
+                try:
+                    view_id = input("Enter Result ID: ").strip()
+                    result: Dict[str, Any] = database_manager.get_result_by_id(view_id)
+                    if result:
+                        print_header(f"Result ID: {view_id}")
+                        # Check that results are saved properly
+                        # print(f"Topic vectors: {result['topic_vector']}")
+                        print("Resume points:")
+                        print(f"{result['resume_points']}")
+                        print(f"\nProject insights: {result['project_insights']}")
+                        print(f"\nPackage insights: {result['package_insights']}")
+                        print("\nMetadata insights:")
+                        print(f"{'Extension':<10} | {'Count':<8} | {'Size':<15} | {'Percentage':<8} | {'Category'}")
+                        print("-" * 70)
+                        for ext, stats in result['metadata_insights']['extension_stats'].items():
+                            print(f"{ext:<10} | {stats['count']:<8} | {stats['total_size']:<15} | {stats['percentage']:<8}% | {stats['category']}")
+                        
+                        # Check that tracked data is saved properly
+                        # print(f"\nTracked data summary:")
+                        # print(f"BoW cache: {result['tracked_data']['bow_cache']}")
+                        # print(f"Project data: {result['tracked_data']['project_data']}")
+                        # print(f"Package data: {result['tracked_data']['package_data']}")
+                        # print(f"Metadata stats: {result['tracked_data']['metadata_stats']}")
+                        
+                        # Ask to continue
+                        cont_view = input("\nView another stored result? (y/n): ").lower()
+                        if cont_view not in ('y', 'yes'):
+                            break
+
+                    else:
+                        print_status(f"No result found with ID: {view_id}", "error")
+                        retry_view = input("Try again? (y/n): ").strip().lower()
+                        if retry_view in ('n', 'no'):
+                            break
+
+                except ValueError:
+                    print_status("Invalid ID entered.", "error")
+                except Exception as e:
+                    print_status(f"Error retrieving result: {e}", "error")
+
+        # Delete results from database
+        try:
+            delete_results = input("\nDelete all stored results? (y/n): ").lower()
+            if delete_results in ('y', 'yes'):
+                database_manager.wipe_all_data()
+                print_status("All results deleted from database.", "success")
+        except Exception as e:
+            print_status(f"Error deleting results: {e}", "error")
+
+        # Delete specific result from database
+        delete_result = input("\nDelete a stored result? (y/n): ").lower()
+        if delete_result in ('y', 'yes'):
+            while True:
+                try:
+                    result_id_to_delete = input("Enter Result ID to delete: ").strip()
+                    database_manager.delete_result(result_id_to_delete)
+                    print_status(f"Result with ID {result_id_to_delete} deleted from database.", "success")
+                    
+                    # Ask to continue
+                    cont_del = input("\nDelete another stored result? (y/n): ").lower()
+                    if cont_del not in ('y', 'yes'):
+                        break
+                except Exception as e:
+                    print_status(f"Error deleting result with ID {result_id_to_delete}: {e}", "error")
     except KeyboardInterrupt:
         print("\n\nExiting.")
         sys.exit(0)
