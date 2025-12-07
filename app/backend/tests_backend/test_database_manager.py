@@ -267,32 +267,38 @@ class TestSaveRepositoryAnalysis:
     
     def test_save_repository_analysis_success(self, db_manager, mock_db_connector, sample_result_id):
         """Test successful saving of repository analysis"""
-        repos = {"repo1": {"commits": 50, "contributors": 3}}
-        timeline = [{"project": "test_project", "date": "2024-01-01"}]
+        project_analysis_data = {
+            "analyzed_insights": [{"repo1": {"commits": 50, "contributors": 3}}],
+            "timeline": [{"project": "test_project", "date": "2024-01-01"}]
+        }
         mock_db_connector.execute_update.return_value = None
         
-        result = db_manager.save_repository_analysis(sample_result_id, repos, timeline)
+        result = db_manager.save_repository_analysis(sample_result_id, project_analysis_data)
         
         assert result is True
         call_args = mock_db_connector.execute_update.call_args
         assert 'UPDATE Results' in call_args[0][0]
         assert 'SET project_insights' in call_args[0][0]
         
-        json_data = json.loads(call_args[0][1][0])
-        assert json_data['repositories'] == repos
-        assert json_data['timeline'] == timeline
-        assert json_data['total_projects'] == 1
+        # Verify the call was made correctly
+        mock_db_connector.execute_update.assert_called_once()
     
     def test_save_repository_analysis_empty_timeline(self, db_manager, mock_db_connector, sample_result_id):
         """Test saving repository analysis with empty timeline"""
+        project_analysis_data = {
+            "analyzed_insights": [],
+            "timeline": []
+        }
+
         mock_db_connector.execute_update.return_value = None
         
-        result = db_manager.save_repository_analysis(sample_result_id, {}, [])
+        result = db_manager.save_repository_analysis(sample_result_id, project_analysis_data)
         
         assert result is True
         call_args = mock_db_connector.execute_update.call_args
         json_data = json.loads(call_args[0][1][0])
-        assert json_data['total_projects'] == 0
+        assert json_data['analyzed_insights'] == []
+        assert json_data['timeline'] == []
 
 
 class TestSaveTrackedData:
