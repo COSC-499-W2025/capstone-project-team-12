@@ -113,7 +113,7 @@ def test_inserts(set_db_Connector):
     #Note the database is not responsible for ensuring JSON files are in valid format accepted by our app.
     uuid = db.execute_update(
         "INSERT INTO Results (topic_vector,resume_points,project_insights,package_insights,metadata_insights) VALUES (%s, %s, %s, %s, %s) RETURNING result_id",
-        ("Sample String",Json(nested_json),Json(array_json),Json(mixed_types_json),Json(edge_cases_json)),
+        (Json("Sample String"),Json(nested_json),Json(array_json),Json(mixed_types_json),Json(edge_cases_json)),
         returning=True
     )
     print(f"Inserted Row with ID: {uuid}")
