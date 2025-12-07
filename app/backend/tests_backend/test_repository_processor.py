@@ -3,6 +3,8 @@ import pytest
 from pathlib import Path
 import tempfile
 from anytree import Node
+from datetime import datetime
+from pydriller.domain.commit import ModificationType
 from repository_processor import RepositoryProcessor
 
 # Get test file directory and navigate to test repo - works on all OS
@@ -167,6 +169,111 @@ class TestDateRangeCalculation:
         result: Dict[str, Any] = processor._calculate_date_range([])
         assert result['start_date'] is None and result['duration_days'] == 0
 
+class TestPersonalEmailMatching:
+    
+    @pytest.fixture
+    def mock_commit(self, mocker):
+        """Factory fixture for creating mock commits"""
+        def _create(email: str, has_modified_file: bool = False):
+            commit = mocker.Mock()
+            commit.hash = "abc123"
+            commit.author.email = email
+            commit.author_date = datetime(2024, 1, 1)
+            
+            if has_modified_file:
+                mod = mocker.Mock()
+                mod.filename = "test.py"
+                mod.added_lines = 10
+                mod.deleted_lines = 5
+                mod.change_type = ModificationType.MODIFY
+                mod.source_code = ""
+                commit.modified_files = [mod]
+            else:
+                commit.modified_files = []
+            
+            return commit
+        return _create
+    
+    def test_initialization_with_user_email(self) -> None:
+        processor = RepositoryProcessor("testuser", [], user_email="john@gmail.com")
+        assert processor.user_email == "john@gmail.com"
+    
+    def test_initialization_without_user_email(self) -> None:
+        processor = RepositoryProcessor("testuser", [])
+        assert processor.user_email is None
+    
+    @pytest.mark.parametrize("email,should_match", [
+        ("12345+testuser@users.noreply.github.com", True),  # GitHub private
+        ("john.doe@gmail.com", True),   # Personal email
+        ("other@example.com", False),   # Non-matching
+    ])
+    def test_email_matching(self, mocker, mock_commit, email, should_match) -> None:
+        """Test matching of different email types"""
+        processor = RepositoryProcessor("testuser", [], user_email="john.doe@gmail.com")
+        
+        mock_repo = mocker.Mock()
+        mock_repo.traverse_commits.return_value = [mock_commit(email)]
+        
+        mocker.patch('repository_processor.Repository', return_value=mock_repo)
+        result = processor._extract_commits_data(mock_repo)
+        
+        expected_count = 1 if should_match else 0
+        assert len(result['user_commits_data']) == expected_count
+    
+    def test_matches_both_email_types(self, mocker, mock_commit) -> None:
+        """Test capturing both GitHub private and personal emails in same repo"""
+        processor = RepositoryProcessor("testuser", [], user_email="john@gmail.com")
+        
+        mock_repo = mocker.Mock()
+        mock_repo.traverse_commits.return_value = [
+            mock_commit("12345+testuser@users.noreply.github.com"),
+            mock_commit("john@gmail.com")
+        ]
+        
+        mocker.patch('repository_processor.Repository', return_value=mock_repo)
+        result = processor._extract_commits_data(mock_repo)
+        
+        assert len(result['user_commits_data']) == 2
+    
+    def test_change_types_tracked_for_both_email_types(self, mocker, mock_commit) -> None:
+        """Test change_types tracked for commits matched by either email"""
+        processor = RepositoryProcessor("testuser", [], user_email="john@gmail.com")
+        
+        mock_repo = mocker.Mock()
+        mock_repo.traverse_commits.return_value = [
+            mock_commit("12345+testuser@users.noreply.github.com", has_modified_file=True),
+            mock_commit("john@gmail.com", has_modified_file=True)
+        ]
+        
+        mocker.patch('repository_processor.Repository', return_value=mock_repo)
+        result = processor._extract_commits_data(mock_repo)
+        
+        assert 'MODIFY' in result['user_statistics']['change_types']
+        assert result['user_statistics']['user_lines_added'] == 20  # 10 per commit
+
+    def test_combines_duplicate_emails_in_all_authors_stats(self, mocker, mock_commit) -> None:
+        """Test that multiple user emails are combined in all_authors_stats"""
+        processor = RepositoryProcessor("testuser", [], user_email="john@gmail.com")
+        
+        # Create commits with different emails from the same user
+        mock_repo = mocker.Mock()
+        mock_repo.traverse_commits.return_value = [
+            mock_commit("12345+testuser@users.noreply.github.com", has_modified_file=True),
+            mock_commit("john@gmail.com", has_modified_file=True)
+        ]
+        
+        mocker.patch('repository_processor.Repository', return_value=mock_repo)
+        result = processor._extract_commits_data(mock_repo)
+        
+        all_authors = result['repository_context']['all_authors_stats']
+        
+        # Should only have one entry for the user (combined)
+        assert len(all_authors) == 1
+        # Combined entry should use user_email as key
+        assert "john@gmail.com" in all_authors
+        # Stats should be combined
+        assert all_authors["john@gmail.com"]['commits'] == 2
+        assert all_authors["john@gmail.com"]['lines_added'] == 20
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
