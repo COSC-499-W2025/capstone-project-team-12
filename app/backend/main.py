@@ -21,6 +21,7 @@ from llm_online import OnlineLLMClient
 from llm_local import LocalLLMClient
 from config_manager import ConfigManager
 from database_manager import DatabaseManager
+from display_helpers import display_project_insights, display_project_summary, display_project_timeline
 
 file_data_list: List = []
 file_access_consent: bool = None 
@@ -228,6 +229,7 @@ def main() -> None:
                     timeline: list = []
                     dictionary = None
                     lda_model = None
+                    final_bow = []
 
                     try:
                         text_nodes: List[Node] = tree_processor.get_text_files()
@@ -292,7 +294,8 @@ def main() -> None:
                     except Exception as e:
                         print_status(f"Error during content analysis: {e}", "error")
 
-                    processed_git_repos: bytes = None
+                    processed_git_repos: List[Dict[str, Any]] = None
+                    analyzed_repos: List[Dict[str, Any]] = None
 
                     if git_repos:
                         print_header("Repository Linking")
@@ -307,17 +310,33 @@ def main() -> None:
                             )
                             
                             try:
-                                processed_git_repos: List[Dict[str, Any]] = repo_processor.process_repositories(git_repos)
-                                if processed_git_repos:
+                                processed_git_repos = repo_processor.process_repositories(git_repos)
+                                if not processed_git_repos:
+                                    print_status("No repositores to process.", "error")
+                                else:
                                     print_status("Repositories processed successfully.", "success")
                                     
                                     analyzer = RepositoryAnalyzer(github_username)
-                                    analyzed_repos: Dict[str, Any] = analyzer.generate_project_insights(processed_git_repos)
-                                    print_status(f"Analyzed {len(analyzed_repos)} repositories.", "success")
-                                    timeline = analyzer.create_chronological_project_list(processed_git_repos)
-                                    print("\n--- Project Timeline ---")
-                                    for project in timeline:
-                                        print(f"• {project['name']}: {project['start_date']} - {project['end_date']}")
+
+                                    #Generate the insights for ALL projects (not just what is displayed to allow for storage in db)
+                                    analyzed_repos = analyzer.generate_project_insights(processed_git_repos)
+
+                                    if not analyzed_repos:
+                                        print_status("No successful repository analyses.", "warning")
+                                    else:
+                                        print_status(f"Analyzed {len(analyzed_repos)} repositories.", "success")
+                                        
+                                        # Generate the project timeline
+                                        timeline = analyzer.create_chronological_project_list(processed_git_repos)
+
+                                        # when generate_project_insights is run, the returned values are sorted by importance already
+                                        display_project_summary(analyzed_repos, top_n=3)
+
+                                        # display the detailed insights only for top 3 projects
+                                        display_project_insights(analyzed_repos, top_n=3)
+
+                                        display_project_timeline(timeline)
+                                    
                             except Exception as e:
                                 print_status(f"Repository processing failed: {e}", "error")
                                 import traceback
@@ -333,9 +352,9 @@ def main() -> None:
                     } if doc_topic_vectors else {}
                     
                     project_analysis_data = {
-                        "repositories": analyzed_repos if git_repos else {},
-                        "timeline": timeline
-                    } if git_repos else {}
+                        "analyzed_insights": analyzed_repos if analyzed_repos else [],
+                        "timeline": timeline if timeline else []
+                    } if git_repos else []
                     
                     try:
                         print_header("AI Summary Generation")
@@ -421,12 +440,12 @@ def main() -> None:
                 try:
                     result_id: int = database_manager.create_new_result() # create new result entry in the database
                     # save tracked data
-                    database_manager.save_tracked_data(result_id, metadata_results, final_bow, project_analysis_data)
+                    database_manager.save_tracked_data(result_id, metadata_results, final_bow, processed_git_repos)
 
                     # save insights
                     database_manager.save_metadata_analysis(result_id, metadata_analysis)
                     database_manager.save_text_analysis(result_id, doc_topic_vectors, topic_term_vectors)
-                    database_manager.save_repository_analysis(result_id, processed_git_repos, timeline)
+                    database_manager.save_repository_analysis(result_id, project_analysis_data)
                     database_manager.save_resume_points(result_id, medium_summary)
                 except Exception as e:
                     print_status(f"Error saving result to database: {e}", "error")
@@ -480,7 +499,27 @@ def main() -> None:
                         # print(f"Topic vectors: {result['topic_vector']}")
                         print("Resume points:")
                         print(f"{result['resume_points']}")
-                        print(f"\nProject insights: {result['project_insights']}")
+
+                        # Display the project insights
+                        project_insights = result.get('project_insights', {})
+                        if project_insights:
+                            analyzed_repos = project_insights.get('analyzed_insights',[])
+                            timeline = project_insights.get('timeline', [])
+
+                            if analyzed_repos:
+                                display_project_summary(analyzed_repos, top_n=3)
+                                display_project_insights(analyzed_repos, top_n=3)
+                                display_project_timeline(timeline)
+                            
+                            else:
+                                print("\n=== Project Insights ===")
+                                print("No project insights available.")
+                        else:
+                            print("\n=== Project Insights ===")
+                            print("No project data available.")
+                        
+
+
                         print(f"\nPackage insights: {result['package_insights']}")
                         print("\nMetadata insights:")
                         print(f"{'Extension':<10} | {'Count':<8} | {'Size':<15} | {'Percentage':<8} | {'Category'}")

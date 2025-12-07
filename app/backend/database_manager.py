@@ -119,17 +119,17 @@ class DatabaseManager:
     def save_repository_analysis(
         self,
         result_id: str,
-        processed_git_repos: Any,
-        timeline: List[Dict[str, Any]]
+        project_analysis_data: Dict[str, Any]
     ) -> bool:
-        """Save repository analysis results to the database and return success status (bool)."""
+        """Save repository analysis results to the database and return success status (bool).
+        Includes the processed repositories, analyzed insights, and the timeline with the relevant 
+        project data.
+        Thus project_analysis_data: Dict contaning:
+            - analyzed_insights: Detailed project insights generated for ALL projects
+            - timeline: Basic project information sorted in chronological order for timeline output
+        
+        """
         try:
-            project_insights = {
-                "repositories": processed_git_repos,
-                "timeline": timeline,
-                "total_projects": len(timeline) if timeline else 0
-            }
-            
             query = """
                 UPDATE Results
                 SET project_insights = %s
@@ -138,7 +138,7 @@ class DatabaseManager:
             
             self.db.execute_update(
                 query,
-                (json.dumps(project_insights, default=str), uuid.UUID(result_id))
+                (json.dumps(project_analysis_data, default=str), uuid.UUID(result_id))
             )
             
             print(f"Saved repository analysis for result_id: {result_id}")
