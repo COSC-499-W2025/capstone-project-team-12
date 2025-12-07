@@ -294,7 +294,8 @@ def main() -> None:
                     except Exception as e:
                         print_status(f"Error during content analysis: {e}", "error")
 
-                    processed_git_repos: bytes = None
+                    processed_git_repos: List[Dict[str, Any]] = None
+                    analyzed_repos: List[Dict[str, Any]] = None
 
                     if git_repos:
                         print_header("Repository Linking")
@@ -315,7 +316,7 @@ def main() -> None:
                                     analyzer = RepositoryAnalyzer(github_username)
 
                                     #Generate the insights for ALL projects (not just what is displayed to allow for storage in db)
-                                    analyzed_repos: List[Dict[str, Any]] = analyzer.generate_project_insights(processed_git_repos)
+                                    analyzed_repos = analyzer.generate_project_insights(processed_git_repos)
 
                                     if not analyzed_repos:
                                         print_status("No successful repository analyses.", "warning")
@@ -346,8 +347,9 @@ def main() -> None:
                     } if doc_topic_vectors else {}
                     
                     project_analysis_data = {
-                        "projects": timeline
-                    } if timeline else {}
+                        "analyzed_insights": analyzed_repos if analyzed_repos else [],
+                        "timeline": timeline if timeline else []
+                    } if git_repos else []
                     
                     try:
                         print_header("AI Summary Generation")
@@ -433,12 +435,12 @@ def main() -> None:
                 try:
                     result_id: int = database_manager.create_new_result() # create new result entry in the database
                     # save tracked data
-                    database_manager.save_tracked_data(result_id, metadata_results, final_bow, project_analysis_data)
+                    database_manager.save_tracked_data(result_id, metadata_results, final_bow, processed_git_repos)
 
                     # save insights
                     database_manager.save_metadata_analysis(result_id, metadata_analysis)
                     database_manager.save_text_analysis(result_id, doc_topic_vectors, topic_term_vectors)
-                    database_manager.save_repository_analysis(result_id, processed_git_repos, timeline)
+                    database_manager.save_repository_analysis(result_id, project_analysis_data)
                     database_manager.save_resume_points(result_id, medium_summary)
                 except Exception as e:
                     print_status(f"Error saving result to database: {e}", "error")
