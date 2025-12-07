@@ -297,7 +297,7 @@ class RepositoryAnalyzer:
         code_lines_added: int = 0
 
         # Potential test patterns, can be expanded later
-        test_patterns = ['test_', '_test', 'tests/', '/tests/', '/test/','test/','spec_', '_spec', 'specs/', '/specs/', 'spec.', '.spec']
+        test_patterns = ['test_', '_test', 'tests/', '/tests/', '/test/','test/','test','tests','spec_', '_spec', 'specs/', '/specs/', 'spec.', '.spec']
 
         for commit in commits_data:
             for mod in commit.get('modified_files', []):
