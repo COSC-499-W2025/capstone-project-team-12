@@ -494,7 +494,27 @@ def main() -> None:
                         # print(f"Topic vectors: {result['topic_vector']}")
                         print("Resume points:")
                         print(f"{result['resume_points']}")
-                        print(f"\nProject insights: {result['project_insights']}")
+
+                        # Display the project insights
+                        project_insights = result.get('project_insights', {})
+                        if project_insights:
+                            analyzed_repos = project_insights.get('analyzed_insights',[])
+                            timeline = project_insights.get('timeline', [])
+
+                            if analyzed_repos:
+                                display_project_summary(analyzed_repos, top_n=3)
+                                display_project_insights(analyzed_repos, top_n=3)
+                                display_project_timeline(timeline)
+                            
+                            else:
+                                print("\n=== Project Insights ===")
+                                print("No project insights available.")
+                        else:
+                            print("\n=== Project Insights ===")
+                            print("No project data available.")
+                        
+
+
                         print(f"\nPackage insights: {result['package_insights']}")
                         print("\nMetadata insights:")
                         print(f"{'Extension':<10} | {'Count':<8} | {'Size':<15} | {'Percentage':<8} | {'Category'}")
