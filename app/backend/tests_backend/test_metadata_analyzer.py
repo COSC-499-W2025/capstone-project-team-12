@@ -14,7 +14,7 @@ class TestMetadataAnalyzer:
             'character_count': 2800,
             'file_extension': '.py',
             'creation_date': '04/15/2025',
-            'last_modified_date': '10/20/2025'
+            'last_modified_date': '04/20/2025'
         },
         'project/utils.js': {
             'filepath' : 'project/utils.js',
@@ -24,7 +24,7 @@ class TestMetadataAnalyzer:
             'character_count': 1800,
             'file_extension': '.js',
             'creation_date': '01/20/2025',
-            'last_modified_date': '11/18/2025'
+            'last_modified_date': '05/18/2025'
         },
         'project/README.md': {
             'filepath' : 'project/README.md',
@@ -34,7 +34,7 @@ class TestMetadataAnalyzer:
             'character_count': 800,
             'file_extension': '.md',
             'creation_date': '01/10/2025',
-            'last_modified_date': '07/15/2025'
+            'last_modified_date': '05/15/2025'
         },
         'project/test.py': {
             'filepath' : 'project/test.py',
@@ -44,7 +44,7 @@ class TestMetadataAnalyzer:
             'character_count': 4200,
             'file_extension': '.py',
             'creation_date': '05/18/2025',
-            'last_modified_date': '11/10/2025'
+            'last_modified_date': '09/10/2025'
         },
         'project/test.html': {
             'filepath' : 'project/test.html',
@@ -54,7 +54,7 @@ class TestMetadataAnalyzer:
             'character_count': 4200,
             'file_extension': '.html',
             'creation_date': '01/09/2024',
-            'last_modified_date': '10/31/2025'
+            'last_modified_date': '04/30/2025'
         },
         'project/api.java': {
             'filepath' : 'project/api.java',
@@ -64,7 +64,7 @@ class TestMetadataAnalyzer:
             'character_count': 1000,
             'file_extension': '.java',
             'creation_date': '08/10/2025',
-            'last_modified_date': '11/01/2025'
+            'last_modified_date': '01/01/2025'
         },
         'project/docker-compose.yaml': {
             'filepath' : 'project/docker-compose.yaml',
@@ -74,7 +74,7 @@ class TestMetadataAnalyzer:
             'character_count': 937,
             'file_extension': '.yaml',
             'creation_date': '04/24/2025',
-            'last_modified_date': '10/12/2025'
+            'last_modified_date': '03/12/2025'
         },
         'project/analysis.r': {
             'filepath' : 'project/analysis.r',
@@ -84,7 +84,7 @@ class TestMetadataAnalyzer:
             'character_count': 30,
             'file_extension': '.r',
             'creation_date': '10/12/2025',
-            'last_modified_date': '10/01/2025'
+            'last_modified_date': '07/01/2025'
         }
         }
 
@@ -147,15 +147,15 @@ class TestMetadataAnalyzer:
         assert '2024-01' in date_stats['by_creation_date']
 
         # test modification dates are properly extracted
-        assert len(date_stats['by_modified_date']) == 3
-        assert '2025-11' in date_stats['by_modified_date']
+        assert len(date_stats['by_modified_date']) == 6
+        assert '2025-03' in date_stats['by_modified_date']
         assert '2025-07' in date_stats['by_modified_date']
 
         # test filepath saved with dates
         assert 'project/test.py' in date_stats['by_creation_date']['2025-05']
         assert 'project/README.md' in date_stats['by_creation_date']['2025-01']
-        assert 'project/docker-compose.yaml' in date_stats['by_modified_date']['2025-10']
-        assert 'project/test.py' in date_stats['by_modified_date']['2025-11']
+        assert 'project/test.py' in date_stats['by_modified_date']['2025-09']
+        assert 'project/README.md' in date_stats['by_modified_date']['2025-05']
 
         # test that dates are sorted in descending order (most recent first)
         creation_dates = list(date_stats['by_creation_date'].keys())
@@ -164,8 +164,8 @@ class TestMetadataAnalyzer:
         assert modification_dates == sorted(modification_dates, reverse=True)
 
         # test activity
-        assert date_stats['recent_activity_count'] == 3
-        assert date_stats['activity_level'] == "high"
+        assert date_stats['recent_activity_count'] == 0
+        assert date_stats['activity_level'] == "moderate"
 
     def test_extension_classification(self):
         """Test extension classification"""
