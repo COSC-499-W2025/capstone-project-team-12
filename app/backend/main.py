@@ -298,7 +298,6 @@ def main() -> None:
                         print_header("Repository Linking")
                         print(f"Detected {len(git_repos)} git repositories.")
 
-
                         github_username: str = input("Enter GitHub username to link (Press Enter to skip): \n> ").strip()
                         
                         if github_username:
@@ -309,97 +308,16 @@ def main() -> None:
                             
                             try:
                                 processed_git_repos: List[Dict[str, Any]] = repo_processor.process_repositories(git_repos)
-                                
-                                if not processed_git_repos:
-                                    print_status("No repositories to process.", "error")
-                                else:
+                                if processed_git_repos:
                                     print_status("Repositories processed successfully.", "success")
                                     
                                     analyzer = RepositoryAnalyzer(github_username)
-                                    analyzed_repos: List[Dict[str, Any]] = analyzer.generate_project_insights(processed_git_repos)
-                                    
-                                    if not analyzed_repos:
-                                        print_status("No successful repository analyses.", "warning")
-                                    else:
-                                        print_status(f"Analyzed {len(analyzed_repos)} repositories.", "success")
-                                        
-                                        # Generate timeline and skill data
-                                        timeline = analyzer.create_chronological_project_list(processed_git_repos)
-                                        
-                                        # Get ranked projects from the raw processed data
-                                        valid_projects = [p for p in processed_git_repos if p.get('status') == 'success']
-                                        ranked_projects = analyzer.rank_importance_of_projects(valid_projects)
-                                        
-                                        # Determine how many projects to display (max 3, but could be fewer)
-                                        top_n = min(3, len(ranked_projects))
-                                        
-                                        if top_n > 0:
-                                            print("\n=== Most Important Projects ===")
-                                            for i, proj in enumerate(ranked_projects[:top_n], start=1):
-                                                stats = proj.get("statistics", {})
-                                                dates = proj.get("dates", {})
-                                                
-                                                print(f"{i}. Repo: {proj.get('repository_name', 'Unknown')}")
-                                                print(f"   Score: {round(proj.get('importance', 0), 4)}")
-                                                print(f"   Commits: {len(proj.get('user_commits', []))}")
-                                                print(f"   Lines Added: {stats.get('user_lines_added', 0)}")
-                                                print(f"   Duration: {dates.get('duration_days', 0)} days\n")
-                                        else:
-                                            print("\n=== Most Important Projects ===")
-                                            print("No valid projects found to rank.")
-                                        
-                                        # Display detailed insights for each analyzed project
-                                        print("\n=== Detailed Project Insights ===")
-                                        for project in analyzed_repos:
-                                            print(f"\n=== Repository: {project.get('repository_name', 'Unknown')} ===")
-                                            
-                                            # Contribution Analysis
-                                            contrib = project.get("contribution_analysis", {})
-                                            print("\n> Contribution Insights:")
-                                            print(f"  - Contribution Level: {contrib.get('contribution_level', 'Unknown')}")
-                                            print(f"  - Rank (by commits): {contrib.get('rank_by_commits', 'N/A')}")
-                                            print(f"  - Percentile: {contrib.get('percentile', 'N/A')}%")
-                                            
-                                            # Collaboration Analysis
-                                            collab = project.get("collaboration_insights", {})
-                                            print("\n> Collaboration Insights:")
-                                            print(f"  - Team Size: {collab.get('team_size', 0)}")
-                                            print(f"  - Collaborative Project: {collab.get('is_collaborative', False)}")
-                                            print(f"  - User Contribution Share: {collab.get('user_contribution_share_percentage', 0)}%")
-                                            
-                                            # Testing Analysis
-                                            test = project.get("testing_insights", {})
-                                            print("\n> Testing Insights:")
-                                            print(f"  - Test Files Modified: {test.get('test_files_modified', 0)}")
-                                            print(f"  - Code Files Modified: {test.get('code_files_modified', 0)}")
-                                            print(f"  - Testing % (files): {test.get('testing_percentage_files', 0)}%")
-                                            print(f"  - Test Lines Added: {test.get('test_lines_added', 0)}")
-                                            print(f"  - Code Lines Added: {test.get('code_lines_added', 0)}")
-                                            print(f"  - Testing % (lines): {test.get('testing_percentage_lines', 0)}%")
-                                            print(f"  - Has Tests: {test.get('has_tests', False)}")
-                                            
-                                            # Imports Summary (limit to top 5)
-                                            imports = project.get("imports_summary", {})
-                                            print("\n> Imports Summary (Top 5):")
-                                            if imports:
-                                                for imp, stats in list(imports.items())[:5]:
-                                                    freq = stats.get('frequency', 0)
-                                                    duration = stats.get('duration_days', 0)
-                                                    print(f"  {imp}: freq={freq}, duration={duration} days")
-                                            else:
-                                                print("  No imports detected.")
-                                        
-                                        # Display Project Timeline
-                                        if timeline:
-                                            print("\n=== Project Timeline ===")
-                                            for project in timeline:
-                                                start = project.get('start_date', 'Unknown')
-                                                end = project.get('end_date', 'Unknown')
-                                                print(f"• {project.get('name', 'Unknown')}: {start} - {end}")
-                                        else:
-                                            print("\n=== Project Timeline ===")
-                                            print("No timeline data available.")
-                                            
+                                    analyzed_repos: Dict[str, Any] = analyzer.generate_project_insights(processed_git_repos)
+                                    print_status(f"Analyzed {len(analyzed_repos)} repositories.", "success")
+                                    timeline = analyzer.create_chronological_project_list(processed_git_repos)
+                                    print("\n--- Project Timeline ---")
+                                    for project in timeline:
+                                        print(f"• {project['name']}: {project['start_date']} - {project['end_date']}")
                             except Exception as e:
                                 print_status(f"Repository processing failed: {e}", "error")
                                 import traceback
@@ -415,7 +333,7 @@ def main() -> None:
                     } if doc_topic_vectors else {}
                     
                     project_analysis_data = {
-                        "repositories": analyzed_repos if analyzed_repos else {},
+                        "repositories": analyzed_repos if git_repos else {},
                         "timeline": timeline
                     } if git_repos else {}
                     
