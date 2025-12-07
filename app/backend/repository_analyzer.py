@@ -5,8 +5,9 @@ import re
 class RepositoryAnalyzer:
     # Analyzes repository data to extract project insights
 
-    def __init__(self, username: str):
+    def __init__(self, username: str, user_email: str = None):
         self.username = username
+        self.user_email = user_email if user_email else None
 
     # Regex patterns for import statements in various languages
     # Python: from X import Y -> captures X; import X, Y -> captures X, Y
@@ -240,29 +241,30 @@ class RepositoryAnalyzer:
 
         # TODO: Rework this and processor to anonymize emails to ensure no PII is stored
         # For now, we find the user's email from all_authors_stats
-        user_email: str | None = None
-        for email in all_authors_stats.keys(): 
-            if self.username.lower() in email.lower():
-                user_email = email
-                break
+        user_stats = None
 
-        if not user_email or user_email not in all_authors_stats:
+        if self.user_email and self.user_email in all_authors_stats:
+            user_stats = all_authors_stats[self.user_email]
+        else:
+            for email, stats in all_authors_stats.items():
+                if self.username.lower() in email.lower():
+                    user_stats = stats
+                    break
+        
+        if not user_stats:
             return {
                 'contribution_level': 'Unknown',
                 'rank_by_commits': None,
                 'percentile': None,
             }
 
-        # Sort authors by number of commits
-        sorted_by_commits = sorted(
-            all_authors_stats.items(),
-            key=lambda item: item[1]['commits'],
-            reverse=True
-        )
+        user_commits: int = user_stats['commits']
 
-        # Pull out just the emails in sorted order
-        sorted_emails = [email for email, stats in sorted_by_commits]
-        rank: int = sorted_emails.index(user_email) + 1  if user_email in sorted_emails else None
+        # Count how many authors have more commits than the user
+        rank: int = 1
+        for email, stats in all_authors_stats.items():
+            if stats['commits'] > user_commits:
+                rank += 1
 
         total_authors: int = len(all_authors_stats)
         percentile: float = ((total_authors - rank) / total_authors) * 100 if rank else None
