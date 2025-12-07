@@ -12,6 +12,8 @@
 - Minor refactor so file classifier and metadata analyzer tests pass again
 - Attended weekly team meeting
 
+![Week 14](imgs/An%20Tran%20week14.png)
+
 ### Reflection and plans for future
 - All tasks assigned were accomplished
 - Prepare for future milestone during winter break
