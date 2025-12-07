@@ -229,6 +229,7 @@ def main() -> None:
                     timeline: list = []
                     dictionary = None
                     lda_model = None
+                    final_bow = []
 
                     try:
                         text_nodes: List[Node] = tree_processor.get_text_files()
