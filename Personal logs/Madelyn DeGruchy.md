@@ -11,7 +11,7 @@
 - Participated in team meetings
 
 ### Reflection
-I believe this week was fairly busy for most of the team, so I took on some additional implementation to help us cross the finish line. Going forward I would like to try and enforce some firmer deadlines within the team to minimize the amount of last-minute scrambling required at the end of the week. The issue with how docker was accessing hidden .git folders on Mac ended up being a much larger undertaking than was initially expected, so having Lexi and access to macOS with her laptop was incredibly helpful! Once we got into Saturday, she took the reins to really try and research possible solutions and was instrumental in getting that final fix together while I was updating the database and main integration to include the project insights and display them properly. Also, a shoutout to Sithara, who came straight from work to join in on the bug fix Saturday afternoon and evening! 
+The issue with how docker was accessing hidden .git folders on Mac ended up being a much larger undertaking than was initially expected, so having Lexi and access to macOS with her laptop was incredibly helpful! Once we got into Saturday, she took the reins to really try and research possible solutions and was instrumental in getting that final fix together while I was updating the database and main integration to include the project insights and display them properly. Also, a shoutout to Sithara, who came straight from work to join in on the bug fix Saturday afternoon and evening! 
 
 ![Peer Evaluation Week 14](imgs/Madelyn%20DeGruchy%20Week%2014.png)
 
