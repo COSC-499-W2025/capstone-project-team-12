@@ -301,12 +301,15 @@ def main() -> None:
                         print_header("Repository Linking")
                         print(f"Detected {len(git_repos)} git repositories.")
 
-                        github_username: str = input("Enter GitHub username to link (Press Enter to skip): \n> ").strip()
+                        github_username: str = input("Enter GitHub username to link (Press Enter to skip): \n> ").strip().lower()
                         
                         if github_username:
+                            user_email: str = input("Enter GitHub email associated with the account: \n> ").strip().lower()
+
                             repo_processor: RepositoryProcessor = RepositoryProcessor(
                                 username=github_username,
-                                binary_data_array=binary_data
+                                binary_data_array=binary_data,
+                                user_email=user_email if user_email else None
                             )
                             
                             try:
