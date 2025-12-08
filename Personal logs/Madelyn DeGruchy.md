@@ -1,4 +1,20 @@
 # Madelyn DeGruchy Personal Log (85064962 - maddydeg)
+
+## Week 14 (12/1/2025 - 12/07/2025)
+- Assisted in the bug fix for the mac vs windows issue (Worked through diagnosing issue - 5 hours Monday, worked on a separate PR while Lexi completed troubleshooting and final fix - 6 hours Saturday)
+- Implemented the display and storage of project insights to the database
+- Added the user email to what is considered for user commits, resolving an ongoing bug in how the user identifies their personal commits in a repository
+  - Includes the necessary testing for this fix
+- Discussed with Lexi and Sithara to divide final tasks needed to ensure completion of Milestone 1
+- Assisted in preparing and presenting Milestone 1
+- Reviewed team mate PR's
+- Participated in team meetings
+
+### Reflection
+The issue with how docker was accessing hidden .git folders on Mac ended up being a much larger undertaking than was initially expected, so having Lexi and access to macOS with her laptop was incredibly helpful! Once we got into Saturday, she took the reins to really try and research possible solutions and was instrumental in getting that final fix together while I was updating the database and main integration to include the project insights and display them properly. Also, a shoutout to Sithara, who came straight from work to join in on the bug fix Saturday afternoon and evening! 
+
+![Peer Evaluation Week 14](imgs/Madelyn%20DeGruchy%20Week%2014.png)
+
 ## Week 13 (11/24/2025 - 11/30/2025)
 - Updated the project analysis pipeline to separate the extraction data returned from the analysis data returned to allow for saving to their respective databases
   - Moved extraction to the processing pipeline to ensure analysis is exclusively related to that analysis, as the file was beginning to get quite large

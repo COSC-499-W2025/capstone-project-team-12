@@ -1,5 +1,24 @@
 # Lexi Loudiadis (93546844) Personal Log
 
+## Week 14 (12/01/2025 - 12/07/2025)
+
+- I discovered a Mac vs Window bug while running a teammates' PR last week  This week we addressed this problem and after many long hours we got to the bottom of it
+- Implemented the functionality to upload files from a user's computer - prior to this we could only test using repos/files already in the container
+- Created tests for Maddy's project analysis database integration and display results PR
+- Milestone 1 presentation and preparation
+- Team meetings, dividing the final tasks left to do for Milestone 1
+
+### In Progress
+- Currently we are just finishing our deliverables for Milestone 1 and then will likely all be taking the break off
+
+### What's Next
+- After winter break we will meet to figure out how to approach the next milestone
+
+### Reflection
+- Although we are mostly happy with how our MVP turned out, we did feel we ended up with a lot to get done in the last 2-3 weeks. As a result, we would like to ensure that we go through all the requirements for Milestone 2 during the first week of class in January, and map out what needs to get done and when. This will help make sure we are not pressed for time at any point and we all know exactly what needs to get done
+
+![Type of tasks I worked on](imgs/Week%2014%20Lexi.png)
+
 ## Week 13 (11/24/2025 - 11/30/2025)
 
 - Finished the implementation of our project analysis, which uses import lines to extract skills in Git repos. Ensure milestone requirements were satisfied. Included relevant testing
