@@ -29,7 +29,7 @@ Our team aims to:
 * **Participation:**  
    All members are expected to contribute during the debrief. Beyond this, participation levels may vary based on individual working styles and personalities.
 
-**3\. Expectations for Communication and Collaboration**
+## **3\. Expectations for Communication and Collaboration**
 
 ### **Communication Frequency**
 
@@ -95,7 +95,7 @@ Our team aims to:
 
 * Those involved will implement the agreed solution during the following week.
 
-**5.2 When an Issue Occurs Repeatedly**
+### **5.2 When an Issue Occurs Repeatedly**
 
 **a. Documentation:**
 
