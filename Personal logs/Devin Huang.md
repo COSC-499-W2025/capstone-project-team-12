@@ -1,4 +1,15 @@
 ## Devin Huang Personal Log (86828886)
+### Week 14
+- Resolved an issue where mac users could not run the local llm due to docker memory limitation
+  - Apparently Docker desktop on MAC does not reserve memory dynamically, unlike on windows. Raising that limit fixed the issue.
+- Optimized the prompt for the medium length local LLM summary
+- recorded milestone 1 demo video
+- Participated in team presentation
+### Next week (break)
+- Bug hunt
+### Reflection
+- This week has been rough, I was sick in the beginning and had exams spread accross this week, and two finals on monday and tuesday. I do realize that I have not done enough coding wise, but I believe that I needed to focus on my exams.
+<img width="802" height="568" alt="image" src="https://github.com/user-attachments/assets/073b2feb-6244-4368-ba87-0784bc6b4447" />
 
 ### Week 13
 #### This week
