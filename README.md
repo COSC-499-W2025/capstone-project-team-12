@@ -24,4 +24,4 @@
 [Link to Project Proposal](https://github.com/COSC-499-W2025/capstone-project-team-12/blob/c240296205b4e40998d494888c9242e36341b1ce/docs/plan/Group%2012%20Project%20Proposal.md)
 
 ## Team Contract
-[Link to Team Contract](https://github.com/COSC-499-W2025/capstone-project-team-12/blob/c240296205b4e40998d494888c9242e36341b1ce/docs/plan/Team%20Contract.md)
+[Link to Team Contract](https://github.com/COSC-499-W2025/capstone-project-team-12/blob/update-readme/docs/plan/Team%20Contract.md)
