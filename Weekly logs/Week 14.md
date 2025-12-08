@@ -25,6 +25,7 @@
 - Implemented the display and storage of project insights to the database
 - Optimized the prompt for the medium length local LLM summary
 - Recorded video demo of Milestone 1 requirements
+- Implemented the functionality to upload files from a user's computer - prior to this we could only test using repos/files already in the container
 
 ### Burnup chart & Task Table
 ![Week 14 Burn Up](/imgs/Week%2014%20Burnup.png)
