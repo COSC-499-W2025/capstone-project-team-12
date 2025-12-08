@@ -135,3 +135,26 @@ Overall this week we mainly focused on refactoring our existing code, so we have
 - continue to work on the presentation 
 
 
+## Week 14
+## TODOs
+- Work on the presentation 
+- Remove any bugs in app
+
+### Work Done 
+- Participated in team meeting where we rehearsed for our team presentation 
+- Delivered team presentation 
+- Fixed testing bug (issue # 249 )
+- Reviewed teammates code
+- Helped briefly in figuring out the Mac vs Window bug (issue # 250)
+- Finished writing out the team contract
+- Helped in editing our Milestone #1 video 
+
+![alt text](<imgs/Sithara Chari Week 14.png>)
+
+
+
+### Review and future plans 
+- Continue to work on anything I can during the winter holidays for bonus
+- No other future plans as of now, we will start planning again once the next semester starts. 
+
+
