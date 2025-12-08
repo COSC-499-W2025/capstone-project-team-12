@@ -33,9 +33,11 @@ First, clone the project repository to your local machine:
 git clone https://github.com/COSC-499-W2025/capstone-project-team-12.git
 ```
 
+Open the project in Visual Studio Code.
+
 ### 2. Configure Environment Variables
 
-Navigate to the `app` directory and create your environment file:
+In the VS Code terminal, navigate to the `app` directory:
 
 ```bash
 cd app
