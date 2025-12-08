@@ -23,31 +23,5 @@
 ## Project Proposal
 [Link to Project Proposal](https://github.com/COSC-499-W2025/capstone-project-team-12/blob/c240296205b4e40998d494888c9242e36341b1ce/docs/plan/Group%2012%20Project%20Proposal.md)
 
-## Important Testing notes
-
-  - For ease of automated testing all tests are found inside each service sub-folder of the app folder. The top level tests directory contains an md file that links to respective test folders for convenience.
- - For proper running of repo mining tests, note that there is git submodule under `app/backend/tests_backend/test_main_dir/capstone_team12_testrepo`.<br />Alternatively, click this link! [Testing Submodule](app/backend/tests_backend/test_main_dir/capstone_team12_testrepo)
- - To visit the remote copy of submodule [Click Here](https://github.com/Eveline36/capstone_team12_testrepo)
- - To run test ensure submodule folder is upto date, or run `git pull` on main branch of submodule before docker build and/or running tests.
-
-# Project-Starter
-
-Please use the provided folder structure for your project. You are free to organize any additional internal folder structure as required by the project.  
-
-```
-.
-├── docs                    # Documentation files
-│   ├── contract            # Team contract
-│   ├── proposal            # Project proposal 
-│   ├── design              # UI mocks
-│   ├── minutes             # Minutes from team meetings
-│   ├── logs                # Team and individual Logs
-│   └── ...          
-├── src                     # Source files (alternatively `app`)
-├── tests                   # Automated tests 
-├── utils                   # Utility files
-└── README.md
-```
-
-Please use a branching workflow, and once an item is ready, do remember to issue a PR, review, and merge it into the master branch.
-Be sure to keep your docs and README.md up-to-date.
+## Team Contract
+[Link to Team Contract](https://github.com/COSC-499-W2025/capstone-project-team-12/blob/c240296205b4e40998d494888c9242e36341b1ce/docs/plan/Team%20Contract.md)
