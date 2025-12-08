@@ -1,4 +1,131 @@
-[![Open in Visual Studio Code](https://classroom.github.com/assets/open-in-vscode-2e0aaae1b6195c2367325f4f02e2d04e9abb55f0b24a779b69b11b9e10269abc.svg)](https://classroom.github.com/online_ide?assignment_repo_id=20510483&assignment_repo_type=AssignmentRepo)
+# Capstone Project Setup Instructions
+
+Welcome! This guide will walk you through setting up and running our capstone project for grading. Please follow these steps carefully.
+
+---
+
+## Prerequisites
+
+- Docker installed and running
+- Visual Studio Code with Docker extension
+- Git for cloning the repository
+
+### Important for Mac Users
+
+If you're using a Mac, you'll need to adjust Docker's resource allocation:
+
+1. Open **Docker Desktop**
+2. Click the **settings icon** in the top right corner
+3. Navigate to **Resources**
+4. Set **"Memory Limit"** to the maximum GB amount available
+5. Set **"Swap"** to **2 GB**
+6. Click **"Apply & Restart"**
+
+---
+
+## Setup Steps
+
+### 1. Clone the Repository
+
+First, clone the project repository to your local machine:
+
+```bash
+git clone https://github.com/COSC-499-W2025/capstone-project-team-12.git
+```
+
+Open the project in Visual Studio Code.
+
+### 2. Configure Environment Variables
+
+In the VS Code terminal, navigate to the `app` directory:
+
+```bash
+cd app
+```
+
+Create a new file named `.env` at the app level, then copy the contents from `.env.example`:
+
+```bash
+cp .env.example .env
+```
+
+**Important:** Open the `.env` file and specify the file paths to access your:
+- Repositories
+- Nested files
+- Zip files
+- Documents
+
+Use the format provided in the `.env.example` file as a template.
+
+### 3. Build and Run the Docker Container
+
+From the `app` directory, build and start the container:
+
+```bash
+docker compose up -d --build
+```
+
+This command will build the container in detached mode.
+
+### 4. Attach to the Container
+
+1. In Visual Studio Code, click on the **Docker/Containers icon** on the left sidebar
+2. Locate the `app-backend_app` container
+3. **Right-click** on the container
+4. Select **"Attach Visual Studio Code"**
+
+This will open a new VS Code window connected to the container's file system.
+
+### 5. Run the Backend Pipeline
+
+In the attached container's terminal, execute:
+
+```bash
+python main.py
+```
+
+### 6. Select File Path for Analysis
+
+When prompted to select the file path:
+
+- Enter: `/app/repos`
+- Or copy the `repos` folder path
+
+**Note:** The files are accessible at this path because they were volume-mounted into the container during the Docker build process.
+
+### 7. Interact with the System
+
+Follow the on-screen prompts to:
+- Test the system's functionality
+- Run analysis on uploaded files
+- Explore different features
+
+---
+
+## Troubleshooting
+
+If you encounter any issues:
+
+- Ensure Docker is running and has sufficient resources
+- Verify that all file paths in `.env` are correct
+- Check that the container built successfully without errors
+- Make sure you're in the correct directory when running commands
+
+---
+
+## Thank You!
+
+Thank you for taking the time to review and grade our project. We hope the setup process is smooth and straightforward.
+
+**Happy Holidays!** 🎄
+
+---
+
+*For questions or issues, please don't hesitate to reach out.*
+
+--- 
+<br>
+
 
 ## Work Breakdown Diagram
 
@@ -23,31 +150,5 @@
 ## Project Proposal
 [Link to Project Proposal](https://github.com/COSC-499-W2025/capstone-project-team-12/blob/c240296205b4e40998d494888c9242e36341b1ce/docs/plan/Group%2012%20Project%20Proposal.md)
 
-## Important Testing notes
-
-  - For ease of automated testing all tests are found inside each service sub-folder of the app folder. The top level tests directory contains an md file that links to respective test folders for convenience.
- - For proper running of repo mining tests, note that there is git submodule under `app/backend/tests_backend/test_main_dir/capstone_team12_testrepo`.<br />Alternatively, click this link! [Testing Submodule](app/backend/tests_backend/test_main_dir/capstone_team12_testrepo)
- - To visit the remote copy of submodule [Click Here](https://github.com/Eveline36/capstone_team12_testrepo)
- - To run test ensure submodule folder is upto date, or run `git pull` on main branch of submodule before docker build and/or running tests.
-
-# Project-Starter
-
-Please use the provided folder structure for your project. You are free to organize any additional internal folder structure as required by the project.  
-
-```
-.
-├── docs                    # Documentation files
-│   ├── contract            # Team contract
-│   ├── proposal            # Project proposal 
-│   ├── design              # UI mocks
-│   ├── minutes             # Minutes from team meetings
-│   ├── logs                # Team and individual Logs
-│   └── ...          
-├── src                     # Source files (alternatively `app`)
-├── tests                   # Automated tests 
-├── utils                   # Utility files
-└── README.md
-```
-
-Please use a branching workflow, and once an item is ready, do remember to issue a PR, review, and merge it into the master branch.
-Be sure to keep your docs and README.md up-to-date.
+## Team Contract
+[Link to Team Contract](https://github.com/COSC-499-W2025/capstone-project-team-12/blob/update-readme/docs/plan/Team%20Contract.md)
