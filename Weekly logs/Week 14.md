@@ -18,9 +18,13 @@
 - Created official team contract
 - Integrated database with main.py
 - Refactor to file classifier, metadata analyzer and topic vector tests
-- Fixed Mac vs Window bug
+- Resolved bugs and errors
+  - Fixed Mac vs Window bug (Mac unable to read .git file)
+  - Added the user email to what is considered for user commits, resolving an ongoing bug in how the user identifies their personal commits in a repository
+  - Resolved an issue where mac users could not run the local llm due to docker memory limitation
 - Implemented the display and storage of project insights to the database
-- Added the user email to what is considered for user commits, resolving an ongoing bug in how the user identifies their personal commits in a repository
+- Optimized the prompt for the medium length local LLM summary
+- Recorded video demo of Milestone 1 requirements
 
 ### Burnup chart & Task Table
 ![Week 14 Burn Up](/imgs/Week%2014%20Burnup.png)
@@ -37,4 +41,4 @@ Filtered to only show Tasks with changes this week.
 
 ### Reflections
 - This week was a busy week, as it is right before finals start, but we successfully delivered the Milestone 1 presentation and completed our Milestone 1 requirements
-  - The Mac vs Windows bug was resolved, which was a huge relief for our team
+- We fixed many bugs that have been concerning us for awhile, so that's a great relief
