@@ -60,39 +60,36 @@ class RepositoryAnalyzer:
         return projects_insights
 
 
-    def infer_user_role(projects: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def infer_user_role(project: Dict[str, Any]) -> Dict[str, Any]:
         """
         Infers a user's role in the project based on contribution metrics
         across all analyzed projects.
         """
-        lines_added = [p.get('statistics', {}).get('user_lines_added', 0) for p in projects]
-        lines_deleted = [p.get('statistics', {}).get('user_lines_deleted', 0) for p in projects]
-        files_modified = [p.get('statistics', {}).get('user_files_modified', 0) for p in projects]
+        stats = project.get("statistics", {})
+        lines_added = stats.get("user_lines_added", 0)
+        lines_deleted = stats.get("user_lines_deleted", 0)
+        files_modified = stats.get("user_files_modified", 0)
 
         total_line_activity = lines_added + lines_deleted + files_modified
 
         # avoid division by zero
         if total_line_activity == 0:
-            return "No contribution activity detected."
+            return {
+                "role": "No Activity Detected",
+                "blurb": (
+                    "No meaningful contribution activity was detected for this project."
+                )
+            }
+
         
         # find proportions of each activity type
         add_ratio = lines_added / total_line_activity
         delete_ratio = lines_deleted / total_line_activity
         modify_ratio = files_modified / total_line_activity
 
-        # use ratios to infer role
-        if add_ratio > 0.5:
-            role = "Feature Developer"
-        elif delete_ratio > 0.4:
-            role = "Code Refiner"
-        elif modify_ratio > 0.4:
-            role = "Maintainer"
-        else:
-            role = "General Contributor"
-
         # generate blurb based on role
         if add_ratio > 0.5:
-        role = "Feature Developer"
+            role = "Feature Developer"
             blurb = (
                 "The user contributed a substantial amount of new code, indicating a strong role "
                 "in implementing features and expanding the project’s functionality."
