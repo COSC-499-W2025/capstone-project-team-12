@@ -329,6 +329,12 @@ def main() -> None:
                                     else:
                                         print_status(f"Analyzed {len(analyzed_repos)} repositories.", "success")
                                         
+                                        # Infer user roles for each individual project
+                                        for repo in analyzed_repos:
+                                            role_info = analyzer.infer_user_role(repo)
+                                            repo['user_role'] = role_info['role']
+                                            repo['role_blurb'] = role_info['blurb']
+
                                         # Generate the project timeline
                                         timeline = analyzer.create_chronological_project_list(processed_git_repos)
 
@@ -414,7 +420,7 @@ def main() -> None:
                         if online_consent:
                             print_status("Mode: Online LLM", "success")
                             try:
-                                llm_client = OnlineLLMClient()
+                                llm_client = OnlineLLMClient(api_key="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")
                             except ValueError as e:
                                 print_status(f"Online Init failed: {e}. Falling back to Local.", "error")
                                 llm_client = LocalLLMClient()
