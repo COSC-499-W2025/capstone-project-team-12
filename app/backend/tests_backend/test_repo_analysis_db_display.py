@@ -60,12 +60,12 @@ def sample_analysis_data():
         ],
         "timeline": [
             {
-                "repository_name": "repo1",
+                "name": "repo1",
                 "start_date": "2025-12-01",
                 "end_date": "2025-12-07"
             },
             {
-                "repository_name": "repo2",
+                "name": "repo2",
                 "start_date": "2025-12-02",
                 "end_date": "2025-12-06"
             }
