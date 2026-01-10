@@ -1,5 +1,24 @@
 # Lexi Loudiadis (93546844) Personal Log
 
+## Term 2 - Week 1 (01/05/2026 - 01/11/2026)
+
+- Wrote the code to satisfy Requirement 24 of Milestone 2, which was implemented within the Repository Analyzer class and integrated with main
+- Wrote the tests for my feature
+- Team meetings, included some reflection on last term and discussions about pacing for this milestone
+- Testing teammates' code
+
+### In Progress
+- Nothing in progress for me at this point, but I am trying to plan for making sure we hit all M2 requirements early on so we have time to debug and add any finishing touches at the end of this milestone, and that we aren't rushing/feeling like we don't have time
+
+### What's Next
+- I would like to tackle Requirement 23 next week
+
+### Reflection
+- Originally I was going to take on Requirement 23 of Milestone 2, but after looking into it I realized that was going to be too much work for one week, especially since we started late (our team only met Wednesday instead of Monday). So I decided to tackle Req 24 instead, and we will get to Req 23 ideally next week, and hopefully I can recruit someone else to work with me on this. All work planned after this switch was done.
+
+![Type of tasks I worked on](imgs/Week%2015%20Lexi.png)
+
+
 ## Week 14 (12/01/2025 - 12/07/2025)
 
 - I discovered a Mac vs Window bug while running a teammates' PR last week  This week we addressed this problem and after many long hours we got to the bottom of it
