@@ -159,3 +159,14 @@ def test_display_project_timeline(capsys, sample_analysis_data):
     assert "repo2" in captured.out
     assert "2025-12-02 -> 2025-12-06" in captured.out
 
+def test_display_project_timeline_no_unknown(capsys, sample_analysis_data):
+    # Modify timeline to have known repository names
+    display_project_timeline(sample_analysis_data["timeline"])
+    captured = capsys.readouterr()
+
+    # Verify both repos are displayed correctly
+    assert "repo1" in captured.out
+    assert "repo2" in captured.out
+
+    assert "Unknown" not in captured.out
+
