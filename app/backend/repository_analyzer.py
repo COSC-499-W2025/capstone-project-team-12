@@ -60,7 +60,7 @@ class RepositoryAnalyzer:
         return projects_insights
 
 
-    def infer_user_role(project: Dict[str, Any]) -> Dict[str, Any]:
+    def infer_user_role(self, project: Dict[str, Any]) -> Dict[str, Any]:
         """
         Infers a user's role in the project based on contribution metrics
         across all analyzed projects.
