@@ -1,4 +1,20 @@
 # Madelyn DeGruchy Personal Log (85064962 - maddydeg)
+## Term 2 Week 1 (01/05/2026 - 01/11/2026)
+- Worked on debugging for the timeline, not printing the names of the projects properly. Took me a while to determine where the issue was, but it ended up being an incorrect variable name in the display printing method and was not an issue in the actual extraction or anything
+  - Added an additional test case to ensure timeline titles don't return as Unknown when a valid name for projects is incuded
+- Took part in team meetings, given that everyone has new timetables, we were not able to meet until Wednesday so we had a shorter timeline to complete tasks
+
+## In Progress
+- I have been working on a bug raised by Sithara where certain projects are being picked up as Git repositories but contribution insights are returning as none/unknown and the project did not always appear in the timeline
+  - I was able to replicate this on my computer with an old project where we only worked on a Development branch and have committed changes to ensure that our system now considers commits made in _all_ branches and not just what has been merged into main. Since I was unable to check this solution with her projects, I am holding off on opening the PR to merge this fix until we are able to do further troubleshooting to ensure this was actually the issue.
+    - This debug was about 4 hours of diagnosing, while the fix was one line so hopefully that will be all that is needed.
+   
+## Reflection
+- We had a bit of a later start, and I mainly spent my time diagnosing and debugging this week. Both fixes ended up only being 1-line, so both branches PR's are very short.
+- For next week we are looking to get the ball rolling on getting all requirements done before we move in to refactoring and adding additional functionalities
+
+![Peer Evaluation Term 2 Week 1](imgs/Madelyn%20DeGruchy%20T2%20Week%201.png)
+
 
 ## Week 14 (12/1/2025 - 12/07/2025)
 - Assisted in the bug fix for the mac vs windows issue (Worked through diagnosing issue - 5 hours Monday, worked on a separate PR while Lexi completed troubleshooting and final fix - 6 hours Saturday)
