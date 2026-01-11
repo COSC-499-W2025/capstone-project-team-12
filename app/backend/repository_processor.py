@@ -38,7 +38,7 @@ class RepositoryProcessor:
     def _extract_all_repository_data(self, repo_node: Node, git_folder_path: Path) -> Dict[str, Any]:
         # Analyze a single repository using PyDriller to extract commit information
         try:
-            repo: Repository = Repository(str(git_folder_path))
+            repo: Repository = Repository(str(git_folder_path), include_remotes=True)
             
             commits_result: Dict[str, Any] = self._extract_commits_data(repo)
             user_dates: List[datetime] = commits_result['user_dates']
@@ -66,7 +66,7 @@ class RepositoryProcessor:
 
     def _extract_commits_data(self, repo: Repository) -> Dict[str, Any]:
         # Traverse commits and extracts user commits, statistics, and repo context
-        
+
         # Initalize data collectors
         commits_data: List[Dict[str, Any]] = []
         user_dates: List[datetime] = []
@@ -92,7 +92,10 @@ class RepositoryProcessor:
             commit_email: str = commit.author.email.lower() if commit.author and commit.author.email else ""
 
             # Will return the Github privacy email with username so extract username (ex: 12345+yourusername@users.noreply.github.com)
-            commit_username: str = commit.author.email.split('@')[0].split('+')[-1].lower()
+            if "users.noreply.github.com" in commit_email:
+                commit_username: str = commit.author.email.split('@')[0].split('+')[-1].lower()
+            else:
+                commit_username: str = ""
 
             # Track stats for all users if first time seeing this author
             if commit_email not in all_authors_stats:
