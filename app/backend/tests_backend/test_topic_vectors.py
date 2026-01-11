@@ -138,3 +138,65 @@ def test_invalid_num_topics():
             assert isinstance(e, ValueError)
         else:
             assert False, f"Expected ValueError for num_topics={bad_topics}"
+
+def test_auto_num_topics_small_dataset():
+    # 1 document → sqrt(1)=1 → max(2,1)=2
+    docs = [["apple", "banana"]]
+
+    lda, dictionary, doc_vecs, topic_vecs = generate_topic_vectors(docs)
+
+    assert len(doc_vecs) == 1
+    assert len(doc_vecs[0]) == 2
+    assert len(topic_vecs) == 2
+
+
+def test_auto_num_topics_medium_dataset():
+    # 9 documents → sqrt(9)=3
+    docs = [["word"]] * 9
+
+    lda, dictionary, doc_vecs, topic_vecs = generate_topic_vectors(docs)
+
+    assert len(doc_vecs) == 9
+    for vec in doc_vecs:
+        assert len(vec) == 3
+        assert abs(sum(vec) - 1.0) < 1e-6
+
+    assert len(topic_vecs) == 3
+
+
+def test_auto_num_topics_large_dataset():
+    # 25 documents → sqrt(25)=5
+    docs = [["token1", "token2"]] * 25
+
+    lda, dictionary, doc_vecs, topic_vecs = generate_topic_vectors(docs)
+
+    assert len(doc_vecs) == 25
+    for vec in doc_vecs:
+        assert len(vec) == 5
+
+    assert len(topic_vecs) == 5
+
+
+def test_auto_num_topics_ignores_empty_documents():
+    # Only 2 non-empty documents → sqrt(2)=1 → max(2,1)=2
+    docs = [[], ["a"], [], ["b"], []]
+
+    lda, dictionary, doc_vecs, topic_vecs = generate_topic_vectors(docs)
+
+    assert len(doc_vecs) == 2
+    for vec in doc_vecs:
+        assert len(vec) == 2
+
+    assert len(topic_vecs) == 2
+
+
+def test_explicit_num_topics_overrides_auto():
+    docs = [["a"], ["b"], ["c"], ["d"]]  # sqrt(4)=2 normally
+
+    lda, dictionary, doc_vecs, topic_vecs = generate_topic_vectors(docs, num_topics=5)
+
+    for vec in doc_vecs:
+        assert len(vec) == 5
+
+    assert len(topic_vecs) == 5
+
