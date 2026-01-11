@@ -3,6 +3,7 @@
 - Worked on debugging for the timeline, not printing the names of the projects properly. Took me a while to determine where the issue was, but it ended up being an incorrect variable name in the display printing method and was not an issue in the actual extraction or anything
   - Added an additional test case to ensure timeline titles don't return as Unknown when a valid name for projects is incuded
 - Took part in team meetings, given that everyone has new timetables, we were not able to meet until Wednesday so we had a shorter timeline to complete tasks
+- Working on bug mentioned in my In Progress section
 
 ## In Progress
 - I have been working on a bug raised by Sithara where certain projects are being picked up as Git repositories but contribution insights are returning as none/unknown and the project did not always appear in the timeline
