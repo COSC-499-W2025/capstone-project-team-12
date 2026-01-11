@@ -29,8 +29,9 @@ def generate_topic_vectors(documents: list[list[str]], num_topics: int | None = 
         if not isinstance(num_topics, int) or num_topics <= 0:
             raise ValueError("num_topics must be a positive integer")
     else:
-        num_topics = max(1, int(math.sqrt(num_docs)))
-        num_topics = min(num_topics, num_docs)
+        # Always at least 2 topics for stable vector dimensionality
+        num_topics = max(2, int(math.sqrt(num_docs)))
+
 
 
     # build dictionary and corpus
@@ -48,7 +49,7 @@ def generate_topic_vectors(documents: list[list[str]], num_topics: int | None = 
             eta=0.01
         )
 
-    actual_topics = lda_model.num_topics
+        actual_topics = lda_model.num_topics
 
 
     except Exception as e:
