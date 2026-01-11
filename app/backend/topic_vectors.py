@@ -48,23 +48,36 @@ def generate_topic_vectors(documents: list[list[str]], num_topics: int | None = 
             eta=0.01
         )
 
+    actual_topics = lda_model.num_topics
+
+
     except Exception as e:
         raise RuntimeError(f"LDA training failed: {e}")
 
-    # dense topic vectors: topics per document
-    doc_topic_vectors = [
-        [float(prob) for _, prob in lda_model.get_document_topics(bow, minimum_probability=0)]
-        for bow in corpus
-    ]
+    # dense topic vectors: topics per document (force fixed size)
+    doc_topic_vectors = []
+    for doc_bow in corpus:
+        topic_probs = [0.0] * num_topics
+        for topic_id, prob in lda_model.get_document_topics(doc_bow, minimum_probability=0):
+            if topic_id < num_topics:
+                topic_probs[topic_id] = float(prob)
+        # normalize (sometimes gensim collapses mass into 1 topic)
+        s = sum(topic_probs)
+        if s > 0:
+            topic_probs = [p / s for p in topic_probs]
+        doc_topic_vectors.append(topic_probs)
+
 
     # dense topic-term vectors
-    vocab_size = len(dictionary)
     topic_term_vectors = []
+    vocab_size = len(dictionary)
 
     for topic_id in range(num_topics):
         term_probs = [0.0] * vocab_size
-        for term_id, prob in lda_model.get_topic_terms(topic_id, topn=vocab_size):
-            term_probs[term_id] = float(prob)
+        if topic_id < actual_topics:
+            for term_id, prob in lda_model.get_topic_terms(topic_id, topn=vocab_size):
+                term_probs[term_id] = float(prob)
         topic_term_vectors.append(term_probs)
+
 
     return lda_model, dictionary, doc_topic_vectors, topic_term_vectors
