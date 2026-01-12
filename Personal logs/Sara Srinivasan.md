@@ -1,4 +1,21 @@
 # Sara Srinivasan Personal Log (10801751)
+## Term 2 Week 1
+
+### Work Done
+
+- Participated in team meeting
+- Helped extract input validation and execution logic from main
+- Requested changes and approved other's PRs
+- Composed weekly log for this week (rotating responsibility, by week)
+
+### Quiz Response
+
+![Week 12 Response](imgs/Sara%20Srinivasan%20Week%2013.png)
+
+### Review and Plans
+
+Productive week for personally, assuming the last couple bugs get squashed before sunday deadline
+All that is left is to tie up a few loose ends in the repo. Prepare and deliver the presentation.
 
 ## Week 13
 
@@ -14,7 +31,7 @@
 
 ### Quiz Response
 
-![Week 12 Response](imgs/Sara%20Srinivasan%20Week%2013.png)
+![Week 12 Response](imgs/Sara%20Srinivasan%20T2%20Week%201.png)
 
 ### Review and Plans
 
