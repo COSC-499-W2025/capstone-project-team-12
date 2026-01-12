@@ -209,7 +209,7 @@ class MetadataAnalyzer:
             print(f"Failed to calculate skill stats: {e}")
             return {}, []
 
-    def _calculate_language_stats(self, extension_stats: Dict[str, Any]) -> Dict[str, Any]:
+    def _calculate_language_stats(self, extension_stats: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str]]:
         '''
         Calculate statistics for each programming language
         '''
