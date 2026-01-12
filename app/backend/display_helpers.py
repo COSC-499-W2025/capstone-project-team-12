@@ -122,4 +122,4 @@ def display_project_timeline(timeline: List[Dict[str, Any]]) -> None:
     for project in timeline:
         start = project.get('start_date', 'Unknown')
         end = project.get('end_date', 'Unknown')
-        print(f"• {project.get('repository_name', 'Unknown')}: {start} -> {end}")
+        print(f"• {project.get('name', 'Unknown')}: {start} -> {end}")
