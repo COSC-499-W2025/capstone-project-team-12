@@ -183,3 +183,85 @@ class TestRepositoryAnalyzer:
         project['repository_context']['total_commits_all_authors'] = len(project['user_commits'])
         result = analyzer._generate_collaboration_insights(project)
         assert not result['is_collaborative'] and result['team_size'] == 1
+
+    def test_infer_user_role_no_activity(self):
+        analyzer = RepositoryAnalyzer("testuser")
+        project_no_activity = create_mock_project_data()
+        project_no_activity['statistics'] = {
+            'user_lines_added': 0,
+            'user_lines_deleted': 0,
+            'user_files_modified': 0
+        }
+        result = analyzer.infer_user_role(project_no_activity)
+        assert result['role'] == 'No Activity Detected'
+        assert 'No meaningful contribution activity' in result['blurb']
+
+    def test_infer_user_role_feature_developer(self):
+        analyzer = RepositoryAnalyzer("testuser")
+        project_feature_dev = create_mock_project_data()
+        project_feature_dev['statistics'] = {
+            'user_lines_added': 600,
+            'user_lines_deleted': 100,
+            'user_files_modified': 100
+        }
+        result = analyzer.infer_user_role(project_feature_dev)
+        assert result['role'] == 'Feature Developer'
+        assert 'substantial amount of new code' in result['blurb']
+
+    def test_infer_user_role_code_refiner(self):
+        analyzer = RepositoryAnalyzer("testuser")
+        project_refiner = create_mock_project_data()
+        project_refiner['statistics'] = {
+            'user_lines_added': 100,
+            'user_lines_deleted': 500,
+            'user_files_modified': 100
+        }
+        result = analyzer.infer_user_role(project_refiner)
+        assert result['role'] == 'Code Refiner'
+        assert 'refining the existing codebase' in result['blurb']
+
+    def test_infer_user_role_maintainer(self):
+        analyzer = RepositoryAnalyzer("testuser")
+        project_maintainer = create_mock_project_data()
+        project_maintainer['statistics'] = {
+            'user_lines_added': 100,
+            'user_lines_deleted': 100,
+            'user_files_modified': 500
+        }
+        result = analyzer.infer_user_role(project_maintainer)
+        assert result['role'] == 'Maintainer'
+        assert 'modifying existing files' in result['blurb']
+
+    def test_infer_user_role_general_contributor(self):
+        analyzer = RepositoryAnalyzer("testuser")
+        project_general = create_mock_project_data()
+        project_general['statistics'] = {
+            'user_lines_added': 300,
+            'user_lines_deleted': 300,
+            'user_files_modified': 300
+        }
+        result = analyzer.infer_user_role(project_general)
+        assert result['role'] == 'General Contributor'
+        assert 'balanced contribution pattern' in result['blurb']
+
+    def test_infer_user_role_feature_developer_threshold(self):
+        analyzer = RepositoryAnalyzer("testuser")
+        project_edge = create_mock_project_data()
+        project_edge['statistics'] = {
+            'user_lines_added': 501,  # Just over 50%
+            'user_lines_deleted': 249,
+            'user_files_modified': 250
+        }
+        result = analyzer.infer_user_role(project_edge)
+        assert result['role'] == 'Feature Developer'
+
+    def test_infer_user_role_code_refiner_threshold(self):
+        analyzer = RepositoryAnalyzer("testuser")
+        project_edge = create_mock_project_data()
+        project_edge['statistics'] = {
+            'user_lines_added': 200,
+            'user_lines_deleted': 401,  # Just over 40%
+            'user_files_modified': 399
+        }
+        result = analyzer.infer_user_role(project_edge)
+        assert result['role'] == 'Code Refiner'
