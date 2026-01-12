@@ -1,4 +1,26 @@
 ## Devin Huang Personal Log (86828886)
+
+### T2 Week 1
+- Refactored main by extracting the analysis pipeline logic and all the CLI related logic into individual classes
+- Added testing for the newly created `analysis_pipeline.py`
+  - Comfirms that the pipeline handles binary correctly
+  - Comfirms that it handles file reading errors
+  - Simulates successful analysis run
+- Team meeting
+### Next week
+- Refactor the LLM clients
+- Work towards the milestone 2 requirements completion
+
+### Reflection
+- We had our team meeting later than usual, which kind of made things rushed, therefore we didn't start on any big term 2 requirements yet.
+- This weeks refactoring highlighted how bloated our main.py file was. We were able to decrease the length of it from 500+ lines to around 100.
+
+<img width="962" height="491" alt="image" src="https://github.com/user-attachments/assets/27d80b8f-dfe0-4590-b27a-0e27921a45f2" />
+
+
+
+## TERM 2
+
 ### Week 14
 - Resolved an issue where mac users could not run the local llm due to docker memory limitation
   - Apparently Docker desktop on MAC does not reserve memory dynamically, unlike on windows. Raising that limit fixed the issue.
