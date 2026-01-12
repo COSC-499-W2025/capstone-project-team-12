@@ -157,4 +157,24 @@ Overall this week we mainly focused on refactoring our existing code, so we have
 - Continue to work on anything I can during the winter holidays for bonus
 - No other future plans as of now, we will start planning again once the next semester starts. 
 
+## Term 2 - Week 1 (01/05/2026 - 01/11/2026)
+
+### TODOs
+- Refactor num_topic logic in topic_vectors.py: make it so that it is scaled according to the number of documents (issue # 271) and the corresponding tests (issue # 272)
+- Work with An on requirements 21 and 22 
+
+### Work done
+- Finished refactoring num_topic (issues 271 and 272)
+- participated in team meeting to decide what to work on this week 
+- reviewed PRs 
+
+### What's Next
+- Start working on milestone #2 requirements 
+- continue to improve the logic we have now (further optimization of topic modelling)
+
+### Reflection
+- We had our team meeting on wednesday instead of the usual monday, which lead to a lot of the work this week being rushed, so I wasn't able to start on milestone #2 requirements, but from this coming monday we'll be back to our routine of having our meeting on monday and then making sure initial PRs are in by thursday, giving everyone plenty of time to review and request changes. 
+
+![Type of tasks I worked on](<imgs/Sithara Chari Week 15.png>)
+
 

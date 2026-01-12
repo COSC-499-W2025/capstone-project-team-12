@@ -1,5 +1,16 @@
 # An Tran Personal Log (79499364)
 
+## Term 2 Week 11 (01/05/2026 - 01/11/2026)
+### Tasks completed
+- Attended weekly team meeting
+- Added programming language stats to metadata analyzer, which maps the extension to the appropriate langugage
+
+![Term 2 Week 1](imgs/An%20Tran%20T2W1.png)
+
+### Reflection and plans for future
+- Initially, I planned to start working on one of Milestone 2's requirements but I started this week's work later than expected so I could only finish the language implementation in metadata analyzer.
+- I'd like to start working on requirement 21 or 22 next week.
+
 ## Week 14 (12/01/2025 - 12/07/2025)
 ### Tasks completed
 - Contributed to slides and present Milestone 1 presentation
