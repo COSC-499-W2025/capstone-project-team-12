@@ -40,6 +40,13 @@ def display_project_insights(analyzed_repos: List[Dict[str, Any]], top_n: int = 
         print(f"  - Team Size: {collab.get('team_size', 0)}")
         print(f"  - Collaborative Project: {collab.get('is_collaborative', False)}")
         print(f"  - User Contribution Share: {collab.get('user_contribution_share_percentage', 0)}%")
+
+        # User Role
+        if 'user_role' in project:
+            print(f"\n> User Role: {project.get('user_role', 'Unknown')}")
+            role_blurb = project.get('role_blurb', '')
+            if role_blurb:
+                print(f"  - {role_blurb}")
         
         # Testing Analysis
         test = project.get("testing_insights", {})
@@ -95,6 +102,7 @@ def display_project_summary(ranked_projects: List[Dict[str, Any]], top_n: int = 
         print(f"   Score: {round(proj.get('importance_score', 0), 4)}")
         print(f"   Commits: {len(proj.get('user_commits', []))}")
         print(f"   Lines Added: {stats.get('user_lines_added', 0)}")
+        print(f"   Role: {proj.get('user_role', 'Unknown')}")
         print(f"   Duration: {dates.get('duration_days', 0)} days\n")
 
 

@@ -59,6 +59,70 @@ class RepositoryAnalyzer:
 
         return projects_insights
 
+
+    def infer_user_role(self, project: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Infers a user's role in the project based on contribution metrics
+        across all analyzed projects.
+        """
+        stats = project.get("statistics", {})
+        lines_added = stats.get("user_lines_added", 0)
+        lines_deleted = stats.get("user_lines_deleted", 0)
+        files_modified = stats.get("user_files_modified", 0)
+
+        total_line_activity = lines_added + lines_deleted + files_modified
+
+        # avoid division by zero
+        if total_line_activity == 0:
+            return {
+                "role": "No Activity Detected",
+                "blurb": (
+                    "No meaningful contribution activity was detected for this project."
+                )
+            }
+
+        
+        # find proportions of each activity type
+        add_ratio = lines_added / total_line_activity
+        delete_ratio = lines_deleted / total_line_activity
+        modify_ratio = files_modified / total_line_activity
+
+        # generate blurb based on role
+        if add_ratio > 0.5:
+            role = "Feature Developer"
+            blurb = (
+                "The user contributed a substantial amount of new code, indicating a strong role "
+                "in implementing features and expanding the project’s functionality."
+            )
+
+        elif delete_ratio > 0.4:
+            role = "Code Refiner"
+            blurb = (
+                "The user’s contributions focused heavily on refining the existing codebase. "
+                "Rather than introducing large amounts of new code, they prioritized removing "
+                "unnecessary or outdated lines, suggesting an emphasis on cleanup and optimization."
+            )
+
+        elif modify_ratio > 0.4:
+            role = "Maintainer"
+            blurb = (
+                "Most of the user’s contributions involved modifying existing files, suggesting a "
+                "maintenance-focused role aimed at improving correctness, readability, or performance."
+            )
+
+        else:
+            role = "General Contributor"
+            blurb = (
+                "The user showed a balanced contribution pattern, engaging in a mix of additions, "
+                "modifications, and deletions across the codebase."
+            )
+
+        return {
+            "role": role,
+            "blurb": blurb
+        }
+
+
     def extract_repo_import_stats(self, project: Dict[str, Any]) -> Dict[str, Any]:
         """
         Extracts the import statistics for all files modified by the user in one repo.
