@@ -363,11 +363,14 @@ class MetadataAnalyzer:
                 '.rmd': 'R',
             }
 
-            return programming_languages.get(ext)
+            if ext in programming_languages:
+                return programming_languages[ext]
+            else:
+                return "N/A"
 
         except Exception as e:
             print(f"Error classifying extension to programming language {ext}: {e}")
-            return None
+            return "N/A"
     
     def return_metadata_stats(self) -> Dict[str, Any]:
         """
