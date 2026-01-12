@@ -136,6 +136,17 @@ class TestMetadataAnalyzer:
         assert 'Documentation' in skill_stats
         assert len(primary_skills) == 3
         assert 'Backend Development' in primary_skills
+    
+    def test_language_stats_calculation(self):
+        """Test language statistics calculation"""
+        language_stats = self.results['language_stats']
+        primary_languages = self.results['primary_languages']
+        
+        assert len(language_stats) == 6 # technically 5 but +1 for N/A
+        assert 'Python' in language_stats
+        assert 'JavaScript' in language_stats
+        assert len(primary_languages) == 3
+        assert 'Python' in primary_languages
 
     def test_date_stats_calculation(self):
         """Test date statistics calculation"""
@@ -172,6 +183,13 @@ class TestMetadataAnalyzer:
         assert self.analyzer._classify_extension('.py') == 'Backend Development'
         assert self.analyzer._classify_extension('.js') == 'Web Development'
         assert self.analyzer._classify_extension('.md') == 'Documentation'
+
+    def test_language_classification(self):
+        """Test language classification"""
+        assert self.analyzer._classify_programming_language('.py') == 'Python'
+        assert self.analyzer._classify_programming_language('.js') == 'JavaScript'
+        assert self.analyzer._classify_programming_language('.java') == 'Java'
+        assert self.analyzer._classify_programming_language('.txt') == "N/A"
 
     def test_percentages_calculation(self):
         """Test percentage calculations in stats"""

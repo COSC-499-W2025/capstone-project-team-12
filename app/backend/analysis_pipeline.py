@@ -121,6 +121,7 @@ class AnalysisPipeline:
         print("-" * 70)
         for ext, stats in metadata_analysis['extension_stats'].items():
             print(f"{ext:<10} | {stats['count']:<8} | {stats['total_size']:<15} | {stats['percentage']:<8}% | {stats['category']}")
+        print(f"\nPrimary programming languages: {', '.join(metadata_analysis['primary_languages'])}\n")
 
         git_repos: List[Node] = tree_processor.get_git_repos() 
 

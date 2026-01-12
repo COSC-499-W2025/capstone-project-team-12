@@ -24,15 +24,18 @@ class MetadataAnalyzer:
             basic_stats = self._calculate_basic_stats()
             extension_stats = self._calculate_extension_stats()
             skill_stats, primary_skills = self._calculate_skill_stats(extension_stats)
+            language_stats, primary_languages = self._calculate_language_stats(extension_stats)
             date_stats = self._calculate_date_stats()
 
-            self._add_percentages(extension_stats, skill_stats, basic_stats['total_files'])
+            self._add_percentages(extension_stats, skill_stats, language_stats, basic_stats['total_files'])
 
             analysis: Dict[str, Any] = {
                 'basic_stats': basic_stats,
                 'extension_stats': extension_stats,
                 'skill_stats': skill_stats,
                 'primary_skills': primary_skills,
+                'language_stats': language_stats,
+                'primary_languages': primary_languages,
                 'date_stats': date_stats
             }
             
@@ -55,6 +58,8 @@ class MetadataAnalyzer:
             'extension_stats': {},
             'skill_stats': {},
             'primary_skills': [],
+            'language_stats': {},
+            'primary_languages': [],
             'date_stats': {
                 'by_creation_date': {},
                 'by_modified_date': {},
@@ -63,7 +68,7 @@ class MetadataAnalyzer:
             }
         }
 
-    def _add_percentages(self, extension_stats: Dict[str, Any], skill_stats: Dict[str, Any], total_files: int) -> None:
+    def _add_percentages(self, extension_stats: Dict[str, Any], skill_stats: Dict[str, Any], language_stats: Dict[str, Any], total_files: int) -> None:
         """
         Add percentage calculations to extension and skill statistics
         """
@@ -78,7 +83,10 @@ class MetadataAnalyzer:
         for skill_stat in skill_stats.values():
             skill_stat['percentage'] = round((skill_stat['file_count'] / total_files) * 100, 2)
 
-    
+        # add percentages to language stats
+        for lang_stats in language_stats.values():
+            lang_stats['percentage'] = round((lang_stats['file_count'] / total_files) * 100, 2)
+
     def _calculate_basic_stats(self) -> Dict[str, int]:
         """
         Calculate basic statistics from metadata
@@ -141,6 +149,7 @@ class MetadataAnalyzer:
                     total_size = data['total_size']
                     avg_size = total_size / count if count > 0 else 0
                     category = self._classify_extension(ext)
+                    language = self._classify_programming_language(ext)
 
                 except Exception as e:
                     print(f"Error processing extension stats for {ext}: {e}")
@@ -148,13 +157,15 @@ class MetadataAnalyzer:
                     total_size = 0
                     avg_size = 0
                     category = "unknown"
+                    language = None
 
                 extension_stats[ext] = {
                     'extension': ext,
                     'count': count,
                     'total_size': total_size,
                     'avg_size': avg_size,
-                    'category': category
+                    'category': category,
+                    'programming_language': language
                 }
             return extension_stats
         except Exception as e:
@@ -197,6 +208,46 @@ class MetadataAnalyzer:
         except Exception as e:
             print(f"Failed to calculate skill stats: {e}")
             return {}, []
+
+    def _calculate_language_stats(self, extension_stats: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str]]:
+        '''
+        Calculate statistics for each programming language
+        '''
+        language_stats: Dict[str, Any] = {}
+
+        try:
+            for ext_stats in extension_stats.values():
+                try:
+                    language = ext_stats['programming_language']
+                    if not language:
+                        continue
+                    if language not in language_stats:
+                        language_stats[language] = {
+                            'language': language,
+                            'file_count': 0,
+                            'total_size': 0
+                        }
+                    language_stats[language]['file_count'] += ext_stats['count']
+                    language_stats[language]['total_size'] += ext_stats['total_size']
+                except Exception as e:
+                    print(f"Error processing language stats for {language}: {e}")
+                
+            
+            # determine primary languages based on file count
+            if not language_stats:
+                return {}, []
+
+            # determine top 3 languages based on file count
+            sorted_languages: List[Dict[str, Any]] = sorted(language_stats.values(), key=lambda x: x['file_count'], reverse=True)
+            primary_languages: List[str] = [lang['language'] for lang in sorted_languages[:3]]
+
+            for lang in language_stats:
+                language_stats[lang]['is_primary'] = language_stats[lang]['language'] in primary_languages
+            return language_stats, primary_languages
+        except Exception as e:
+            print(f"Failed to calculate language stats: {e}")
+            return {}, []
+
     
     def _calculate_date_stats(self) ->  Dict[str, Any]:
         """
@@ -280,6 +331,46 @@ class MetadataAnalyzer:
         except Exception as e:
             print(f"Error classifying extension {ext}: {e}")
             return "Other"
+
+    def _classify_programming_language(self, ext: str) -> str:
+        """
+        Classify file extension into categories
+        """
+        try:
+            programming_languages: Dict[str, str] = {
+                '.py': 'Python',
+                '.js': 'JavaScript',
+                'jsx': 'JavaScript',
+                'tsx': 'TypeScript',
+                '.ts': 'TypeScript',
+                '.vue': 'JavaScript',
+                '.java': 'Java',
+                '.cpp': 'C++',
+                '.c': 'C',
+                '.cs': 'C#',
+                '.rb': 'Ruby',
+                '.go': 'Go',
+                '.php': 'PHP',
+                '.kt': 'Kotlin',
+                '.swift': 'Swift',
+                '.dart': 'Dart',
+                '.html': 'HTML',
+                '.htm': 'HTML',
+                '.css': 'CSS',
+                '.sql': 'SQL',
+                '.sqlite': 'SQL',
+                '.r': 'R',
+                '.rmd': 'R',
+            }
+
+            if ext in programming_languages:
+                return programming_languages[ext]
+            else:
+                return "N/A"
+
+        except Exception as e:
+            print(f"Error classifying extension to programming language {ext}: {e}")
+            return "N/A"
     
     def return_metadata_stats(self) -> Dict[str, Any]:
         """
@@ -394,6 +485,12 @@ if __name__ == "__main__":
             primary_indicator = " (PRIMARY)" if skill_stats['is_primary'] else ""
             print(f"{skill_name}{primary_indicator}: {skill_stats['file_count']} files ({skill_stats['percentage']}%)")
         print(f"\nPrimary Skills: {', '.join(results['primary_skills'])}")
+
+        print("Language Statistics:")
+        for lang, lang_stats in results['language_stats'].items():
+            primary_indicator = " (PRIMARY)" if lang_stats['is_primary'] else ""
+            print(f"{lang}{primary_indicator}: {lang_stats['file_count']} files ({lang_stats['percentage']}%)")
+        print(f"\nPrimary Languages: {', '.join(results['primary_languages'])}")
     except Exception as e:
         print(f"Test failed: {e}")
         import traceback
