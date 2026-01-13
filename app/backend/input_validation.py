@@ -99,28 +99,31 @@ def validate_thumbnail_path(filepath:str)->Path:
     """
     max_img_size_bytes:int = 10*1024*1024 #10MB Limit
     
+    #helper function to check if file is of an accepted format
     def is_valid_format(filepath:Path)->bool:
-        if filepath.suffix().lower() in accepted_formats:
+        if filepath.suffix.lower() in accepted_formats:
             return True
         else:
             return False
     
+    #check for valid path
     try:
         path:Path = is_valid_path(filepath)
     except Exception as e:
         raise RuntimeError(f"Path Error: {e}")
     
+    #ensure path given is of a singular file
     if path.is_dir():
         raise IsADirectoryError(f"Path is not a file but a directory")
-    
     if not path.is_file():
         raise ValueError(f"Path is not a file")
     
     #check if image as an accepted format
     #formats based on types supported by all of Chrome,Firefox,Opera,Safari and Edge
-    if not is_valid_format():
+    if not is_valid_format(path):
         raise TypeError(f"Not an accepted image format. Accepted formats are:{accepted_formats}")
-    
+
+    #size validation
     try:
         size: int = path.stat().st_size
         if size > max_img_size_bytes:
@@ -128,7 +131,6 @@ def validate_thumbnail_path(filepath:str)->Path:
             raise ValueError(f"File too large: {size_mb:.2f}MB (max 10MB)")
     except (OSError, PermissionError) as e:
         raise ValueError(f"Cannot access file: {e}")
-    
     return path
 
 def validate_uuid(uuid:str)-> str:
