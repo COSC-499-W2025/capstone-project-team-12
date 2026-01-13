@@ -2,6 +2,7 @@ from typing import List,Dict,Any, BinaryIO
 from database_manager import DatabaseManager
 from cli_interface import CLI
 from display_helpers import display_project_insights, display_project_summary, display_project_timeline
+from pathlib import Path
 
 # This file contains extracted implementations of various main.py's execution paths. Allows for better abstraction easy refactoring moving forward.
 
@@ -81,6 +82,14 @@ def insert_thumbnail(database_manager:DatabaseManager,cli:CLI,result_id:str,img_
         database_manager.save_result_thumbnail(result_id,img_data)
     except Exception as e:
         raise e
+
+def read_image(img_path:Path)->BinaryIO:
+    try:
+        with open(img_path, "rb") as file:
+            img_data = file.read()
+            return img_data
+    except Exception as e:
+        raise RuntimeError(f"Error reading image:{e}")
 
 def delete_all_results(database_manager:DatabaseManager):
     database_manager.wipe_all_data()
