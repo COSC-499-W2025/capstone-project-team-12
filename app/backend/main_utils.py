@@ -89,7 +89,7 @@ def read_image(img_path:Path)->BinaryIO:
             img_data = file.read()
             return img_data
     except Exception as e:
-        raise RuntimeError(f"Error reading image:{e}")
+        raise e
 
 def delete_all_results(database_manager:DatabaseManager):
     database_manager.wipe_all_data()
