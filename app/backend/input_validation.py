@@ -1,13 +1,47 @@
 from uuid import UUID
 from pathlib import Path
-"""
-Summary:
-    Validates user's input path. Input path must be a valid filepath. Cannot contain files more then 4GB and must not be a rar file (zip file allowed).
-Params: 
-    - User inputted filepath as string
-Return:
-"""
+from typing import Set
+
+#Global variable defining accepted image formats, both functionality and prompts will update automatically if changed.
+accepted_formats:Set[str] = [".apng",".avif",".gif",".jpeg",".svg",".webp"]
+
+
+def is_valid_path(filepath:str)->Path:
+    """
+    Summary:
+        Validates user's input path. Input path must be a valid filepath. Does NOT consider our design constraints only checks for validity.
+    Params
+        - User inputted filepath as string
+    Return:
+        os.path object
+    """
+     #Input cleaning
+    filepath = filepath.strip().strip('"').strip("'")
+    
+    #Check if empty
+    if filepath is None or "":
+        raise ValueError("Filepath cannot be empty")
+    
+    #try to make a valid absolute path based on input path
+    try:
+        path: Path = Path(filepath).expanduser().resolve()
+    except (OSError, RuntimeError) as e:
+        raise ValueError(f"Invalid file path: {e}")
+    
+    #check if path exists
+    if not path.exists():
+        raise FileNotFoundError(f"Path not found: {filepath}")    
+
+
 def validate_analysis_path(filepath: str) -> Path:
+    """
+    Summary:
+        Validates user's input path for analysis. Input path must be a valid filepath. Does consider design constraints i.e: Cannot contain files more then 4GB and must not be a rar file (zip file allowed).
+    Params: 
+        - User inputted filepath as string
+    Return:
+        os.path object
+    """
     max_size_bytes: int = 4 * 1024 * 1024 * 1024  # 4gb limit
 
     def _is_rar_file(path: Path) -> bool:
@@ -27,17 +61,11 @@ def validate_analysis_path(filepath: str) -> Path:
             raise ValueError(f"Cannot access directory: {e}")
         return total
 
-    filepath = filepath.strip().strip('"').strip("'")
-    if not filepath:
-        raise ValueError("Filepath cannot be empty")
-    
     try:
-        path: Path = Path(filepath).expanduser().resolve()
-    except (OSError, RuntimeError) as e:
-        raise ValueError(f"Invalid file path: {e}")
-
-    if not path.exists():
-        raise FileNotFoundError(f"Path not found: {filepath}")
+        path:Path = is_valid_path(filepath)
+    except Exception as e:
+        print(f"Path error:{e}")
+        raise
     
     if path.is_file() and _is_rar_file(path):
         raise ValueError(f"RAR files are not supported: {filepath}")
