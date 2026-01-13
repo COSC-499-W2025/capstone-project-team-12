@@ -1,4 +1,4 @@
-from typing import List,Dict,Any
+from typing import List,Dict,Any, BinaryIO
 from database_manager import DatabaseManager
 from cli_interface import CLI
 from display_helpers import display_project_insights, display_project_summary, display_project_timeline
@@ -75,6 +75,12 @@ def delete_result_by_id(database_manager:DatabaseManager,cli:CLI,delete_id:str)-
         cli.print_status(f"Result with ID {delete_id} deleted from database.", "success")
     else:
         raise RuntimeError("Failed to delete entry")
+
+def insert_thumbnail(database_manager:DatabaseManager,cli:CLI,result_id:str,img_data:BinaryIO):
+    try:
+        database_manager.save_result_thumbnail(result_id,img_data)
+    except Exception as e:
+        raise e
 
 def delete_all_results(database_manager:DatabaseManager):
     database_manager.wipe_all_data()
