@@ -275,7 +275,7 @@ class DatabaseManager:
         
         try:
             #Sepera
-            query = "INSERT into Results (thumbnail_image) VALUES (%s) WHERE result id = %s;"
+            query = "UPDATE Results SET thumbnail_image= %s WHERE result_id = %s;"
             self.db.execute_update(query,(data,result_id)) #tuple of bin data as string and result_id
             
             print(f"Successfully added thumbnail image to result with result_id:{result_id}")
