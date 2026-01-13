@@ -7,7 +7,7 @@ Params:
     - User inputted filepath as string
 Return:
 """
-def validate_path(filepath: str) -> Path:
+def validate_analysis_path(filepath: str) -> Path:
     max_size_bytes: int = 4 * 1024 * 1024 * 1024  # 4gb limit
 
     def _is_rar_file(path: Path) -> bool:
