@@ -62,7 +62,7 @@ def main() -> None:
                     
                     #Prompt to add thumbnail
                     img_response = cli.get_input("Would you like to add a thumbnail to represent this result? (y/N) \n")            
-                    if img_response.lower in ('y','yes'):
+                    if img_response.lower() in ('y','yes'):
                         
                         #Receive image filepath
                         img_path:str = cli.get_input(f"Accepted formats are: {accepted_formats} of maximum size 10MB.\n Please enter a filepath to a valid image:\n")
@@ -72,19 +72,21 @@ def main() -> None:
                             img_valid_path:Path = validate_thumbnail_path(img_path)
                         except Exception as e:
                             cli.print_status(f"Image filepath Error:{e}","error")
+                            break
                         
                         #Read image
                         try:
                             img_data:BinaryIO = read_image(img_valid_path)
                         except Exception as e:
                             cli.print_status(f"Error reading image:{e}")
-                        
+                            break
                         #Save Image to db
                         try:
                             insert_thumbnail(database_manager,cli,result_id,img_data)
                             cli.print_status(f"Image added successfully!","success")
                         except Exception as e:
                             cli.print_status(f"Failed to add image:{e}","error")
+                            break
                 case 'a':
                     # View all saved insights from database
                     try:

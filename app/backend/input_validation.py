@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Set
 
 #Global variable defining accepted image formats, both functionality and prompts will update automatically if changed.
-accepted_formats:Set[str] = [".apng",".avif",".gif",".jpeg",".svg",".webp"]
+accepted_formats:Set[str] = [".apng",".avif",".gif",".jpeg",".jpg",".svg",".webp"]
 
 
 def is_valid_path(filepath:str)->Path:
@@ -30,7 +30,9 @@ def is_valid_path(filepath:str)->Path:
     
     #check if path exists
     if not path.exists():
-        raise FileNotFoundError(f"Path not found: {filepath}")    
+        raise FileNotFoundError(f"Path not found: {filepath}")
+    
+    return path
 
 
 def validate_analysis_path(filepath: str) -> Path:
