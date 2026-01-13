@@ -86,6 +86,46 @@ def validate_analysis_path(filepath: str) -> Path:
             raise ValueError(f"Folder too large: {size_gb:.2f}GB (max 4GB)")   
     return path
 
+def validate_thumnail_path(filepath:str)->Path:
+    """
+    Summary:
+        Validates user's input path for thumbnail image. Input path must be a valid filepath. Does consider design constraints i.e: Accepted image formats and image size.
+    Params: 
+        - User inputted filepath as string
+    Return:
+        os.path object
+    """
+    max_img_size_bytes:int = 10*1024*1024 #10MB Limit
+    
+    def is_valid_format(filepath:Path):
+        if filepath.suffix().lower() not in 
+    
+    try:
+        path:Path = is_valid_path(filepath)
+    except Exception as e:
+        raise RuntimeError(f"Path Error: {e}")
+    
+    if path.is_dir():
+        raise IsADirectoryError(f"Path is not a file but a directory")
+    
+    if not path.is_file():
+        raise ValueError(f"Path is not a file")
+    
+    #check if image as an accepted format
+    #formats based on types supported by all of Chrome,Firefox,Opera,Safari and Edge
+    if not is_valid_format():
+        raise TypeError(f"Not an accepted image format. Accepted formats are:{}")
+    
+    try:
+        size: int = path.stat().st_size
+        if size > max_img_size_bytes:
+            size_mb: float = size/(1024 ** 2)
+            raise ValueError(f"File too large: {size_mb:.2f}MB (max 10MB)")
+    except (OSError, PermissionError) as e:
+        raise ValueError(f"Cannot access file: {e}")
+    
+    return path
+
 def validate_uuid(uuid:str)-> str:
     result = UUID(uuid) #Try creating an UUID obj, if it fails we know its either wrong version or invalid
     if result:
