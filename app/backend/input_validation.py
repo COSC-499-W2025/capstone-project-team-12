@@ -86,7 +86,7 @@ def validate_analysis_path(filepath: str) -> Path:
             raise ValueError(f"Folder too large: {size_gb:.2f}GB (max 4GB)")   
     return path
 
-def validate_thumnail_path(filepath:str)->Path:
+def validate_thumbnail_path(filepath:str)->Path:
     """
     Summary:
         Validates user's input path for thumbnail image. Input path must be a valid filepath. Does consider design constraints i.e: Accepted image formats and image size.
@@ -97,8 +97,11 @@ def validate_thumnail_path(filepath:str)->Path:
     """
     max_img_size_bytes:int = 10*1024*1024 #10MB Limit
     
-    def is_valid_format(filepath:Path):
-        if filepath.suffix().lower() not in 
+    def is_valid_format(filepath:Path)->bool:
+        if filepath.suffix().lower() in accepted_formats:
+            return True
+        else:
+            return False
     
     try:
         path:Path = is_valid_path(filepath)
@@ -114,7 +117,7 @@ def validate_thumnail_path(filepath:str)->Path:
     #check if image as an accepted format
     #formats based on types supported by all of Chrome,Firefox,Opera,Safari and Edge
     if not is_valid_format():
-        raise TypeError(f"Not an accepted image format. Accepted formats are:{}")
+        raise TypeError(f"Not an accepted image format. Accepted formats are:{accepted_formats}")
     
     try:
         size: int = path.stat().st_size
