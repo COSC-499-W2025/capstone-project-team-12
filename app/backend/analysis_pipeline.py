@@ -15,6 +15,7 @@ from cache.bow_cache import BoWCache, BoWCacheKey
 from llm_online import OnlineLLMClient
 from llm_local import LocalLLMClient
 from display_helpers import display_project_insights, display_project_summary, display_project_timeline
+from project_selection import choose_projects_for_analysis
 
 class AnalysisPipeline:
     def __init__(self, cli, config_manager, database_manager):
@@ -231,20 +232,22 @@ class AnalysisPipeline:
                         else:
                             self.cli.print_status(f"Analyzed {len(analyzed_repos)} repositories.", "success")
 
+                            projects_to_display = choose_projects_for_analysis(analyzed_repos)
+
                              # Infer user roles for each individual project
-                            for repo in analyzed_repos:
+                            for repo in projects_to_display:
                                 role_info = analyzer.infer_user_role(repo)
                                 repo['user_role'] = role_info['role']
                                 repo['role_blurb'] = role_info['blurb']
                             
                             # Generate the project timeline
-                            timeline = analyzer.create_chronological_project_list(processed_git_repos)
+                            timeline = analyzer.create_chronological_project_list(projects_to_display)
 
                             # when generate_project_insights is run, the returned values are sorted by importance already
-                            display_project_summary(analyzed_repos, top_n=3)
+                            display_project_summary(projects_to_display, top_n=3)
 
                             # display the detailed insights only for top 3 projects
-                            display_project_insights(analyzed_repos, top_n=3)
+                            display_project_insights(projects_to_display, top_n=3)
 
                             display_project_timeline(timeline)
                         
