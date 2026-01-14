@@ -54,7 +54,7 @@ def main() -> None:
                         
                         #analysis pipeline starting, moved to another file
                         pipeline = AnalysisPipeline(cli, config_manager, database_manager)
-                        result_id = pipeline.run_analysis(str(path))
+                        result_id = pipeline.run_analysis(str(path),return_id=True) #Return the new result id so it can be used to add image to result
                     except Exception as e:
                         cli.print_status(f"File path is not valid: {e}", "error")
                         

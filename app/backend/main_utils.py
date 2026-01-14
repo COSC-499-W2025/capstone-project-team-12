@@ -78,6 +78,8 @@ def delete_result_by_id(database_manager:DatabaseManager,cli:CLI,delete_id:str)-
         raise RuntimeError("Failed to delete entry")
 
 def insert_thumbnail(database_manager:DatabaseManager,cli:CLI,result_id:str,img_data:BinaryIO):
+    if result_id is None:
+        raise TypeError("Result id is None")
     try:
         database_manager.save_result_thumbnail(result_id,img_data)
     except Exception as e:
