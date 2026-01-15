@@ -250,40 +250,4 @@ def filter_by_category(token: pygments.token) -> bool:
         return False
     else:
         return True #Return true if all filters pass!
-
-if __name__ == "__main__":
     
-    def localtest(filepath:str):
-        tmpString:str = ''
-        
-        def print_output(output):
-            for result in output:
-                print(str(result)+'\n')
-            return
-
-        with open(filepath,'r') as f:
-            tmpString = f.read()
-            
-        #Test Getting and Setting Filters:
-        #print(get_code_filters())
-        #append_code_filters([],[])
-        #print(get_code_filters())
-        
-        #Test Identifier Extraction:
-        testNode: Node = Node("testingNode",file_data={})
-        testNode.file_data['filepath'] = str(filepath)
-        testNode.file_data['filename'] = str(Path(filepath).name)
-    
-        nodelist: List[Node] = [testNode,testNode]
-        datalist: List[str] = [tmpString,tmpString]
-        #Test Primary output type
-        output = list(code_preprocess(nodelist,datalist))    
-        print("\n----PRIMARY RESULT----\n")
-        print_output(output)
-
-        #Test Secondary output type
-        output = list(code_preprocess(nodelist,datalist,normalize = False)) 
-        print("\n----SECONDARY RESULT----\n")
-        print_output(output)
-
-    localtest("app/backend/tests_backend/test_main_dir/mock_files/codeProcessor_testfile.cpp")
