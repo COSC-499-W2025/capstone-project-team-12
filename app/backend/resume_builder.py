@@ -1,6 +1,5 @@
 from typing import Dict, Any, Optional
 import uuid
-import json
 from cli_interface import CLI
 from database_manager import DatabaseManager
 
