@@ -213,6 +213,8 @@ def identify_lexer(code_node:Node,code_data:str):
         #Try to find the appropriate lexer by analyzing the data directly
         try:
             lexer = pygments.lexers.guess_lexer(code_data)
+            if lexer.name == "Text only":
+                raise pygments.util.ClassNotFound
             return lexer
         except pygments.util.ClassNotFound as e2:
             raise pygments.util.ClassNotFound("Failed to identify Lexer! Language Not supported or Invalid file extension.")
