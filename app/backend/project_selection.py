@@ -1,4 +1,3 @@
-
 def ask_confirm_all(projects):
     print(f"\nYou have {len(projects)} projects selected for analysis:")
     for p in projects:
