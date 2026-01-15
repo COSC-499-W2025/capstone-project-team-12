@@ -421,7 +421,7 @@ class RepositoryAnalyzer:
             norm_lines_added = self.normalize_for_rankings(lines, max_lines, min_lines)
             norm_duration = self.normalize_for_rankings(duration, max_duration, min_duration)
 
-            project['importance'] = norm_commits + norm_lines_added + norm_duration
+            project['importance'] = ( norm_commits + norm_lines_added + norm_duration ) / 3
 
         return sorted(projects, key=lambda x: x['importance'], reverse=True)
     
