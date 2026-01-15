@@ -44,6 +44,13 @@ def token_data(code_nodes,code_data):
         token_filelist.append(tokenlist)
     return token_filelist
 
+
+# list of various sample snakecase/camelcase (and combinations thereof) identifiers to parametrize normalization tests
+normalization_test_tokens = ["capyBara", "capy_bara","albino_capyBara","albino_capyBARA","AL_bino_capyBEE_ara"]
+
+#list of expected answers for above to check against
+expected_normalizations = ["capy","bara","albino","al","bino","bee","ara"]
+
 def test_get_filters():
     #get result from function
     result = code_preprocessor.get_code_filters()
@@ -128,3 +135,9 @@ def test_pygToken_toStr_conversion(token_data):
     for tokenlist in token_data:
         result_token_list = code_preprocessor.pygmentTokenList_to_stringTokenList(tokenlist)
         assert all(isinstance(token,str)for token in result_token_list)
+
+@pytest.mark.parametrize("token",normalization_test_tokens)
+def test_normalization(token):
+    normalized_tokenlist = code_preprocessor.normalize_identifier(token)
+    assert all(norm_token in expected_normalizations for norm_token in normalized_tokenlist) 
+        
