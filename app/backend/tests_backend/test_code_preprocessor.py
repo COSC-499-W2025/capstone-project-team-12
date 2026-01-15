@@ -1,10 +1,10 @@
 import pytest
 from anytree import Node
 import code_preprocessor
-import pygments
 import pygments.token as tk
 from pygments.token import _TokenType
-
+from pygments.util import ClassNotFound
+from pygments.lexer import Lexer
 
 @pytest.fixture
 def code_nodes():
@@ -70,3 +70,24 @@ def test_append_filters():
     #Check if filters were actually set
     assert resulting_filters[0] == [tk.Comment,tk.Name,tk.Text] 
     assert resulting_filters[1] == [tk.Punctuation,tk.Keyword,tk.Operator]
+    
+# Not a test just resets filters to default values so the rest of testing is representative of general use-case
+def reset_filters():
+    code_preprocessor.set_code_filters([tk.Comment, tk.Name,tk.Name.Function,tk.Text],
+                                       [tk.Whitespace,tk.Punctuation,tk.Operator,tk.__builtins__,tk.Keyword,tk.Generic])
+    assert True
+#tests lexer    
+def test_identify_lexer(code_nodes,code_data):
+    
+    #For all test nodes try identifying the lexer
+    for i in range(len(code_nodes)):
+        node_result = code_preprocessor.identify_lexer(code_nodes[i],code_data[i])
+        assert isinstance(node_result,Lexer)
+        assert node_result.name in ["JavaScript","Python","C++"]
+    
+    #Test if error is raised for a badly formed code file that cannot be identified both based on filename AND code data
+    with pytest.raises(ClassNotFound):
+        test_node: Node = Node("hullaballu.capys", file_data={'binary_index': 0, 'filename': 'hullaballu.capys', 'filepath': '/test/hullaballu.capys'})
+        test_data:str = "CAPYSMASH BE LIKE: ijsdwafbiojns()[ doi::gjinaois ebfi+usdjk gnffdn jgklas kxjnig"
+        result = code_preprocessor.identify_lexer(test_node,test_data)
+        print(result.name)
