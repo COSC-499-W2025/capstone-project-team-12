@@ -5,6 +5,7 @@ import pygments.token as tk
 from pygments.token import _TokenType
 from pygments.util import ClassNotFound
 from pygments.lexer import Lexer
+import pygments
 
 @pytest.fixture
 def code_nodes():
@@ -30,6 +31,19 @@ def code_data():
         large_code
     ]
     
+#generates token data based on above test data to be used in tests for token based functions
+@pytest.fixture
+def token_data(code_nodes,code_data):
+    """Returns token data for functions that expect tokens as input"""
+    token_filelist:list[list[pygments.token]] = []
+    lexers: list[pygments.lexer] = []
+    for i in range(len(code_nodes)):
+        lexer = code_preprocessor.identify_lexer(code_nodes[i],code_data[i])
+        lexers.append(lexer)
+        tokenlist = code_preprocessor.get_tokens(code_data[i],lexers[i])
+        token_filelist.append(tokenlist)
+    return token_filelist
+
 def test_get_filters():
     #get result from function
     result = code_preprocessor.get_code_filters()
