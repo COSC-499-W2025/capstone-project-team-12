@@ -251,7 +251,7 @@ class AnalysisPipeline:
                                 repo['role_blurb'] = role_info['blurb']
 
                             # Allow user to rerank projects
-                            self.cli.print_status("Ready to rank/re-rank projects.", "info")
+                            self.cli.print_status("Ready to rank/re-rank projects.\n", "info")
                             analyzed_repos = rerank_projects(analyzed_repos)
                             
                             # Generate the project timeline

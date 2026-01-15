@@ -24,12 +24,19 @@ def display_ranking(projects):
         print(f"{idx}) {p['repository_name']} (Score: {p.get('importance_score', 'N/A'):.2f})")
     print()
 
+
+def assign_importance_ranks(projects):
+    for idx, project in enumerate(projects, start=1):
+        project["importance_rank"] = idx
+    return projects
+
+
 # Swap-based manual reordering
 def manual_reorder(projects):
     while True:
         print("\nCurrent Project Rankings:")
         display_ranking(projects)
-        swap_input = input("Enter two numbers to swap (e.g., 2 4) or 'done' to finish: ").strip()
+        swap_input = input("> Enter two numbers to swap (e.g., 2 4) or 'done' to finish: ").strip()
         if swap_input.lower() == "done":
             break
         try:
@@ -66,6 +73,7 @@ def rerank_projects(projects):
         preset_choice = input("\n> Choice: ").strip()
         if preset_choice in weight_presets:
             projects_sorted = compute_scores(projects, weight_presets[preset_choice])
+            assign_importance_ranks(projects_sorted)
             print(f"\nProjects ranked using '{weight_presets[preset_choice]['name']}' preset:")
             display_ranking(projects_sorted)
             return projects_sorted
@@ -76,6 +84,7 @@ def rerank_projects(projects):
     
     elif choice == "2":
         manual_reorder(projects)
+        assign_importance_ranks(projects)
         print("\nFinal manual ranking:")
         display_ranking(projects)
         return projects
