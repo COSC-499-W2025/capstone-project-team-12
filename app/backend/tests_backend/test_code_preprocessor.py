@@ -140,4 +140,8 @@ def test_pygToken_toStr_conversion(token_data):
 def test_normalization(token):
     normalized_tokenlist = code_preprocessor.normalize_identifier(token)
     assert all(norm_token in expected_normalizations for norm_token in normalized_tokenlist) 
-        
+
+def test_comprehensive(code_nodes,code_data):
+    result:list[list[str]] =  code_preprocessor.code_preprocess(code_nodes,code_data)
+    for tokenlist in result:
+        assert all(isinstance(token,str)for token in tokenlist)        
