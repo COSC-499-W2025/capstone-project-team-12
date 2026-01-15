@@ -115,47 +115,69 @@ class ResumeBuilder:
             print(f"Error building resume: {e}")
             return {}
 
-    def display_resume(self, resume: Dict[str, Any], cli: CLI) -> None:
+    def display_resume(self, resume: Dict[str, Any], cli=None) -> None:
         """
-        Displays the resume in a formatted manner via the CLI
+        Display resume in CLI for testing/verification purposes
+        Formats directly from JSON structure
+        
         Args:
             resume: Resume dictionary
-            cli: CLI interface for printing
+            cli: CLI interface for formatted display
         """
         try:
             cli.print_header("Generated Resume")
-            cli.print_status(f"Resume ID: {resume.get('resume_id')}", "info")
-            cli.print_status(f"Based on Result ID: {resume.get('result_id')}", "info")
-
-            cli.print_header("Summary")
+            
+            # Display resume metadata
+            print(f"Resume ID: {resume.get('resume_id', 'Unknown')}")
+            print(f"Result ID: {resume.get('result_id', 'Unknown')}")
+            print("")
+            
+            # Display summary section
             summary = resume.get('summary')
             if summary:
-                cli.print_status(summary, "normal")
-            else:
-                cli.print_status("No summary available.", "warning")
-
-            cli.print_header("Top Projects")
+                print("SUMMARY")
+                print("-" * 60)
+                print(summary)
+                print("")
+            
+            # Display projects section
             projects = resume.get('projects', [])
             if projects:
-                for idx, project in enumerate(projects, start=1):
-                    cli.print_status(f"{idx}. {project.get('name')} - {project.get('description')}", "normal")
-            else:
-                cli.print_status("No projects available.", "warning")
-
-            cli.print_header("Skills")
+                print("PROJECTS")
+                print("-" * 60)
+                for idx, project in enumerate(projects, 1):
+                    print(f"\n{idx}. {project.get('name', 'Unknown Project')}")
+                    print(f"   {project.get('date_range', 'Dates unavailable')}")
+                    print(f"   {project.get('collaboration', '')}")
+                    
+                    frameworks = project.get('frameworks', [])
+                    if frameworks:
+                        frameworks_str = ", ".join(frameworks)
+                        print(f"   Technologies: {frameworks_str}")
+                print("")
+            
+            # Display skills section
             skills = resume.get('skills', [])
             if skills:
-                cli.print_status(", ".join(skills), "normal")
-            else:
-                cli.print_status("No skills available.", "warning")
-
-            cli.print_header("Languages")
+                print("SKILLS")
+                print("-" * 60)
+                skills_str = ", ".join(skills)
+                print(skills_str)
+                print("")
+            
+            # Display languages section
             languages = resume.get('languages', [])
             if languages:
+                print("PROGRAMMING LANGUAGES")
+                print("-" * 60)
                 for lang in languages:
-                    cli.print_status(f"{lang.get('language')}: {lang.get('proficiency')}%", "normal")
-            else:
-                cli.print_status("No languages available.", "warning")
-
+                    print(f"  • {lang.get('name', 'Unknown')}: {lang.get('file_count', 0)} files")
+                print("")
+            
+            print("=" * 60)
+            
         except Exception as e:
-            cli.print_status(f"Error displaying resume: {e}", "error")
+            if cli:
+                cli.print_status(f"Error displaying resume: {e}", "error")
+            else:
+                print(f"Error displaying resume: {e}")
