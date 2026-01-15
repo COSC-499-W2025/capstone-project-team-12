@@ -57,13 +57,13 @@ def rerank_projects(projects):
     print("2) Manually reorder projects")
     print("3) Keep current ranking")
     
-    choice = input("\n>Choice: ").strip()
+    choice = input("\n> Choice: ").strip()
     
     if choice == "1":
         print("\nSelect a ranking preset:")
         for key, preset in weight_presets.items():
             print(f"{key}) {preset['name']}")
-        preset_choice = input("\n>Choice: ").strip()
+        preset_choice = input("\n> Choice: ").strip()
         if preset_choice in weight_presets:
             projects_sorted = compute_scores(projects, weight_presets[preset_choice])
             print(f"\nProjects ranked using '{weight_presets[preset_choice]['name']}' preset:")
