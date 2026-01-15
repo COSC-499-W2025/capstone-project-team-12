@@ -16,6 +16,8 @@ from llm_online import OnlineLLMClient
 from llm_local import LocalLLMClient
 from display_helpers import display_project_insights, display_project_summary, display_project_timeline
 from project_selection import choose_projects_for_analysis
+from project_reranking import rerank_projects
+
 
 class AnalysisPipeline:
     def __init__(self, cli, config_manager, database_manager):
@@ -228,6 +230,7 @@ class AnalysisPipeline:
                                 or "Unnamed Repository"
                             )
 
+                        # Allow user to choose which projects to analyze
                         selected_repos = choose_projects_for_analysis(processed_git_repos)
                         self.cli.print_status("Repositories processed successfully.", "success")
                         
@@ -246,6 +249,10 @@ class AnalysisPipeline:
                                 role_info = analyzer.infer_user_role(repo)
                                 repo['user_role'] = role_info['role']
                                 repo['role_blurb'] = role_info['blurb']
+
+                            # Allow user to rerank projects
+                            self.cli.print_status("Ready to rank/re-rank projects.", "info")
+                            analyzed_repos = rerank_projects(analyzed_repos)
                             
                             # Generate the project timeline
                             timeline = analyzer.create_chronological_project_list(analyzed_repos)
