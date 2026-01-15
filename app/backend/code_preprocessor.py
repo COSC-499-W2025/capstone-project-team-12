@@ -39,7 +39,7 @@ def get_min_len()-> int:
 # EXCLUDE HAS HIGHER PRIORITY
 #set values by using 'set_filters(...)' function defined below.
 Include: List[pygments.token] = [tk.Comment, tk.Name,tk.Name.Function,tk.Text] #Default values for inclusion filter
-Exclude: List[pygments.token] = [tk.Whitespace,tk.Punctuation,tk.Operator,tk.__builtins__,tk.Keyword,tk.Generic] #Default value for exclusion filter
+Exclude: List[pygments.token] = [tk.Whitespace,tk.Punctuation,tk.Operator,tk.Keyword,tk.Generic] #Default value for exclusion filter
 
 
 def get_code_filters()->List[List[pygments.token]]|None:
