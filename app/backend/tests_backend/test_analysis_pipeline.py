@@ -2,6 +2,8 @@ import pytest
 from unittest.mock import MagicMock, patch
 from anytree import Node
 from analysis_pipeline import AnalysisPipeline
+from unittest.mock import MagicMock, patch, call
+
 
 @pytest.fixture
 def pipeline():
@@ -41,3 +43,44 @@ def test_successful_save(mock_llm, mock_tp, mock_fm, pipeline):
 
     assert pipeline.database_manager.create_new_result.called #check if asked db for new entry
     assert pipeline.database_manager.save_resume_points.called #check that summary was sent to be saved
+
+def reviews_proceed_immediately(pipeline):
+    """Tests that if user chooses to proceed immediately, the pipeline continues"""
+    initial_bundle = {
+        'topic_keywords': [
+            {'topic_id': 0, 'keywords': ['data', 'code']},
+            {'topic_id': 1, 'keywords': ['user', 'login']}
+        ]
+    }
+    #user inputs p
+    pipeline.cli.display_topic_review_menu.return_value = 'P'
+
+    result = pipeline.review_topic_bundle(initial_bundle)
+
+    assert result == initial_bundle
+    pipeline.cli.print_status.assert_called_with("Proceeding with current topics", "success")
+
+
+def test_reviews_delete_topic(pipeline):
+    """Tests that it correctly deletes a topic"""
+    initial_bundle = {
+        'topic_keywords': [
+            {'topic_id': 0, 'keywords': ['data', 'code']},
+            {'topic_id': 1, 'keywords': ['user', 'login']}
+        ]
+    }
+
+    #we want to edit, then , then we input 1, then we select del, then p
+    pipeline.cli.display_topic_review_menu.side_effect = ['E', 'P']
+    pipeline.cli.get_input.return_value = '1'  #topic to delete
+    pipeline.cli.get_granular_input.return_value = ('del ', None)
+
+    result = pipeline.revew_topic_bundle(initial_bundle)
+    final_topics = result['topic_keywords']
+    assert len(final_topics) == 1
+    assert final_topics[0]['topic_id'] == 0
+    pipeline.cli.print_status.assert_any_call("Topic 1 has been deleted.", "success")
+
+
+# def test_review_manual_editing(pipeline):
+    """Test the manual editing/granular edits workflow"""
