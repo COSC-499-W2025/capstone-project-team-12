@@ -91,3 +91,21 @@ def test_identify_lexer(code_nodes,code_data):
         test_data:str = "CAPYSMASH BE LIKE: ijsdwafbiojns()[ doi::gjinaois ebfi+usdjk gnffdn jgklas kxjnig"
         result = code_preprocessor.identify_lexer(test_node,test_data)
         print(result.name)
+
+def test_get_tokens(code_nodes,code_data):
+    
+    #Test Setup
+    lexers:list[pygments.lexer] = []
+    for i in range(len(code_nodes)):
+        lexer = code_preprocessor.identify_lexer(code_nodes[i],code_data[i])
+        lexers.append(lexer)
+    
+    #Gathering results for all test data    
+    results: list[list[pygments.token]] = []
+    for i in range(len(code_data)):
+            result = code_preprocessor.get_tokens(code_data[i],lexers[i])    
+            results.append(result)
+    
+    #Checking that tokens were fetched and they are all of the correct type
+    for result in results:
+        assert all(isinstance(token[0],_TokenType)for token in result)
