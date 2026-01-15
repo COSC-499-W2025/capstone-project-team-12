@@ -123,3 +123,8 @@ def test_get_tokens(code_nodes,code_data):
     #Checking that tokens were fetched and they are all of the correct type
     for result in results:
         assert all(isinstance(token[0],_TokenType)for token in result)
+
+def test_pygToken_toStr_conversion(token_data):
+    for tokenlist in token_data:
+        result_token_list = code_preprocessor.pygmentTokenList_to_stringTokenList(tokenlist)
+        assert all(isinstance(token,str)for token in result_token_list)
