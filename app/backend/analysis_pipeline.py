@@ -220,34 +220,41 @@ class AnalysisPipeline:
                     if not processed_git_repos:
                         self.cli.print_status("No repositores to process.", "error")
                     else:
+                        for repo in processed_git_repos:
+                            repo["name"] = (
+                                repo.get("repo_name")
+                                or repo.get("name")
+                                or repo.get("repo_url")
+                                or "Unnamed Repository"
+                            )
+
+                        selected_repos = choose_projects_for_analysis(processed_git_repos)
                         self.cli.print_status("Repositories processed successfully.", "success")
                         
                         analyzer = RepositoryAnalyzer(github_username)
 
-                        #Generate the insights for ALL projects (not just what is displayed to allow for storage in db)
-                        analyzed_repos = analyzer.generate_project_insights(processed_git_repos)
+                        #Generate the insights for ALL selected projects (not just what is displayed to allow for storage in db)
+                        analyzed_repos = analyzer.generate_project_insights(selected_repos)
 
                         if not analyzed_repos:
                             self.cli.print_status("No successful repository analyses.", "warning")
                         else:
                             self.cli.print_status(f"Analyzed {len(analyzed_repos)} repositories.", "success")
 
-                            projects_to_display = choose_projects_for_analysis(analyzed_repos)
-
                              # Infer user roles for each individual project
-                            for repo in projects_to_display:
+                            for repo in analyzed_repos:
                                 role_info = analyzer.infer_user_role(repo)
                                 repo['user_role'] = role_info['role']
                                 repo['role_blurb'] = role_info['blurb']
                             
                             # Generate the project timeline
-                            timeline = analyzer.create_chronological_project_list(projects_to_display)
+                            timeline = analyzer.create_chronological_project_list(analyzed_repos)
 
                             # when generate_project_insights is run, the returned values are sorted by importance already
-                            display_project_summary(projects_to_display, top_n=3)
+                            display_project_summary(analyzed_repos, top_n=3)
 
                             # display the detailed insights only for top 3 projects
-                            display_project_insights(projects_to_display, top_n=3)
+                            display_project_insights(analyzed_repos, top_n=3)
 
                             display_project_timeline(timeline)
                         
