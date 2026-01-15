@@ -99,7 +99,7 @@ def display_project_summary(ranked_projects: List[Dict[str, Any]], top_n: int = 
         dates = proj.get("dates", {})
         
         print(f"{i}. Repo: {proj.get('repository_name', 'Unknown')}")
-        print(f"   Score: {round(proj.get('importance_score', 0), 4)}")
+        print(f"   Score (normalized): {round(proj.get('importance_score', 0) / 3, 4)}")
         print(f"   Commits: {len(proj.get('user_commits', []))}")
         print(f"   Lines Added: {stats.get('user_lines_added', 0)}")
         print(f"   Role: {proj.get('user_role', 'Unknown')}")
