@@ -29,8 +29,9 @@ class ResumeDataProcessor:
         """
         try: 
             resume_points = self.result_data.get('resume_points')
-            if resume_points and isinstance(resume_points, dict):
-                return resume_points.get('medium summary')
+            
+            if resume_points:
+                return resume_points
             return None
 
         except Exception as e:
@@ -209,12 +210,17 @@ class ResumeDataProcessor:
             
             # Parse ISO format dates
             start = datetime.fromisoformat(start_date)
+            # Remove Timezone info for formatting
+            if start.tzinfo:
+                start = start.replace(tzinfo=None)
             start_formatted = start.strftime("%b %Y")
             
             if not end_date:
                 return f"{start_formatted} - Present"
             
             end = datetime.fromisoformat(end_date)
+            if end.tzinfo:
+                end = end.replace(tzinfo=None)
             
             # Check if end date is within last 30 days (consider as "Present")
             days_since_end = (datetime.now() - end).days
