@@ -85,9 +85,9 @@ def main() -> None:
                             except Exception as e:
                                 raise RuntimeError(f"Failed to add image to db:{e}")
                         except RuntimeError as e:
-                            cli.print(f"Thumbnail Association failed:{e}","error")
+                            cli.print_status(f"Thumbnail Association failed:{e}","warning")
                         except Exception as e:
-                            cli.print(f"Unhandled Thumbnail Error:{e} \n Returning to main menu")
+                            cli.print_status(f"Unhandled Thumbnail Error:{e} \n Returning to main menu", "warning")
                             continue
                             
                 case 'a':
