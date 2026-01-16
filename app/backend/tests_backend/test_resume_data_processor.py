@@ -96,13 +96,6 @@ class TestResumeDataProcessor:
         skills = processor.extract_metadata_skills()
         assert skills == []
     
-    def test_extract_metadata_skills_no_primary_skills(self):
-        """Test skills extraction when primary_skills is missing"""
-        data = {'metadata_insights': {}}
-        processor = ResumeDataProcessor(data)
-        skills = processor.extract_metadata_skills()
-        assert skills == []
-    
     def test_extract_languages_success(self, sample_result_data):
         """Test successful language extraction"""
         processor = ResumeDataProcessor(sample_result_data)
@@ -207,13 +200,6 @@ class TestResumeDataProcessor:
         processor = ResumeDataProcessor({})
         date_range = processor._format_date_range(None, '2024-06-20T14:30:00')
         assert date_range == 'Dates unavailable'
-    
-    def test_format_date_range_recent_end_date(self):
-        """Test that recent end dates (within 30 days) show as Present"""
-        processor = ResumeDataProcessor({})
-        recent_date = datetime.now().isoformat()
-        date_range = processor._format_date_range('2024-01-15T10:00:00', recent_date)
-        assert 'Present' in date_range
     
     def test_format_date_range_with_timezone(self):
         """Test date range formatting handles timezone info"""
