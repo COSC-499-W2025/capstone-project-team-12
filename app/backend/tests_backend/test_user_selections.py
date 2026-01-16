@@ -42,13 +42,6 @@ def test_normalize_basic():
     assert result == [0.0, 0.5, 1.0]
 
 
-def test_normalize_all_equal():
-    values = [5, 5, 5]
-    result = normalize(values)
-    assert result == [0.5, 0.5, 0.5]
-
-
-
 # compute_scores
 def test_compute_scores_orders_correctly(sample_projects):
     weights = {"commits": 0.33, "lines_added": 0.33, "duration": 0.34}

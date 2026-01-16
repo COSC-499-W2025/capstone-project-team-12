@@ -1,7 +1,7 @@
 def normalize(values):
     min_val, max_val = min(values), max(values)
     if max_val - min_val == 0:
-        return [0.5] * len(values)
+        return 0
     return [(v - min_val) / (max_val - min_val) for v in values]
 
 # Compute weighted score
