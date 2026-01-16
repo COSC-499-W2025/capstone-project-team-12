@@ -57,108 +57,66 @@ class TestResumeDataProcessor:
         }
     
     def test_initialization(self, sample_result_data):
-        """Test processor initialization"""
         processor = ResumeDataProcessor(sample_result_data)
         assert processor.result_data == sample_result_data
     
-    def test_extract_summary_success(self, sample_result_data):
-        """Test successful summary extraction"""
+    def test_extract_summary(self, sample_result_data):
+        """Test summary extraction for various scenarios"""
+        # Success case
         processor = ResumeDataProcessor(sample_result_data)
-        summary = processor.extract_summary()
+        assert processor.extract_summary() == sample_result_data['resume_points']
         
-        assert summary == sample_result_data['resume_points']
-        assert isinstance(summary, str)
+        # Edge cases
+        assert ResumeDataProcessor({}).extract_summary() is None
+        assert ResumeDataProcessor({'resume_points': None}).extract_summary() is None
     
-    def test_extract_summary_missing(self):
-        """Test summary extraction when resume_points is missing"""
-        processor = ResumeDataProcessor({})
-        summary = processor.extract_summary()
-        assert summary is None
-    
-    def test_extract_summary_handles_exception(self):
-        """Test summary extraction error handling"""
-        processor = ResumeDataProcessor({'resume_points': None})
-        summary = processor.extract_summary()
-        assert summary is None
-    
-    def test_extract_metadata_skills_success(self, sample_result_data):
-        """Test successful skills extraction"""
+    def test_extract_metadata_skills(self, sample_result_data):
+        """Test skills extraction"""
         processor = ResumeDataProcessor(sample_result_data)
         skills = processor.extract_metadata_skills()
-        
         assert len(skills) == 4
-        assert 'Python' in skills
-        assert 'Docker' in skills
+        assert 'Python' in skills and 'Docker' in skills
+        
+        # Empty case
+        assert ResumeDataProcessor({}).extract_metadata_skills() == []
     
-    def test_extract_metadata_skills_empty(self):
-        """Test skills extraction with empty metadata"""
-        processor = ResumeDataProcessor({})
-        skills = processor.extract_metadata_skills()
-        assert skills == []
-    
-    def test_extract_languages_success(self, sample_result_data):
-        """Test successful language extraction"""
+    def test_extract_languages(self, sample_result_data):
+        """Test language extraction, sorting, and N/A filtering"""
         processor = ResumeDataProcessor(sample_result_data)
         languages = processor.extract_languages()
         
-        assert len(languages) == 3  # N/A should be filtered out
-        assert languages[0]['name'] == 'Python'
-        assert languages[0]['file_count'] == 25
-        assert all('name' in lang and 'file_count' in lang for lang in languages)
-    
-    def test_extract_languages_sorted_by_count(self, sample_result_data):
-        """Test languages are sorted by file count descending"""
-        processor = ResumeDataProcessor(sample_result_data)
-        languages = processor.extract_languages()
-        
-        counts = [lang['file_count'] for lang in languages]
-        assert counts == sorted(counts, reverse=True)
-    
-    def test_extract_languages_filters_na(self, sample_result_data):
-        """Test that N/A languages are filtered out"""
-        processor = ResumeDataProcessor(sample_result_data)
-        languages = processor.extract_languages()
-        
+        assert len(languages) == 3
+        assert languages[0] == {'name': 'Python', 'file_count': 25}
+        # Verify sorted descending and N/A filtered
+        assert [lang['file_count'] for lang in languages] == [25, 18, 12]
         assert not any(lang['name'] == 'N/A' for lang in languages)
-    
-    def test_extract_languages_empty(self):
-        """Test language extraction with no language stats"""
-        processor = ResumeDataProcessor({'metadata_insights': {}})
-        languages = processor.extract_languages()
-        assert languages == []
-    
-    def test_extract_top_projects_default(self, sample_result_data):
-        """Test extracting top 3 projects by default"""
-        processor = ResumeDataProcessor(sample_result_data)
-        projects = processor.extract_top_projects()
         
-        assert len(projects) == 2  # Only 2 projects in sample data
-        assert projects[0]['name'] == 'E-commerce Platform'
+        # Empty case
+        assert ResumeDataProcessor({'metadata_insights': {}}).extract_languages() == []
     
-    def test_extract_top_projects_custom_count(self, sample_result_data):
-        """Test extracting custom number of projects"""
+    def test_extract_top_projects(self, sample_result_data):
+        """Test project extraction with various top_n values"""
         processor = ResumeDataProcessor(sample_result_data)
-        projects = processor.extract_top_projects(top_n=1)
         
-        assert len(projects) == 1
-        assert projects[0]['name'] == 'E-commerce Platform'
-    
-    def test_extract_top_projects_empty(self):
-        """Test project extraction with no projects"""
-        processor = ResumeDataProcessor({})
+        # Default (top 3)
         projects = processor.extract_top_projects()
-        assert projects == []
+        assert len(projects) == 2  # Only 2 in sample
+        assert projects[0]['name'] == 'E-commerce Platform'
+        
+        # Custom count
+        assert len(processor.extract_top_projects(top_n=1)) == 1
+        
+        # Empty case
+        assert ResumeDataProcessor({}).extract_top_projects() == []
     
     def test_format_project_for_resume(self, sample_result_data):
-        """Test project formatting for resume"""
+        """Test project formatting"""
         processor = ResumeDataProcessor(sample_result_data)
         project_data = sample_result_data['project_insights']['analyzed_insights'][0]
-        
         formatted = processor._format_project_for_resume(project_data)
         
         assert formatted['name'] == 'E-commerce Platform'
-        assert 'Jan 2024' in formatted['date_range']
-        assert 'Dec 2024' in formatted['date_range']
+        assert 'Jan 2024' in formatted['date_range'] and 'Dec 2024' in formatted['date_range']
         assert 'Led backend development' in formatted['collaboration']
         assert len(formatted['frameworks']) <= 5
         assert 'django' in formatted['frameworks']
@@ -167,51 +125,19 @@ class TestResumeDataProcessor:
         """Test framework extraction from imports"""
         processor = ResumeDataProcessor(sample_result_data)
         imports = sample_result_data['project_insights']['analyzed_insights'][0]['imports_summary']
-        
         frameworks = processor._get_top_frameworks(imports, top_n=3)
         
-        assert len(frameworks) == 3
-        assert frameworks[0] == 'django'  # Highest frequency
-        assert frameworks[1] == 'celery'
+        assert frameworks == ['django', 'celery', 'redis']
+        assert ResumeDataProcessor({})._get_top_frameworks({}, top_n=5) == []
     
-    def test_get_top_frameworks_empty(self):
-        """Test framework extraction with no imports"""
+    @pytest.mark.parametrize("start,end,expected", [
+        ('2024-01-15T10:00:00', '2024-06-20T14:30:00', 'Jan 2024 - Jun 2024'),
+        ('2024-01-15T10:00:00', None, 'Jan 2024 - Present'),
+        (None, '2024-06-20T14:30:00', 'Dates unavailable'),
+        ('2024-01-15T10:00:00+00:00', '2024-06-20T14:30:00+00:00', 'Jan 2024 - Jun 2024'),
+        ('invalid', 'also-invalid', 'Dates unavailable'),
+    ])
+    def test_format_date_range(self, start, end, expected):
+        """Test date range formatting for various scenarios"""
         processor = ResumeDataProcessor({})
-        frameworks = processor._get_top_frameworks({}, top_n=5)
-        assert frameworks == []
-    
-    def test_format_date_range_complete(self):
-        """Test date range formatting with start and end dates"""
-        processor = ResumeDataProcessor({})
-        date_range = processor._format_date_range(
-            '2024-01-15T10:00:00',
-            '2024-06-20T14:30:00'
-        )
-        assert date_range == 'Jan 2024 - Jun 2024'
-    
-    def test_format_date_range_no_end_date(self):
-        """Test date range formatting without end date"""
-        processor = ResumeDataProcessor({})
-        date_range = processor._format_date_range('2024-01-15T10:00:00', None)
-        assert date_range == 'Jan 2024 - Present'
-    
-    def test_format_date_range_no_start_date(self):
-        """Test date range formatting without start date"""
-        processor = ResumeDataProcessor({})
-        date_range = processor._format_date_range(None, '2024-06-20T14:30:00')
-        assert date_range == 'Dates unavailable'
-    
-    def test_format_date_range_with_timezone(self):
-        """Test date range formatting handles timezone info"""
-        processor = ResumeDataProcessor({})
-        date_range = processor._format_date_range(
-            '2024-01-15T10:00:00+00:00',
-            '2024-06-20T14:30:00+00:00'
-        )
-        assert date_range == 'Jan 2024 - Jun 2024'
-    
-    def test_format_date_range_invalid_dates(self):
-        """Test date range formatting with invalid dates"""
-        processor = ResumeDataProcessor({})
-        date_range = processor._format_date_range('invalid', 'also-invalid')
-        assert date_range == 'Dates unavailable'
+        assert processor._format_date_range(start, end) == expected
