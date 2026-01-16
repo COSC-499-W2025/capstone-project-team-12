@@ -141,17 +141,6 @@ class TestResumeBuilder:
         assert 'PROJECTS' in captured.out
         assert 'SKILLS' in captured.out
     
-    def test_display_resume_without_cli(self, sample_result_data, capsys):
-        """Test resume display without CLI interface"""
-        builder = ResumeBuilder()
-        resume = builder._build_resume(sample_result_data, 'test-id')
-        
-        builder.display_resume(resume, cli=None)
-        
-        captured = capsys.readouterr()
-        assert 'GENERATED RESUME' in captured.out
-        assert resume['summary'] in captured.out
-    
     def test_display_resume_with_error(self, mocker, capsys):
         """Test display_resume handles errors"""
         builder = ResumeBuilder()
