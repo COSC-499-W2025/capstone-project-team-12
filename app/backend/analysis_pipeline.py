@@ -301,6 +301,25 @@ class AnalysisPipeline:
                 "top_topics": doc_top_topics,
             }
             
+            #extract detected skills from metadata analysis
+            detected_skills = []
+            if metadata_analysis:
+                primary_languages = metadata_analysis.get('primary_languages', [])
+                primary_skills = metadata_analysis.get('primary_skills', [])
+                #combine languages and skills, we can let the user decide on the scope
+                seen = set()
+                for skill in primary_languages + primary_skills:
+                    if skill and skill not in seen:
+                        detected_skills.append(skill)
+                        seen.add(skill)
+            
+            user_highlights = []
+            if detected_skills:
+                user_highlights = self.cli.display_skill_selection_menu(detected_skills)
+            
+            #add the new highlights into the bundle
+            topic_vector_bundle['user_highlights'] = user_highlights
+            
             self.cli.print_privacy_notice()
 
             online_consent = self.config_manager.get_consent(
