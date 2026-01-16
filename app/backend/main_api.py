@@ -135,16 +135,19 @@ async def get_project_detail(result_id: str, db: DatabaseManager = Depends(get_d
         # Validate UUID format
         u_id = uuid.UUID(result_id)
         results = db.db.execute_query(query, (u_id,))
-        
-        if not results:
-            raise HTTPException(status_code=404, detail="Project not found")
             
-        return results[0] # Returns dict like {"project_data": {...}}
         
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid UUID format")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {e}")
+
+    if not results:
+        raise HTTPException(status_code=404, detail="Project not found")
+        
+    return results[0] # Returns dict like {"project_data": {...}}
+
+    
 
 @app.get("/skills")
 async def get_skills(db: DatabaseManager = Depends(get_db)):
