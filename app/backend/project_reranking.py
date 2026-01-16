@@ -21,7 +21,9 @@ def compute_scores(projects, weights):
 
 def display_ranking(projects):
     for idx, p in enumerate(projects, 1):
-        print(f"{idx}) {p['repository_name']} (Score: {p.get('importance_score', 'N/A'):.2f})")
+        score = p.get('importance_score')
+        score_str = f"{score:.2f}" if isinstance(score, (int, float)) else str(score or "N/A")
+        print(f"{idx}) {p['repository_name']} (Score: {score_str})")
     print()
 
 
