@@ -55,11 +55,24 @@ class CLI:
         
         print("-" * 60)
         
+        print("\nHere are the extracted keywords.")
+
         while True:
-            choice = self.get_input("\nHere are the extracted keywords. Do you want to Proceed [P] or Edit [E]? \n> ").strip().upper()
+            choice = self.get_input("Do you want to Proceed [P], Edit [E] or info [I]? \n> ").strip().upper()
             if choice in ['P', 'E']:
                 return choice
-            self.print_status("Invalid choice. Please enter 'P' to Proceed or 'E' to Edit.", "warning")
+            elif choice == 'I':
+                print("\n" + "=" * 60)
+                print(" TOPIC EXTRACTION INFO")
+                print("=" * 60)
+                print("WHAT THIS IS:")
+                print("  These keywords are extracted from your files to identify common themes.")
+                print("\nWHY THIS MATTERS:")
+                print("  - Context: These topics guide the LLM on what the files are about.")
+                print("  - Accuracy: Better topics mean better, more relevant summaries.")
+                print("-" * 60)
+            else:
+                self.print_status("Invalid choice. Please enter 'P' to Proceed, 'E' to Edit or 'I' for Info.", "warning")
 
     def get_topic_edit_action(self, topic_keywords):
         """
