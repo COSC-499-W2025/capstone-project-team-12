@@ -1,5 +1,24 @@
 # Lexi Loudiadis (93546844) Personal Log
 
+## Term 2 - Week 2 (01/12/2026 - 01/18/2026)
+
+- Wrote the code to satisfy Requirement 23 - I did reranking projects and selecting projects to showcase, making sure to incorporate plenty of options for users to choose from (e.g., change the rankings by changing the weight of metrics contributing to determining the project importance score; or manually rank; if rank by weight -> select which weights the user wishes to use) (PR #308)
+- Wrote the tests for my feature (PR #308)
+- Team meetings, including how to get ready for peer testing in a couple weeks' time
+- Testing teammates' code
+
+### In Progress
+- Have collected a list of bugs that I will be tackling next week in order to get ready for peer testing
+
+### What's Next
+- Tackling bugs to get ready for peer testing. On top of that, if I have time, I would like to start on Requirement 25 but only if time allows
+
+### Reflection
+- Devin and I split the tasks for Requirement 23 since, as I realized last week, all the different ways to incorporate the human-in-the-loop would take more time than we had to spend on this project in one week. Devin and I met on our own to determine who was going to do which tasks after brainstorming on tasks individually. All tasks that I took on were completed.
+
+![Type of tasks I worked on](imgs/Week%2016%20Lexi.png)
+
+
 ## Term 2 - Week 1 (01/05/2026 - 01/11/2026)
 
 - Wrote the code to satisfy Requirement 24 of Milestone 2, which was implemented within the Repository Analyzer class and integrated with main
