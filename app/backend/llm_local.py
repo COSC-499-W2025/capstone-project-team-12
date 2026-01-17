@@ -132,6 +132,9 @@ class LocalLLMClient:
         Returns:
             Standard summary string
         """
+        #get user-selected skill highlights if any
+        highlights = topic_vector_bundle.get('user_highlights', [])
+        
         prompt = (
             "Write a resume-style summary using the provided keywords. Output 4–5 bullet points."
             "Rules:"
@@ -140,6 +143,15 @@ class LocalLLMClient:
             "- Keep bullets short and professional."
             "- Do not describe the keywords; turn them into accomplishments."
         )
+        
+        # Add skill highlighting instruction if user selected skills
+        if highlights:
+            highlight_instruction = (
+                f"\n\nCRITICAL: The user has explicitly requested to highlight the following "
+                f"technical skills: {', '.join(highlights)}. You must look for evidence of these "
+                f"in the provided code topics and emphasize them in the summary."
+            )
+            prompt += highlight_instruction
         
         response = self.send_request(prompt=prompt, topic_vector_bundle=topic_vector_bundle)
         return response["choices"][0]["message"]["content"].strip()

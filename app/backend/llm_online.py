@@ -164,12 +164,22 @@ Use action-oriented, professional language that is easy to scan. No extra text, 
         Returns:
             Standard summary string with 4-5 bullet points
         """
+        highlights = topic_vector_bundle.get('user_highlights', [])
+        
         prompt = """Using the data provided, generate a LinkedIn-ready professional summary as a bullet-point list (4-5 points).
 • First bullet: provide a clear, concise overview of the work's purpose and scope (if multiple projects are present, summarize the breadth of work).
 • Subsequent bullets: highlight specific contributions (what was done), skills applied, and technologies/tools used — frame each as an accomplishment (not just a responsibility) and, where possible, quantify outcomes.
 • Final bullet: describe the key professional and technical skills gained through this work, emphasizing development and growth.
 
 Use strong action verbs (e.g., "developed", "optimized", "designed"), maintain an active and confident tone, and tailor the language for LinkedIn. Avoid redundancy; keep each bullet impactful and easy to scan. Do not include greetings, emojis, extraneous text, or anything outside the bullet list."""
+        
+        if highlights:
+            highlight_instruction = (
+                f"\n\nCRITICAL: The user has explicitly requested to highlight the following "
+                f"technical skills: {', '.join(highlights)}. You must look for evidence of these "
+                f"in the provided code topics and emphasize them in the summary."
+            )
+            prompt += highlight_instruction
 
 #         prompt = """Using the topic vectors provided, generate a LinkedIn-ready professional summary of the project as a bullet-point list (4-5 points).
 # • First bullet: provide a clear, concise overview of the project's purpose and scope.
