@@ -15,6 +15,9 @@ from cache.bow_cache import BoWCache, BoWCacheKey
 from llm_online import OnlineLLMClient
 from llm_local import LocalLLMClient
 from display_helpers import display_project_insights, display_project_summary, display_project_timeline
+from project_selection import choose_projects_for_analysis
+from project_reranking import rerank_projects
+
 
 class AnalysisPipeline:
     def __init__(self, cli, config_manager, database_manager):
@@ -219,12 +222,22 @@ class AnalysisPipeline:
                     if not processed_git_repos:
                         self.cli.print_status("No repositores to process.", "error")
                     else:
+                        for repo in processed_git_repos:
+                            repo["name"] = (
+                                repo.get("repo_name")
+                                or repo.get("name")
+                                or repo.get("repo_url")
+                                or "Unnamed Repository"
+                            )
+
+                        # Allow user to choose which projects to analyze
+                        selected_repos = choose_projects_for_analysis(processed_git_repos)
                         self.cli.print_status("Repositories processed successfully.", "success")
                         
                         analyzer = RepositoryAnalyzer(github_username)
 
-                        #Generate the insights for ALL projects (not just what is displayed to allow for storage in db)
-                        analyzed_repos = analyzer.generate_project_insights(processed_git_repos)
+                        #Generate the insights for ALL selected projects (not just what is displayed to allow for storage in db)
+                        analyzed_repos = analyzer.generate_project_insights(selected_repos)
 
                         if not analyzed_repos:
                             self.cli.print_status("No successful repository analyses.", "warning")
@@ -236,9 +249,13 @@ class AnalysisPipeline:
                                 role_info = analyzer.infer_user_role(repo)
                                 repo['user_role'] = role_info['role']
                                 repo['role_blurb'] = role_info['blurb']
+
+                            # Allow user to rerank projects
+                            self.cli.print_status("Ready to rank/re-rank projects.\n", "info")
+                            analyzed_repos = rerank_projects(analyzed_repos)
                             
                             # Generate the project timeline
-                            timeline = analyzer.create_chronological_project_list(processed_git_repos)
+                            timeline = analyzer.create_chronological_project_list(analyzed_repos)
 
                             # when generate_project_insights is run, the returned values are sorted by importance already
                             display_project_summary(analyzed_repos, top_n=3)
