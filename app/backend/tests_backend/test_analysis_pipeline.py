@@ -57,7 +57,7 @@ def test_reviews_proceed_immediately(pipeline):
     result = pipeline.review_topic_bundle(initial_bundle)
 
     assert result == initial_bundle
-    pipeline.cli.print_status.assert_called_with("Proceeding with current topics", "success")
+    pipeline.cli.print_status.assert_called_with("Proceeding with current topics.", "success")
 
 
 def test_reviews_delete_topic(pipeline):
