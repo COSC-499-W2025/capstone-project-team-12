@@ -1,5 +1,4 @@
 import pytest
-from unittest.mock import MagicMock, patch
 from anytree import Node
 from analysis_pipeline import AnalysisPipeline
 from unittest.mock import MagicMock, patch, call
@@ -44,7 +43,7 @@ def test_successful_save(mock_llm, mock_tp, mock_fm, pipeline):
     assert pipeline.database_manager.create_new_result.called #check if asked db for new entry
     assert pipeline.database_manager.save_resume_points.called #check that summary was sent to be saved
 
-def reviews_proceed_immediately(pipeline):
+def test_reviews_proceed_immediately(pipeline):
     """Tests that if user chooses to proceed immediately, the pipeline continues"""
     initial_bundle = {
         'topic_keywords': [
