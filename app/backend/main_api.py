@@ -15,6 +15,7 @@ from cli_interface import CLI
 from config_manager import ConfigManager
 from database_manager import DatabaseManager
 from llm_local import LocalLLMClient
+from llm_online import OnlineLLMClient
 
 app = FastAPI(title="Artifact Mining API")
 
@@ -50,7 +51,6 @@ def health_check():
     return {"status": "active"}
 
 @app.post("/projects/upload")
-
 async def upload_project(
     file: UploadFile = File(...),
     github_username: Optional[str] = Form(None),
@@ -80,8 +80,6 @@ async def upload_project(
         # We bypass db.create_new_result() because we want to specify the ID.
         # We use the raw connection from DatabaseManager.
         insert_query = "INSERT INTO Results (result_id) VALUES (%s);"
-        # Note: You might need to cast to UUID depending on your driver, 
-        # but usually string works for UUID columns in psycopg.
         db.db.execute_update(insert_query, (result_id,))
 
         # 4. Initialize Classes
@@ -169,12 +167,37 @@ async def generate_resume_manual(result_id: str = Form(...), db: DatabaseManager
     if not result:
         raise HTTPException(status_code=404, detail="Result not found")
     
-    # Generate summary using local llm
-    client = LocalLLMClient()
-    summary = client.generate_summary(result.get("topic_vector", {}))
+    # 1. Check Config for Consent
+    config = ConfigManager()
+    use_online = config.preferences.get("online_llm_consent", False) 
     
-    db.save_resume_points(result_id, summary)
-    return {"status": "success", "resume_points": summary}
+    summary = ""
+    model_used = "local"
+    
+    try:
+        if use_online:
+            try:
+                # 2. Try Online Generation
+                client = OnlineLLMClient()
+                summary = client.generate_summary(result.get("topic_vector", {}))
+                model_used = "online"
+            except Exception as e:
+                # 3. Fallback to Local if API Key missing or Request fails
+                print(f"Online LLM failed: {e}. Falling back to local.")
+                client = LocalLLMClient()
+                summary = client.generate_summary(result.get("topic_vector", {}))
+                model_used = "local_fallback"
+        else:
+            # 4. Use Local Default
+            client = LocalLLMClient()
+            summary = client.generate_summary(result.get("topic_vector", {}))
+            model_used = "local"
+
+        db.save_resume_points(result_id, summary)
+        return {"status": "success", "resume_points": summary, "model_used": model_used}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Generation failed: {str(e)}")
 
 @app.post("/resume/{result_id}/edit")
 async def edit_resume(result_id: str, new: ResumeEditRequest, db: DatabaseManager = Depends(get_db)):
