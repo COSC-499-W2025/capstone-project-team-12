@@ -53,7 +53,8 @@ class RepositoryAnalyzer:
                 'contribution_analysis': self._calculate_contribution_insights(project),
                 'collaboration_insights': self._generate_collaboration_insights(project),
                 'testing_insights': self._generate_testing_insights(project),
-                'imports_summary': self.extract_repo_import_stats(project)
+                'imports_summary': self.extract_repo_import_stats(project),
+                'user_role': self.infer_user_role(project)
             }
             projects_insights.append(project_insight)
 

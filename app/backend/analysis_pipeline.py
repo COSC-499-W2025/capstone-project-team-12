@@ -350,17 +350,9 @@ class AnalysisPipeline:
                             self.cli.print_status("No successful repository analyses.", "warning")
                         else:
                             self.cli.print_status(f"Analyzed {len(analyzed_repos)} repositories.", "success")
-
-                             # Infer user roles for each individual project
-                            for repo in analyzed_repos:
-                                role_info = analyzer.infer_user_role(repo)
-                                repo['user_role'] = role_info['role']
-                                repo['role_blurb'] = role_info['blurb']
-
                             # Allow user to rerank projects
                             self.cli.print_status("Ready to rank/re-rank projects.\n", "info")
                             analyzed_repos = rerank_projects(analyzed_repos)
-                            
                             # Generate the project timeline
                             timeline = analyzer.create_chronological_project_list(analyzed_repos)
 
