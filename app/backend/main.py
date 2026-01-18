@@ -8,6 +8,7 @@ from cli_interface import CLI
 from analysis_pipeline import AnalysisPipeline
 from main_utils import *
 from input_validation import *
+from resume_builder import ResumeBuilder
 
 
     
@@ -17,7 +18,7 @@ def main() -> None:
     
     config_manager = ConfigManager() # Initialize Config Manager
     database_manager = DatabaseManager()  # Initialize Database Manager
-    
+    resume_builder = ResumeBuilder()    # Initialize Resume Builder
     
     cli.print_header("Artifact Mining App")
         
@@ -39,6 +40,7 @@ def main() -> None:
             -'N' to perform analysis on new filepath\n\t
             -'A' to view all past results.\n\t
             -'V' to view particular result.\n\t
+            -'G' to generate resume from past result.\n\t
             -'U' to update a past result.\n\t
             -'D' to delete particular result.\n\t
             -'R' to delete all past results.\n\t
@@ -73,7 +75,21 @@ def main() -> None:
                         cli.print_status(f"UUID Error:{e}", "error")
                     except Exception as e:
                         cli.print_status(f"Error retrieving result: {e}", "error")
+                case 'g':
+                    # Generate new resume
+                    try:
+                        result_id = cli.get_input("Enter Result ID to generate resume from: ").strip()
+                        result_id = validate_uuid(result_id)
 
+                        resume = resume_builder.create_resume_from_result_id(database_manager, cli, result_id)
+                        if resume:
+                            resume_builder.display_resume(resume, cli)
+
+                    except ValueError as e:
+                        cli.print_status(f"UUID Error:{e}", "error")
+                    except Exception as e:
+                        cli.print_status(f"Error generating resume: {e}", "error")
+                    
                 case 'u':
                     # TODO functionality to update past result (incremental requirment)
                     print() #Place holder to satisfy match-case syntax

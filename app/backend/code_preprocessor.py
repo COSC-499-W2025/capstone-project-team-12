@@ -39,7 +39,7 @@ def get_min_len()-> int:
 # EXCLUDE HAS HIGHER PRIORITY
 #set values by using 'set_filters(...)' function defined below.
 Include: List[pygments.token] = [tk.Comment, tk.Name,tk.Name.Function,tk.Text] #Default values for inclusion filter
-Exclude: List[pygments.token] = [tk.Whitespace,tk.Punctuation,tk.Operator,tk.__builtins__,tk.Keyword,tk.Generic] #Default value for exclusion filter
+Exclude: List[pygments.token] = [tk.Whitespace,tk.Punctuation,tk.Operator,tk.Keyword,tk.Generic] #Default value for exclusion filter
 
 
 def get_code_filters()->List[List[pygments.token]]|None:
@@ -213,6 +213,8 @@ def identify_lexer(code_node:Node,code_data:str):
         #Try to find the appropriate lexer by analyzing the data directly
         try:
             lexer = pygments.lexers.guess_lexer(code_data)
+            if lexer.name == "Text only":
+                raise pygments.util.ClassNotFound
             return lexer
         except pygments.util.ClassNotFound as e2:
             raise pygments.util.ClassNotFound("Failed to identify Lexer! Language Not supported or Invalid file extension.")
@@ -248,40 +250,4 @@ def filter_by_category(token: pygments.token) -> bool:
         return False
     else:
         return True #Return true if all filters pass!
-
-if __name__ == "__main__":
     
-    def localtest(filepath:str):
-        tmpString:str = ''
-        
-        def print_output(output):
-            for result in output:
-                print(str(result)+'\n')
-            return
-
-        with open(filepath,'r') as f:
-            tmpString = f.read()
-            
-        #Test Getting and Setting Filters:
-        #print(get_code_filters())
-        #append_code_filters([],[])
-        #print(get_code_filters())
-        
-        #Test Identifier Extraction:
-        testNode: Node = Node("testingNode",file_data={})
-        testNode.file_data['filepath'] = str(filepath)
-        testNode.file_data['filename'] = str(Path(filepath).name)
-    
-        nodelist: List[Node] = [testNode,testNode]
-        datalist: List[str] = [tmpString,tmpString]
-        #Test Primary output type
-        output = list(code_preprocess(nodelist,datalist))    
-        print("\n----PRIMARY RESULT----\n")
-        print_output(output)
-
-        #Test Secondary output type
-        output = list(code_preprocess(nodelist,datalist,normalize = False)) 
-        print("\n----SECONDARY RESULT----\n")
-        print_output(output)
-
-    localtest("app/backend/tests_backend/test_main_dir/mock_files/codeProcessor_testfile.cpp")

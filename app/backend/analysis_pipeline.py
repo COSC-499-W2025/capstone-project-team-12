@@ -15,6 +15,9 @@ from cache.bow_cache import BoWCache, BoWCacheKey
 from llm_online import OnlineLLMClient
 from llm_local import LocalLLMClient
 from display_helpers import display_project_insights, display_project_summary, display_project_timeline
+from project_selection import choose_projects_for_analysis
+from project_reranking import rerank_projects
+
 
 class AnalysisPipeline:
     def __init__(self, cli, config_manager, database_manager):
@@ -57,6 +60,113 @@ class AnalysisPipeline:
             except (AttributeError, UnicodeDecodeError):
                 result.append('')
         return result
+
+    def review_topic_bundle(self, bundle: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        provides a way for the user to edit the extracted topics before sending it to the llm
+        allows users to view, edit (remove or replace) and confirm the extracted topics
+        
+        Args:
+            bundle: Dictionary containing 'topic_keywords' (list of dicts with 'topic_id' and 'keywords')
+            
+        Returns:
+            The modified bundle with updated topic_keywords.
+        """
+        topic_keywords = bundle.get('topic_keywords', [])
+        
+        if not topic_keywords:
+            self.cli.print_status("No topics to review.", "warning")
+            return bundle
+        
+        while True:
+            choice = self.cli.display_topic_review_menu(topic_keywords)
+            
+            if choice == 'P':
+                self.cli.print_status("Proceeding with current topics.", "success")
+                break
+            
+            elif choice == 'E':
+                #get the topic id to edit
+                valid_ids = {topic['topic_id'] for topic in topic_keywords}
+                topic_id_input = self.cli.get_input("\nEnter the Topic ID you want to edit: \n> ").strip()
+                
+                try:
+                    topic_id = int(topic_id_input)
+                except ValueError:
+                    self.cli.print_status(f"Invalid input. '{topic_id_input}' is not a valid number.", "error")
+                    continue
+                
+                if topic_id not in valid_ids:
+                    self.cli.print_status(f"Topic ID {topic_id} does not exist. Valid IDs: {sorted(valid_ids)}", "error")
+                    continue
+                
+                #find the topic dict
+                topic_dict = None
+                for t in topic_keywords:
+                    if t['topic_id'] == topic_id:
+                        topic_dict = t
+                        break
+                
+                #enter the editing sub-loop
+                while True:
+                    self.cli.display_topic_edit_details(topic_dict)
+                    action_type, index = self.cli.get_granular_input()
+                    
+                    if action_type == 'back':
+                        #return to main menu
+                        break
+                    
+                    elif action_type == 'del':
+                        #delete entire topic
+                        topic_keywords = [t for t in topic_keywords if t['topic_id'] != topic_id]
+                        self.cli.print_status(f"Topic {topic_id} has been deleted.", "success")
+                        break
+                    
+                    elif action_type == 'all':
+                        #rewrite all keywords
+                        new_keywords_input = self.cli.get_input("\nEnter the new comma-separated keywords: \n> ").strip()
+                        new_keywords = [kw.strip() for kw in new_keywords_input.split(',') if kw.strip()]
+                        topic_dict['keywords'] = new_keywords
+                        self.cli.print_status(f"All keywords for Topic {topic_id} have been replaced.", "success")
+                    
+                    elif action_type == 'add':
+                        #add new keyword
+                        new_word = self.cli.get_input("\nEnter the new keyword to add: \n> ").strip()
+                        if new_word:
+                            topic_dict['keywords'].append(new_word)
+                            self.cli.print_status(f"Added '{new_word}' to Topic {topic_id}.", "success")
+                        else:
+                            self.cli.print_status("No keyword entered. Nothing added.", "warning")
+                    
+                    elif action_type == 'replace_one':
+                        #replace specific keyword at index
+                        keywords = topic_dict.get('keywords', [])
+                        if index < 0 or index >= len(keywords):
+                            self.cli.print_status(f"Invalid index {index}. Valid range: 0 to {len(keywords) - 1}.", "error")
+                        else:
+                            old_word = keywords[index]
+                            new_word = self.cli.get_input(f"\nReplace '{old_word}' with: \n> ").strip()
+                            if new_word:
+                                keywords[index] = new_word
+                                self.cli.print_status(f"Replaced '{old_word}' with '{new_word}'.", "success")
+                            else:
+                                self.cli.print_status("No keyword entered. Nothing replaced.", "warning")
+                    
+                    elif action_type == 'remove_one':
+                        # Remove specific keyword at index
+                        keywords = topic_dict.get('keywords', [])
+                        if index < 0 or index >= len(keywords):
+                            self.cli.print_status(f"Invalid index {index}. Valid range: 0 to {len(keywords) - 1}.", "error")
+                        else:
+                            removed_word = keywords.pop(index)
+                            self.cli.print_status(f"Removed '{removed_word}' from Topic {topic_id}.", "success")
+                    
+                    elif action_type == 'invalid':
+                        # Invalid input, continue sub-loop to re-display options
+                        continue
+        
+        bundle['topic_keywords'] = topic_keywords
+        return bundle
 
     #main execution func
     def run_analysis(self, filepath: str) -> None:
@@ -219,26 +329,32 @@ class AnalysisPipeline:
                     if not processed_git_repos:
                         self.cli.print_status("No repositores to process.", "error")
                     else:
+                        for repo in processed_git_repos:
+                            repo["name"] = (
+                                repo.get("repo_name")
+                                or repo.get("name")
+                                or repo.get("repo_url")
+                                or "Unnamed Repository"
+                            )
+
+                        # Allow user to choose which projects to analyze
+                        selected_repos = choose_projects_for_analysis(processed_git_repos)
                         self.cli.print_status("Repositories processed successfully.", "success")
                         
                         analyzer = RepositoryAnalyzer(github_username)
 
-                        #Generate the insights for ALL projects (not just what is displayed to allow for storage in db)
-                        analyzed_repos = analyzer.generate_project_insights(processed_git_repos)
+                        #Generate the insights for ALL selected projects (not just what is displayed to allow for storage in db)
+                        analyzed_repos = analyzer.generate_project_insights(selected_repos)
 
                         if not analyzed_repos:
                             self.cli.print_status("No successful repository analyses.", "warning")
                         else:
                             self.cli.print_status(f"Analyzed {len(analyzed_repos)} repositories.", "success")
-
-                             # Infer user roles for each individual project
-                            for repo in analyzed_repos:
-                                role_info = analyzer.infer_user_role(repo)
-                                repo['user_role'] = role_info['role']
-                                repo['role_blurb'] = role_info['blurb']
-                            
+                            # Allow user to rerank projects
+                            self.cli.print_status("Ready to rank/re-rank projects.\n", "info")
+                            analyzed_repos = rerank_projects(analyzed_repos)
                             # Generate the project timeline
-                            timeline = analyzer.create_chronological_project_list(processed_git_repos)
+                            timeline = analyzer.create_chronological_project_list(analyzed_repos)
 
                             # when generate_project_insights is run, the returned values are sorted by importance already
                             display_project_summary(analyzed_repos, top_n=3)
@@ -301,6 +417,8 @@ class AnalysisPipeline:
                 "top_topics": doc_top_topics,
             }
             
+            topic_vector_bundle = self.review_topic_bundle(topic_vector_bundle)
+
             #extract detected skills from metadata analysis
             detected_skills = []
             if metadata_analysis:
@@ -319,6 +437,9 @@ class AnalysisPipeline:
             
             #add the new highlights into the bundle
             topic_vector_bundle['user_highlights'] = user_highlights
+            #allow user to review and edit topic keywords
+            #no db saving for edited topic words tho (for now)
+            
             
             self.cli.print_privacy_notice()
 

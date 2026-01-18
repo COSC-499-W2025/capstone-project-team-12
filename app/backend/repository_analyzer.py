@@ -53,7 +53,8 @@ class RepositoryAnalyzer:
                 'contribution_analysis': self._calculate_contribution_insights(project),
                 'collaboration_insights': self._generate_collaboration_insights(project),
                 'testing_insights': self._generate_testing_insights(project),
-                'imports_summary': self.extract_repo_import_stats(project)
+                'imports_summary': self.extract_repo_import_stats(project),
+                'user_role': self.infer_user_role(project)
             }
             projects_insights.append(project_insight)
 
@@ -421,7 +422,7 @@ class RepositoryAnalyzer:
             norm_lines_added = self.normalize_for_rankings(lines, max_lines, min_lines)
             norm_duration = self.normalize_for_rankings(duration, max_duration, min_duration)
 
-            project['importance'] = norm_commits + norm_lines_added + norm_duration
+            project['importance'] = ( norm_commits + norm_lines_added + norm_duration ) / 3
 
         return sorted(projects, key=lambda x: x['importance'], reverse=True)
     
