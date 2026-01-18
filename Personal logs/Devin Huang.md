@@ -1,5 +1,6 @@
 ## Devin Huang Personal Log (86828886)
 
+[Term 2 Week 2](#t2-week-2)  
 [Term 2 Week 1](#t2-week-1)  
 [Week 14](#week-14)  
 [Week 13](#week-13)  
@@ -14,6 +15,23 @@
 [Week 3](#week-3)
 
 
+### T2 Week 2
+- Implemented user validation for extracted topic keywords (https://github.com/COSC-499-W2025/capstone-project-team-12/pull/310)
+  - Give the user control over the keywords sent for summary generation (Replace, change, delete, add)
+- Implemented user skill highlight selection (https://github.com/COSC-499-W2025/capstone-project-team-12/pull/316)
+  - Select up to 3 skills + ability to add custom skills to highlight in summary
+- Team meeting
+- Implemented testing for all related tasks
+#### Next week
+- Reword the database manager module
+- Change Ollama specification to be a specific version instead of latest version
+
+#### Reflection
+- This weeks work was rather straightforward, everything was quite easy to implement due to the refactoring that we did last week.
+
+<img width="960" height="485" alt="image" src="https://github.com/user-attachments/assets/5ed7b4fe-5657-4136-a5c8-916658e657c7" />
+
+
 ### T2 Week 1
 - Refactored main by extracting the analysis pipeline logic and all the CLI related logic into individual classes
 - Added testing for the newly created `analysis_pipeline.py`
@@ -21,11 +39,11 @@
   - Comfirms that it handles file reading errors
   - Simulates successful analysis run
 - Team meeting
-### Next week
+#### Next week
 - Refactor the LLM clients
 - Work towards the milestone 2 requirements completion
 
-### Reflection
+#### Reflection
 - We had our team meeting later than usual, which kind of made things rushed, therefore we didn't start on any big term 2 requirements yet.
 - This weeks refactoring highlighted how bloated our main.py file was. We were able to decrease the length of it from 500+ lines to around 100.
 
