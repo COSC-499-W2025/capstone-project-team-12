@@ -1,4 +1,32 @@
 # Sara Srinivasan Personal Log (10801751)
+
+## Term 2 Week 2
+
+### Work Done
+
+- Participated in team meeting and helped decide on tasks and priority for this and next week
+- Helped An to rework/redesign tree managemant and fileclassifier
+- Discussed rebuild of DBschema and downstream modules for next week to enable incremental changes
+- Implemented ability to associate thumbnail to a particular analysis (Feature and testing)
+  - Edit DB Schema
+  - Edit Prompting in main
+  - New validation function
+  - New DBmanager class function
+  - Tests for above
+- Implemented testing for Code-Preprocessor module (testing)
+- Requested changes and approved other's PRs
+
+
+### Quiz Response
+
+![Term 2 Week 2 Quiz Response](imgs/Sara%20Srinivasan%20T2%20Week%202.jpg)
+
+### Review and Plans
+
+Thumbnail implementation needs more interactivity to help the user determine if image was added successfully
+Next week Myself,Sithara and Devin are reworking the DB schema from the ground up and making necessary downstream changes to 
+implement incremental tracking of not just data but also files and to store multiple versions of resumes and portfolios.
+
 ## Term 2 Week 1
 
 ### Work Done
