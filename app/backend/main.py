@@ -48,17 +48,50 @@ def main() -> None:
         try:
             match(operation):
                 case 'n':
+                    #Analysis Filepath and analysis handling
                     filepath: str = cli.get_input("Enter a file path to process: \n> ").strip()
                     try:
-                        path: Path = validate_path(filepath)
+                        path: Path = validate_analysis_path(filepath)
                         cli.print_status(f"Path valid: {path}", "success")
                         
                         #analysis pipeline starting, moved to another file
                         pipeline = AnalysisPipeline(cli, config_manager, database_manager)
-                        pipeline.run_analysis(str(path))            
-                    
+                        result_id = pipeline.run_analysis(str(path),return_id=True) #Return the new result id so it can be used to add image to result
                     except Exception as e:
                         cli.print_status(f"File path is not valid: {e}", "error")
+                        
+                    #Thumbnail handling
+                    
+                    #Prompt to add thumbnail
+                    img_response = cli.get_input("Would you like to add a thumbnail to represent this result? (y/N) \n")            
+                    if img_response.lower() in ('y','yes'):
+                        try:    
+                            #Receive image filepath
+                            img_path:str = cli.get_input(f"Accepted formats are: {accepted_formats} of maximum size 10MB.\n Please enter a filepath to a valid image:\n")
+                            
+                            #Validate image filepath 
+                            try:
+                                img_valid_path:Path = validate_thumbnail_path(img_path)
+                            except Exception as e:
+                                raise RuntimeError(f"Image filepath Error:{e}")
+                            
+                            #Read image
+                            try:
+                                img_data:BinaryIO = read_image(img_valid_path)
+                            except Exception as e:
+                                raise RuntimeError(f"Error reading image:{e}")
+                            #Save Image to db
+                            try:
+                                insert_thumbnail(database_manager,cli,result_id,img_data)
+                                cli.print_status(f"Image added successfully!","success")
+                            except Exception as e:
+                                raise RuntimeError(f"Failed to add image to db:{e}")
+                        except RuntimeError as e:
+                            cli.print_status(f"Thumbnail Association failed:{e}","warning")
+                        except Exception as e:
+                            cli.print_status(f"Unhandled Thumbnail Error:{e} \n Returning to main menu", "warning")
+                            continue
+                            
                 case 'a':
                     # View all saved insights from database
                     try:

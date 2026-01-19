@@ -1,6 +1,6 @@
 import json
 import uuid
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional, Tuple, BinaryIO
 from datetime import datetime
 from db_utils import DB_connector
 
@@ -270,6 +270,20 @@ class DatabaseManager:
             print(f"Error wiping database tables: {e}")
             return False
     
+    def save_result_thumbnail(self,result_id:str,data:BinaryIO):
+        """Insert the binary data of provided image binary into DB for a particular result"""
+        
+        try:
+            #Sepera
+            query = "UPDATE Results SET thumbnail_image= %s WHERE result_id = %s;"
+            self.db.execute_update(query,(data,result_id)) #tuple of bin data as string and result_id
+            
+            print(f"Successfully added thumbnail image to result with result_id:{result_id}")
+            return True
+        except Exception as e:
+            print(f"Error Inserting image to result:{e}")
+            return False
+            
     def close(self):
         """Close the database connection."""
         #DB_connector uses context managers, so connections auto-close

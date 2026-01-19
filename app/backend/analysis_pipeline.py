@@ -169,7 +169,7 @@ class AnalysisPipeline:
         return bundle
 
     #main execution func
-    def run_analysis(self, filepath: str) -> None:
+    def run_analysis(self, filepath: str,return_id = False) -> None|str:
         self.cli.print_status("Loading file manager...", "info")
 
         file_manager = FileManager()
@@ -476,7 +476,7 @@ class AnalysisPipeline:
 
         # save tracked data and insights to database
         try:
-            result_id: int = self.database_manager.create_new_result()
+            result_id: str = self.database_manager.create_new_result() 
             # save tracked data
             self.database_manager.save_tracked_data(result_id, metadata_results, final_bow, processed_git_repos)
 
@@ -485,5 +485,7 @@ class AnalysisPipeline:
             self.database_manager.save_text_analysis(result_id, doc_topic_vectors, topic_term_vectors)
             self.database_manager.save_repository_analysis(result_id, project_analysis_data)
             self.database_manager.save_resume_points(result_id, medium_summary)
+            if return_id:
+                return result_id
         except Exception as e:
             self.cli.print_status(f"Error saving result to database: {e}", "error")

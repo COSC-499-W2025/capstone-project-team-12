@@ -9,7 +9,8 @@ Results(
     resume_points JSON,
     project_insights JSON,
     package_insights JSON,
-    metadata_insights JSON
+    metadata_insights JSON,
+    thumbnail_image bytea DEFAULT NULL
 );
 
 CREATE TABLE IF NOT EXISTS 
