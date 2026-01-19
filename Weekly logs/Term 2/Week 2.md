@@ -41,8 +41,8 @@ One failing test is trivial testing logic issue that wasnt fixed in time.
 
 ### Upcoming plans
 - Start working on incremental file addition
-- continue to work on milestone 2
+- Continue to work on milestone 2
+- Work on a sprint together (the people who are working on the same milestone)
 
 ### Reflections
-- A light week focusing mostly on cleaning up stray bugs and tasks and some reworks focused on future maintainability
-- A good way to refresh our knowledge of code base in prep for Milestone 2 work.
+- This week was back to the usual workload that we got used to in Term 1, with a lot more planning on working together after the weekly checkin on wednesday. It was very helpful to have a discussion after the task assignmenents on monday to get ideas from the team and to just discuss things in person. 
