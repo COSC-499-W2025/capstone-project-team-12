@@ -417,9 +417,29 @@ class AnalysisPipeline:
                 "top_topics": doc_top_topics,
             }
             
+            topic_vector_bundle = self.review_topic_bundle(topic_vector_bundle)
+
+            #extract detected skills from metadata analysis
+            detected_skills = []
+            if metadata_analysis:
+                primary_languages = metadata_analysis.get('primary_languages', [])
+                primary_skills = metadata_analysis.get('primary_skills', [])
+                #combine languages and skills, we can let the user decide on the scope
+                seen = set()
+                for skill in primary_languages + primary_skills:
+                    if skill and skill not in seen:
+                        detected_skills.append(skill)
+                        seen.add(skill)
+            
+            user_highlights = []
+            if detected_skills:
+                user_highlights = self.cli.display_skill_selection_menu(detected_skills)
+            
+            #add the new highlights into the bundle
+            topic_vector_bundle['user_highlights'] = user_highlights
             #allow user to review and edit topic keywords
             #no db saving for edited topic words tho (for now)
-            topic_vector_bundle = self.review_topic_bundle(topic_vector_bundle)
+            
             
             self.cli.print_privacy_notice()
 
