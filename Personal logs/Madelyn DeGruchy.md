@@ -1,7 +1,25 @@
 # Madelyn DeGruchy Personal Log (85064962 - maddydeg)
+## Term 2 Week 2 (01/12/2026 - 01/18/2026)
+- Completed the Resume Generation Implementation
+  - Resume Data Processor collects the relevant data from each analysis pipeline (topic vectors, projects, and metadata) to be displayed in a resume
+  - Resume Builder creates the Dict that stores each component under its own key. Once we implement the saving of the generated resume to the database, this will allow each component to be stored separately as well as the entire resume together. We plan to use JSON to store them.
+  - Also updated main to add resume generation to the possible prompts for the user.
+  - Added the testing for this new implementation
+- Attended team meeting to plan to divide tasks
+- Completed code reviews of teammates' code
+
+# In Progress
+- Still looking into the bug fix on contributions from last week. Although the fix I made worked locally (on Windows), Mac users continued to have issues. Since everyone was fairly busy this week, we have scheduled it to be worked on next week when I can sit down with Lexi and run some debugging on her computer
+
+# Reflection
+- It was a good week for making a dent in the requirements for Milestone 2. The current plan is to get all of the necessary requirements done as soon as possible and then spend the rest of this milestone refactoring and speeding up the processing time
+- For next week, we are looking to get the major debug out of the way and then add the database implementation for the resume.
+
+![Peer Evaluation Term 2 Week 1](imgs/Madelyn%20DeGruchy%20T2%20Week%202.png)
+
 ## Term 2 Week 1 (01/05/2026 - 01/11/2026)
 - Worked on debugging for the timeline, not printing the names of the projects properly. Took me a while to determine where the issue was, but it ended up being an incorrect variable name in the display printing method and was not an issue in the actual extraction or anything
-  - Added an additional test case to ensure timeline titles don't return as Unknown when a valid name for projects is incuded
+  - Added an additional test case to ensure timeline titles don't return as Unknown when a valid name for projects is included
 - Took part in team meetings, given that everyone has new timetables, we were not able to meet until Wednesday so we had a shorter timeline to complete tasks
 - Working on bug mentioned in my In Progress section
 
