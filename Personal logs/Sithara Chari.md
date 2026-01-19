@@ -1,5 +1,47 @@
 # Sithara Chari Personal Log (22066401)
 
+## Term 2 - Week 2 (01/12/2026 - 01/18/2026)
+
+### TODOs
+- Setup API for communication between frontend and backend (requirement 31 and 32)
+    - issue 312 https://github.com/COSC-499-W2025/capstone-project-team-12/issues/312 
+    and 313 https://github.com/COSC-499-W2025/capstone-project-team-12/issues/313 
+    
+
+### Work done
+- Finished issues 312 and 313
+    - Finished writing code and tests for the initial implementation of API using FastAPI
+- Reviewed several PRs that were up this week (PR numbers: 16, 309, 308, 300, 293)
+
+### What's Next
+- Continue to work on API, modify code so it maintiains SRP
+- Start working on milestones 21, 22, 33, 34
+
+### Reflection
+- During our team meeting on Monday, An and I had planned to share requirements 21 and 22, but we only got more confused as we discussed it within ourselves, so when we brought it up with the rest of the team, we decide to split it for next week and so I had taken over doing the API setup for this week. Despite the task only being assigned on Wednesday, I was able to finish the setup and test for it as well. Although I wasn't able to implements all the changes that were requested on my PR. 
+
+![alt text](<imgs/Sithara Chari T2Week2.png>)
+
+## Term 2 - Week 1 (01/05/2026 - 01/11/2026)
+
+### TODOs
+- Refactor num_topic logic in topic_vectors.py: make it so that it is scaled according to the number of documents (issue # 271) and the corresponding tests (issue # 272)
+- Work with An on requirements 21 and 22 
+
+### Work done
+- Finished refactoring num_topic (issues 271 and 272)
+- participated in team meeting to decide what to work on this week 
+- reviewed PRs 
+
+### What's Next
+- Start working on milestone #2 requirements 
+- continue to improve the logic we have now (further optimization of topic modelling)
+
+### Reflection
+- We had our team meeting on wednesday instead of the usual monday, which lead to a lot of the work this week being rushed, so I wasn't able to start on milestone #2 requirements, but from this coming monday we'll be back to our routine of having our meeting on monday and then making sure initial PRs are in by thursday, giving everyone plenty of time to review and request changes. 
+
+![Type of tasks I worked on](<imgs/Sithara Chari Week 15.png>)
+
 ## Week 3 (09/15/2025 - 09/21/2025)
 - Contributed to functional and non-functional requirements
 - Took part in collaborative team discussions regarding requirements with other teams
@@ -157,24 +199,5 @@ Overall this week we mainly focused on refactoring our existing code, so we have
 - Continue to work on anything I can during the winter holidays for bonus
 - No other future plans as of now, we will start planning again once the next semester starts. 
 
-## Term 2 - Week 1 (01/05/2026 - 01/11/2026)
-
-### TODOs
-- Refactor num_topic logic in topic_vectors.py: make it so that it is scaled according to the number of documents (issue # 271) and the corresponding tests (issue # 272)
-- Work with An on requirements 21 and 22 
-
-### Work done
-- Finished refactoring num_topic (issues 271 and 272)
-- participated in team meeting to decide what to work on this week 
-- reviewed PRs 
-
-### What's Next
-- Start working on milestone #2 requirements 
-- continue to improve the logic we have now (further optimization of topic modelling)
-
-### Reflection
-- We had our team meeting on wednesday instead of the usual monday, which lead to a lot of the work this week being rushed, so I wasn't able to start on milestone #2 requirements, but from this coming monday we'll be back to our routine of having our meeting on monday and then making sure initial PRs are in by thursday, giving everyone plenty of time to review and request changes. 
-
-![Type of tasks I worked on](<imgs/Sithara Chari Week 15.png>)
 
 
