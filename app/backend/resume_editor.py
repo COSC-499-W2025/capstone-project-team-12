@@ -45,8 +45,7 @@ class ResumeEditor:
                         break
                     case _:
                         self.cli.print_status("Invalid choice. Please select a valid option.", "warning")
-             
-            #TODO: Add my catch statement here!! Should i mirror the oen in main??
+
             except Exception as e:
                 self.cli.print_status(f"Error during resume editing: {e}", "error")
                 continue
@@ -210,36 +209,40 @@ class ResumeEditor:
 
         return current_skills
 
-    def _edit_languages(self, current_languages: List[str]) -> List[str]:
+    def _edit_languages(self, current_languages: List[Dict[str,Any]]) -> List[Dict[str,Any]]:
         """
         Edit the languages section of the resume. Allows user to remove current detected languages, or enter new languages.
         Args:
-            current_languages (List[str]): The current list of languages
+            current_languages (List[Dict[str,Any]]): The current list of languages
         Returns:
-            List[str]: The edited list of languages
+            List[Dict[str,Any]]: The edited list of languages
         """
         self.cli.print_header("Edit Languages")
-        self.cli.print_status(f"\nCurrent Languages: {', '.join(current_languages)}", "info")
-
+        language_names = [lang['name'] for lang in current_languages]
         while True:
+            # Display current languages each time so user can see updates
+            self.cli.print_status(f"\nCurrent Languages: {', '.join(language_names)}", "info")
             language_choice = self.cli.get_input("Type a language to add, type a language to remove, or type 'done' to finish editing languages: \n> ").strip()
             
             if language_choice.lower() == 'done':
                 break
             
             # If language is in the list then remove it, else add it. Confirm with user before removing.
-            if language_choice in current_languages:
+            if language_choice in language_names:
                 confirm_remove = self.cli.get_input(f"Are you sure you want to remove the language '{language_choice}'? (y/n): \n> ").strip().lower()
                 if confirm_remove == 'y':
-                    current_languages.remove(language_choice)
+                    # Need to remove the full dict, not just the name string in the list
+                    language_names.remove(language_choice)
+                    current_languages.remove([lang for lang in current_languages if lang['name'] == language_choice][0])
                     self.cli.print_status(f"Removed language: {language_choice}", "success")
                 elif confirm_remove == 'n':
                     self.cli.print_status("No changes made.", "info")
                 elif confirm_remove != 'y' and confirm_remove != 'n':
                     self.cli.print_status("Invalid input. No changes made.", "warning")
 
-            elif language_choice not in current_languages and language_choice != '':
-                current_languages.append(language_choice)
+            elif language_choice not in language_names and language_choice != '':
+                language_names.append(language_choice)
+                current_languages.append({'name': language_choice, 'file_count': 0})
                 self.cli.print_status(f"Added language: {language_choice}", "success")
 
         return current_languages
@@ -256,7 +259,8 @@ class ResumeEditor:
         print("Skills:")
         print(', '.join(resume.get('skills', [])) + "\n")
         print("Languages:")
-        print(', '.join(resume.get('languages', [])) + "\n")
+        all_language_names = [lang['name'] for lang in resume.get('languages', [])]
+        print(', '.join(all_language_names) + "\n")
         print("Projects:")
         for project in resume.get('projects', []):
             print(f"- {project.get('name', 'Unnamed Project')} ({project.get('date_range', 'No Date Range')})")
