@@ -60,8 +60,12 @@ class ImportsExtractor:
                     imports.add('.'.join(parts[:2]))
                 else:
                     imports.add(parts[0])
+
             else:
-                imports.add(parts[0])
+                if parts[0] == 'java' and len(parts) == 2:
+                    imports.add('java.' + parts[1])
+                else:
+                    imports.add(parts[0])
         
         return imports
     
