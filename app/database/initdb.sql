@@ -4,20 +4,13 @@ SELECT uuid_generate_v4();
 
 CREATE TABLE IF NOT EXISTS
 Analyses(
-    analysis_id uuid DEFAULT uuid_generate_v4() PRIMARY KEY,
-    fileset_id integer REFERENCES Filesets(fileset_id),
-    data_id integer REFERENCES Tracked_Data(data_id),
-    result_id integer REFERENCES Results(result_id),
-    resume_id integer Results Resumes(resume_id),
-    portfolio_id integer REFERENCES Portfolios(portfolio_id),
-    
-    
+    analysis_id uuid DEFAULT uuid_generate_v4() PRIMARY KEY  
 )
 
 CREATE TABLE IF NOT EXISTS
 Filesets(
     fileset_id SERIAL PRIMARY KEY,
-    analysis_id uuid REFERENCES Analyses(analysis_id) NOT NULL
+    analysis_id uuid REFERENCES Analyses(analysis_id) NOT NULL UNIQUE,
     file_data bytea -- Only the most recent set of binary data for the files is maintained. 
                     --But multiple trees can be maintained for the same analysis in Filetrees table
 )
