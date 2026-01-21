@@ -4,7 +4,6 @@ from cli_interface import CLI
 
 from database_manager import DatabaseManager
 from resume_data_processor import ResumeDataProcessor
-from resume_editor import ResumeEditor
 
 
 class ResumeBuilder:
@@ -72,12 +71,6 @@ class ResumeBuilder:
 
             else:
                 cli.print_status("Resume generated successfully!", "success")
-            
-            # Allow the user to edit the resume before saving/displaying
-            edit_choice = cli.get_input("Would you like to edit the resume before saving/displaying? (y/n): ").strip().lower()
-            if edit_choice in ('y', 'yes'):
-                editor = ResumeEditor(cli)
-                resume = editor.edit_resume(resume, result_data)
 
             return resume
 

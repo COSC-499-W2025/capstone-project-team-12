@@ -9,14 +9,11 @@ class ResumeEditor:
     def __init__(self, cli):
         self.cli = cli
 
-    def edit_resume(self, resume: Dict[str, Any], result_data: Dict[str, Any]) -> Dict[str, Any]:
+    def edit_resume(self, resume: Dict[str, Any]) -> Dict[str, Any]:
         """
         Edit the resume based on user inputs - lets user edit each section of the resume
-
         Args:
             resume (Dict[str, Any]): The generated resume data
-            result_data (Dict[str, Any]): The original analyzed data from which the resume was generated
-
         Returns:
             Dict[str, Any]: The edited resume data
         """
@@ -38,7 +35,7 @@ class ResumeEditor:
                     case 'p':
                         resume['projects'] = self._edit_projects(resume.get('projects', []))
                     case 'k':
-                        resume['skills'] = self._edit_skills(resume.get('skills', []), result_data)
+                        resume['skills'] = self._edit_skills(resume.get('skills', []))
                     case 'l':
                         resume['languages'] = self._edit_languages(resume.get('languages', []))
                     case 'v':
@@ -73,7 +70,6 @@ class ResumeEditor:
         Edit details of projects in the resume 
         Args:
             current_projects (List[Dict[str, Any]]): The current list of projects
-            result_data (Dict[str, Any]): The original analyzed data from which the resume was generated
         Returns:
             List[Dict[str, Any]]: The edited list of projects
         """
@@ -85,10 +81,10 @@ class ResumeEditor:
         
         while True:
             for idx, project in enumerate(current_projects, 1):
-                self.cli.print(f"{idx}. {project.get('name', 'Unnamed Project')}")
-                self.cli.print(f"   Date: {project.get('date_range', 'No Date Range')}")
-                self.cli.print(f"   Frameworks: {', '.join(project.get('frameworks', []))}")
-                self.cli.print(f"   Collaboration: {project.get('collaboration', 'No Collaboration Info')}\n")
+                print(f"{idx}. {project.get('name', 'Unnamed Project')}")
+                print(f"   Date: {project.get('date_range', 'No Date Range')}")
+                print(f"   Frameworks: {', '.join(project.get('frameworks', []))}")
+                print(f"   Collaboration: {project.get('collaboration', 'No Collaboration Info')}\n")
             
             project_choice = self.cli.get_input("Select a project number to edit or type 'done' to finish editing projects: \n> ").strip().lower()
             
@@ -114,62 +110,76 @@ class ResumeEditor:
             Dict[str, Any]: The edited project data
         """
         self.cli.print_status(f"Editing Project: {project.get('name', 'Unnamed Project')}", "info")
-        
-        # Printing all of the details again just so it is easily accessible to the user
-        print("\nCurrent Details:")
-        print(f"  Name: {project.get('name', 'Unknown')}")
-        print(f"  Date Range: {project.get('date_range', 'N/A')}")
-        print(f"  Frameworks: {', '.join(project.get('frameworks', []))}")
-        print(f"  Collaboration: {project.get('collaboration', 'N/A')}")
 
+        while True:
 
-        project_choice = self.cli.get_input(
-            """Which section would you like to edit? \n\t
-                -'N' Edit Name.\n\t
-                -'D' Edit Date Range.\n\t
-                -'F' Edit Frameworks.\n\t
-                -'C' Edit Collaboration.\n\t
-                -'D' Done Editing.\n""").strip().lower()
-        
-        try:
-            match(project_choice):
-                case 'n':
-                    new_name = self.cli.get_input("Enter new project name (or press Enter to keep current): \n> ").strip()
-                    if new_name:
-                        project['name'] = new_name
-                        self.cli.print_status("Project name updated.", "success")
-                case 'd':
-                    print("\nFormat for date range: 'MMM YYYY - MMM YYYY' or 'MMM YYYY - Present'")
-                    new_date_range = self.cli.get_input("Enter new date range, must include '-' (or press Enter to keep current): \n> ").strip()
-                    if new_date_range and '-' in new_date_range:
-                        project['date_range'] = new_date_range
-                        self.cli.print_status("Project date range updated.", "success")
-                    elif new_date_range:
-                        self.cli.print_status("Invalid date range format, did not contain '-'. Update skipped.", "warning")
-                case 'f':
-                    new_frameworks = self.cli.get_input("Enter new frameworks used, separated by commas (or press Enter to keep current): \n> ").strip()
-                    if new_frameworks:
-                        project['frameworks'] = [fw.strip() for fw in new_frameworks.split(',') if fw.strip()]
-                        self.cli.print_status("Project frameworks updated.", "success")
-                case 'c':
-                    new_collaboration = self.cli.get_input("Enter new collaboration details (or press Enter to keep current): \n> ").strip()
-                    if new_collaboration:
-                        project['collaboration'] = new_collaboration
-                        self.cli.print_status("Project collaboration details updated.", "success")
-                case 'd':
-                    self.cli.print_status("Finished editing project.", "success")
-                case _:
-                    self.cli.print_status("Invalid choice. No changes made to project.", "warning")
-        except Exception as e:
-            self.cli.print_status(f"Error during project editing: {e}", "error")
+            # Printing all of the details again just so it is easily accessible to the user
+            print("\nCurrent Details:")
+            print(f"  Name: {project.get('name', 'Unknown')}")
+            print(f"  Date Range: {project.get('date_range', 'N/A')}")
+            print(f"  Frameworks: {', '.join(project.get('frameworks', []))}")
+            print(f"  Collaboration: {project.get('collaboration', 'N/A')}")
+            
+            project_choice = self.cli.get_input(
+                """Which section would you like to edit? \n\t
+                    -'N' Edit Name.\n\t
+                    -'D' Edit Date Range.\n\t
+                    -'F' Edit Frameworks.\n\t
+                    -'C' Edit Collaboration.\n\t
+                    -'Q' Done Editing.\n""").strip().lower()
+            
+            try:
+                match(project_choice):
+                    case 'n':
+                        print(f"\nCurrent Name: {project.get('name', 'Unknown')}")
+                        new_name = self.cli.get_input("Enter new project name (or press Enter to keep current): \n> ").strip()
+                        if new_name:
+                            project['name'] = new_name
+                            self.cli.print_status("Project name updated.", "success")
+                    case 'd':
+                        print(f"\nCurrent Date Range: {project.get('date_range', 'N/A')}")
+                        print("\nFormat for date range: 'MMM YYYY - MMM YYYY' or 'MMM YYYY - Present'")
+                        new_date_range = self.cli.get_input("Enter new date range, must include '-' (or press Enter to keep current): \n> ").strip()
+                        if new_date_range and '-' in new_date_range:
+                            project['date_range'] = new_date_range
+                            self.cli.print_status("Project date range updated.", "success")
+                        elif new_date_range:
+                            self.cli.print_status("Invalid date range format, did not contain '-'. Update skipped.", "warning")
+                    case 'f':
+                        print(f"\nCurrent Frameworks: {', '.join(project.get('frameworks', []))}")
+                        while True:
+                            frameworks_input = self.cli.get_input("Type new framework to add, type current framework to remove, type done to finish editing frameworks): \n> ").strip()
+                            if frameworks_input.lower() == 'done':
+                                break
+                            elif frameworks_input in project.get('frameworks', []):
+                                confirm_remove = self.cli.get_input(f"Are you sure you want to remove the framework '{frameworks_input}'? (y/n): \n> ").strip().lower()
+                                if confirm_remove == 'y':
+                                    project['frameworks'].remove(frameworks_input)
+                                    self.cli.print_status(f"Removed framework: {frameworks_input}", "success")
+                            elif frameworks_input not in project.get('frameworks', []) and frameworks_input != '':
+                                project.setdefault('frameworks', []).append(frameworks_input)
+                                self.cli.print_status(f"Added framework: {frameworks_input}", "success")
+                            
+                    case 'c':
+                        print(f"\nCurrent Collaboration Blurb: {project.get('collaboration', 'N/A')}")
+                        new_collaboration = self.cli.get_input("Enter new collaboration details (or press Enter to keep current): \n> ").strip()
+                        if new_collaboration:
+                            project['collaboration'] = new_collaboration
+                            self.cli.print_status("Project collaboration details updated.", "success")
+                    case 'q':
+                        self.cli.print_status("Finished editing project.", "success")
+                        break
+                    case _:
+                        self.cli.print_status("Invalid choice. No changes made to project.", "warning")
+            except Exception as e:
+                self.cli.print_status(f"Error during project editing: {e}", "error")
         return project
 
-    def _edit_skills(self, current_skills: List[str], result_data: Dict[str, Any]) -> List[str]:
+    def _edit_skills(self, current_skills: List[str]) -> List[str]:
         """
         Edit the skills section of the resume. Allows user to remove current detected skills, or enter new skills.
         Args:
             current_skills (List[str]): The current list of skills
-            result_data (Dict[str, Any]): The original analyzed data from which the resume was generated
         Returns:
             List[str]: The edited list of skills
         """
@@ -242,16 +252,13 @@ class ResumeEditor:
             resume (Dict[str, Any]): The resume data to preview
         """
         self.cli.print_header("Resume Preview")
-        self.cli.print(f"Summary:\n{resume.get('summary', 'No Summary')}\n")
-        
-        self.cli.print("Skills:")
-        self.cli.print(', '.join(resume.get('skills', [])) + "\n")
-        
-        self.cli.print("Languages:")
-        self.cli.print(', '.join(resume.get('languages', [])) + "\n")
-        
-        self.cli.print("Projects:")
+        print(f"Summary:\n{resume.get('summary', 'No Summary')}\n")
+        print("Skills:")
+        print(', '.join(resume.get('skills', [])) + "\n")
+        print("Languages:")
+        print(', '.join(resume.get('languages', [])) + "\n")
+        print("Projects:")
         for project in resume.get('projects', []):
-            self.cli.print(f"- {project.get('name', 'Unnamed Project')} ({project.get('date_range', 'No Date Range')})")
-            self.cli.print(f"  Frameworks: {', '.join(project.get('frameworks', []))}")
-            self.cli.print(f"  Collaboration: {project.get('collaboration', 'No Collaboration Info')}\n")
+            print(f"- {project.get('name', 'Unnamed Project')} ({project.get('date_range', 'No Date Range')})")
+            print(f"  Frameworks: {', '.join(project.get('frameworks', []))}")
+            print(f"  Collaboration: {project.get('collaboration', 'No Collaboration Info')}\n")
