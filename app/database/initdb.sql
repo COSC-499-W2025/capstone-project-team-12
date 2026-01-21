@@ -17,7 +17,7 @@ Analyses(
 CREATE TABLE IF NOT EXISTS
 Filesets(
     fileset_id SERIAL PRIMARY KEY,
-    analysis_id integer REFERENCES Analyses(analysis_id) NOT NULL
+    analysis_id uuid REFERENCES Analyses(analysis_id) NOT NULL
     file_data bytea -- Only the most recent set of binary data for the files is maintained. 
                     --But multiple trees can be maintained for the same analysis in Filetrees table
 )
@@ -32,7 +32,7 @@ Filetrees(
 CREATE TABLE IF NOT EXISTS 
 Tracked_Data(
     data_id SERIAL DEFAULT PRIMARY KEY,
-    analysis_id integer REFERENCES Analyses(analysis_id) NOT NULL,
+    analysis_id uuid REFERENCES Analyses(analysis_id) NOT NULL,
     bow_cache JSON,
     project_data JSON,
     package_data JSON,
@@ -42,7 +42,7 @@ Tracked_Data(
 CREATE TABLE IF NOT EXISTS 
 Results(
     result_id SERIAL PRIMARY KEY,
-    analysis_id integer REFERENCES Analyses(analysis_id) NOT NULL,
+    analysis_id uuid REFERENCES Analyses(analysis_id) NOT NULL,
     topic_vector JSON, --changed to JSON for more flexibility--
     resume_points JSON,
     project_insights JSON,
