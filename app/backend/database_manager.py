@@ -5,35 +5,61 @@ from datetime import datetime
 from db_utils import DB_connector
 
 # new commit qebfkjebkjfe
+# REMEMBER TO REPLACE THE FUNCT NAMES IN REPO
 
 class DatabaseManager:
     def __init__(self):
         """Initialize database connection."""
         self.db = DB_connector()
     
-    def create_new_result(self) -> str:
+
+    # old funct name: create_new_result(self) -> str:
+
+    def create_analyses(self) -> str:
         """Create a new result entry and return its result_id UUID (str)."""
         try:
+            #central record
             query = """
-                INSERT INTO Results DEFAULT VALUES
-                RETURNING result_id;
+                INSERT INTO Analyses DEFAULT VALUES
+                RETURNING analysis_id;
             """
-            result = self.db.execute_update(query, returning=True)
+            res_analysis = self.db.execute_update(query, returning=True)
             
-            if result:
-                result_id = str(result['result_id'])
-                print(f"Created new result with ID: {result_id}")
-                return result_id
-            else:
-                raise Exception("Failed to generate result_id")
-                
+            if not res_analysis:
+                raise Exception("Failed to generate analysis_id")
+
+            analysis_id = str(res_analysis['analysis_id'])
+            
+            a_uuid = uuid.UUID(analysis_id) #convert to UUID object for foreign key
+
+            #start associated records: results, tracked_data, resumes, portfolio, 
+            
+            #results
+            query_res = "INSERT INTO Results (analysis_id) VALUES (%s);"
+            r_row = self.db.execute_update(query_res, (a_uuid))
+
+            #tracked_data
+            query_td = "INSERT INTO Tracked_Data (analysis_id) VALUES (%s);"
+            td_row = self.db.execute_update(query_td, (a_uuid))
+
+            #resumes
+            query_resume = "INSERT INTO Resumes (analysis_id) VALUES (%s);"
+            resume_row = self.db.execute_update(query_resume, (a_uuid))
+
+            #proftfolio
+            query_pfo = "INSERT INTO Results (analysis_id) VALUES (%s);"
+            pfo_row = self.db.execute_update(query_pfo, (a_uuid))
         except Exception as e:
-            print(f"Error creating new result: {e}")
+            print(f"Error creating new analyses: {e}")
             raise
 
+
+    #now starting this
+    #need to update 
+    #updated
     def save_metadata_analysis(
         self, 
-        result_id: str, 
+        analysis_id: str, 
         metadata_insights: Dict[str, Any]
     ) -> bool:
         """Save metadata analysis results to the database and return success status (bool)."""
@@ -41,24 +67,27 @@ class DatabaseManager:
             query = """
                 UPDATE Results
                 SET metadata_insights = %s
-                WHERE result_id = %s;
+                WHERE analysis_id = %s;
             """
             
             self.db.execute_update(
                 query, 
-                (json.dumps(metadata_insights, default=str), uuid.UUID(result_id))
+                (json.dumps(metadata_insights, default=str), uuid.UUID(analysis_id))
             )
             
-            print(f"Saved metadata analysis for result_id: {result_id}")
+            #good till now
+            print(f"Saved metadata analysis for analysis_id: {analysis_id}")
             return True
             
         except Exception as e:
             print(f"Error saving metadata analysis: {e}")
             return False
 
+
+    #updated
     def save_text_analysis(
         self,
-        result_id: str,
+        analysis_id: str,
         doc_topic_vectors: List[List[float]],
         topic_term_vectors: List[List[Tuple[str, float]]]
     ) -> bool:
@@ -72,55 +101,56 @@ class DatabaseManager:
             query = """
                 UPDATE Results
                 SET topic_vector = %s
-                WHERE result_id = %s;
+                WHERE analysis_id = %s;
             """
             
             self.db.execute_update(
                 query,
-                (json.dumps(topic_data), uuid.UUID(result_id))
+                (json.dumps(topic_data), uuid.UUID(analysis_id))
             )
             
-            print(f"Saved text analysis for result_id: {result_id}")
+            print(f"Saved text analysis for analysis_id: {analysis_id}")
             return True
             
         except Exception as e:
             print(f"Error saving text analysis: {e}")
             return False
-
+    #done
     #will probably have to modify the output for the llm results
-    def save_resume_points(self, result_id: str, points: List[str]) -> bool:
+    def save_resume_points(self, analysis_id: str, points: List[str]) -> bool:
         """Save generated resume points to the database and return success status (bool)."""
         try:
             query = """
                 UPDATE Results
                 SET resume_points = %s
-                WHERE result_id = %s;
+                WHERE analysis_id = %s;
             """
-            self.db.execute_update(query, (json.dumps(points), uuid.UUID(result_id)))
-            print(f"Saved resume points for result_id: {result_id}")
+            self.db.execute_update(query, (json.dumps(points), uuid.UUID(analysis_id)))
+            print(f"Saved resume points for analysis_id: {analysis_id}")
             return True
         except Exception as e:
             print(f"Error saving resume points: {e}")
             return False
 
-    def save_package_analysis(self, result_id: str, insights: Dict[str, Any]) -> bool:
+    #done
+    def save_package_analysis(self, analysis_id: str, insights: Dict[str, Any]) -> bool:
         """Save package analysis insights to the database and return success status (bool)."""
         try:
             query = """
                 UPDATE Results
                 SET package_insights = %s
-                WHERE result_id = %s;
+                WHERE analysis_id = %s;
             """
-            self.db.execute_update(query, (json.dumps(insights), uuid.UUID(result_id)))
-            print(f"Saved package insights for result_id: {result_id}")
+            self.db.execute_update(query, (json.dumps(insights), uuid.UUID(analysis_id)))
+            print(f"Saved package insights for analysis_id: {analysis_id}")
             return True
         except Exception as e:
             print(f"Error saving package insights: {e}")
             return False
-    
+    #updated
     def save_repository_analysis(
         self,
-        result_id: str,
+        analysis_id: str,
         project_analysis_data: Dict[str, Any]
     ) -> bool:
         """Save repository analysis results to the database and return success status (bool).
@@ -135,15 +165,15 @@ class DatabaseManager:
             query = """
                 UPDATE Results
                 SET project_insights = %s
-                WHERE result_id = %s;
+                WHERE analysis_id = %s;
             """
             
             self.db.execute_update(
                 query,
-                (json.dumps(project_analysis_data, default=str), uuid.UUID(result_id))
+                (json.dumps(project_analysis_data, default=str), uuid.UUID(analysis_id))
             )
             
-            print(f"Saved repository analysis for result_id: {result_id}")
+            print(f"Saved repository analysis for analysis_id: {analysis_id}")
             return True
             
         except Exception as e:
