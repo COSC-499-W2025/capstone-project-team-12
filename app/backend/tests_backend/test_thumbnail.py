@@ -7,7 +7,7 @@ from input_validation import validate_thumbnail_path
 def test_validate_format():
     """Check if wrong format raises error"""
     with pytest.raises(TypeError):
-        validate_thumbnail_path("tests_backend/test_main_dir/test_images/img.dng")
+        validate_thumbnail_path("tests_backend/test_main_dir/test_images/image.dng")
 
 def test_validate_path_type():
     """Check if invalid path type raises error (dir or not a file)"""
