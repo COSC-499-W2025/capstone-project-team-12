@@ -148,14 +148,20 @@ class ResumeEditor:
                         print(f"\nCurrent Frameworks: {', '.join(project.get('frameworks', []))}")
                         while True:
                             frameworks_input = self.cli.get_input("Type new framework to add, type current framework to remove, type done to finish editing frameworks): \n> ").strip()
+                            # Track regular and lower case version of frameworks for comparison purposes
+                            current_frameworks = project.get('frameworks', [])
+                            current_frameworks_lower = [frame.lower() for frame in project.get('frameworks', [])]
                             if frameworks_input.lower() == 'done':
                                 break
-                            elif frameworks_input in project.get('frameworks', []):
+                            elif frameworks_input.lower() in current_frameworks_lower:
+                                # Find the framework with the proper casing
+                                actual_framework = current_frameworks[current_frameworks_lower.index(frameworks_input.lower())]
+
                                 confirm_remove = self.cli.get_input(f"Are you sure you want to remove the framework '{frameworks_input}'? (y/n): \n> ").strip().lower()
                                 if confirm_remove == 'y':
-                                    project['frameworks'].remove(frameworks_input)
-                                    self.cli.print_status(f"Removed framework: {frameworks_input}", "success")
-                            elif frameworks_input not in project.get('frameworks', []) and frameworks_input != '':
+                                    project['frameworks'].remove(actual_framework)
+                                    self.cli.print_status(f"Removed framework: {actual_framework}", "success")
+                            elif frameworks_input.lower() not in current_frameworks_lower and frameworks_input != '':
                                 project.setdefault('frameworks', []).append(frameworks_input)
                                 self.cli.print_status(f"Added framework: {frameworks_input}", "success")
                             
@@ -192,19 +198,28 @@ class ResumeEditor:
             if skill_choice.lower() == 'done':
                 break
             
+            # Create lower case skills for comparison purposes, ensures the case used by user is preserved in input but can compare to all
+            current_skills_lower = [skill.lower() for skill in current_skills]
+
             # If skill is in the list then remove it, else add it. Confirm with user before removing.
-            if skill_choice in current_skills:
+            if skill_choice.lower() in current_skills_lower:
+                
+                # Find the actual skill with the original casign
+                actual_skill = current_skills[current_skills_lower.index(skill_choice.lower())]
+
                 confirm_remove = self.cli.get_input(f"Are you sure you want to remove the skill '{skill_choice}'? (y/n): \n> ").strip().lower()
                 if confirm_remove == 'y':
-                    current_skills.remove(skill_choice)
+                    current_skills.remove(actual_skill)
+                    current_skills_lower.remove(skill_choice.lower())
                     self.cli.print_status(f"Removed skill: {skill_choice}", "success")
                 elif confirm_remove == 'n':
                     self.cli.print_status("No changes made.", "info")
                 elif confirm_remove != 'y' and confirm_remove != 'n':
                     self.cli.print_status("Invalid input. No changes made.", "warning")
 
-            elif skill_choice not in current_skills and skill_choice != '':
+            elif skill_choice.lower() not in current_skills_lower and skill_choice != '':
                 current_skills.append(skill_choice)
+                current_skills_lower.append(skill_choice.lower())
                 self.cli.print_status(f"Added skill: {skill_choice}", "success")
 
         return current_skills
@@ -219,6 +234,9 @@ class ResumeEditor:
         """
         self.cli.print_header("Edit Languages")
         language_names = [lang['name'] for lang in current_languages]
+
+        # Create the lower case version to allow for comparison while preserving case of actual languages
+        language_names_lower = [lang.lower() for lang in language_names]
         while True:
             # Display current languages each time so user can see updates
             self.cli.print_status(f"\nCurrent Languages: {', '.join(language_names)}", "info")
@@ -228,21 +246,27 @@ class ResumeEditor:
                 break
             
             # If language is in the list then remove it, else add it. Confirm with user before removing.
-            if language_choice in language_names:
+            if language_choice.lower() in language_names_lower:
+
+                # Find the actual language in the list to be removed, with proper casing
+                actual_language = language_names[language_names_lower.index(language_choice.lower())]
+                
                 confirm_remove = self.cli.get_input(f"Are you sure you want to remove the language '{language_choice}'? (y/n): \n> ").strip().lower()
                 if confirm_remove == 'y':
                     # Need to remove the full dict, not just the name string in the list
-                    language_names.remove(language_choice)
-                    current_languages.remove([lang for lang in current_languages if lang['name'] == language_choice][0])
+                    language_names.remove(actual_language)
+                    current_languages.remove([lang for lang in current_languages if lang['name'] == actual_language][0])
+                    language_names_lower.remove(language_choice.lower())
                     self.cli.print_status(f"Removed language: {language_choice}", "success")
                 elif confirm_remove == 'n':
                     self.cli.print_status("No changes made.", "info")
                 elif confirm_remove != 'y' and confirm_remove != 'n':
                     self.cli.print_status("Invalid input. No changes made.", "warning")
 
-            elif language_choice not in language_names and language_choice != '':
+            elif language_choice.lower() not in language_names_lower and language_choice != '':
                 language_names.append(language_choice)
                 current_languages.append({'name': language_choice, 'file_count': 0})
+                language_names_lower.append(language_choice.lower())
                 self.cli.print_status(f"Added language: {language_choice}", "success")
 
         return current_languages
