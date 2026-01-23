@@ -26,7 +26,7 @@ class AnalysisPipeline:
         self.config_manager = config_manager
         self.database_manager = database_manager
         self.file_data_list: List = []
-
+        self.tree_processor = TreeProcessor()
     #helpers from amin
     def get_bin_data_by_Id(self, bin_Idx: int) -> BinaryIO | None:
         if self.file_data_list is None or len(self.file_data_list) == 0:
@@ -200,8 +200,8 @@ class AnalysisPipeline:
     
     def process_filetree(self,file_tree)->Node:
         try:
-            tree_processor = TreeProcessor()
-            processed_tree: Node = tree_processor.process_file_tree(file_tree)
+            
+            processed_tree: Node = self.tree_processor.process_file_tree(file_tree)
             self.cli.print_status("Tree structure processed successfully.", "success")
             return processed_tree
         except (ValueError, TypeError, RuntimeError) as e:
@@ -212,16 +212,19 @@ class AnalysisPipeline:
     @dataclass
     class data_bundle:
         metadata_results: Dict[str, Dict[str, Any]]
-        final_bow
-        processed_git_repos
+        timeline: list = []
+        dictionary = None
+        lda_model = None
+        final_bow = []
+        
     
     @dataclass
     class results_bundle:
-        metadata_analysis
-        doc_topic_vectors
-        topic_term_vectors
+        metadata_analysis: dict[str,any]
+        doc_topic_vectors: list = []
+        topic_term_vectors: list = []
         project_analysis_data
-        medium_summary
+        medium_summary = ""
     
     def save_results(self,data_bundle,results_bundle,return_id:bool = False)->str:
          # save tracked data and insights to database
@@ -240,63 +243,10 @@ class AnalysisPipeline:
         except Exception as e:
             self.cli.print_status(f"Error saving result to database: {e}", "error")
     
-    #main execution func
-    def run_analysis(self, filepath: str,return_id = False) -> None|str:
-        
-        #Load Files using Filemanager
+    def run_topic_analysis_pipeline(self):
         try:
-            fm_result = self.load_files(self,filepath) #File loading logic in helper function
-        except Exception as e:
-            self.cli.print_status(f"File Manager Error:{e}","error")
-            return
-        
-        #Load various parts of fm_result as vars for downstream use
-        file_tree:Node = fm_result["tree"] #Extract Filetree from fm_result
-        
-        binary_data: List[bytes] = fm_result.get("binary_data")
-        if not isinstance(binary_data, list):
-            self.cli.print_status("Warning: Binary data format unexpected. Proceeding empty.", "warning")
-            binary_data = []
-        
-        #Run Tree Processor, uses tree Processor class.
-        
-        try:
-            processed_tree:Node = self.process_filetree(self,file_tree)
-        except Exception as e:
-            self.cli.print_status(f"Tree Processor Error:{e}","error")
-            return
-        
-        self.cli.print_header("Metadata Analysis")
-        metadata_extractor = MetadataExtractor()
-        metadata_results: Dict[str, Dict[str, Any]] = metadata_extractor.extract_all_metadata(processed_tree, binary_data)
-        
-        total_files: int = len(metadata_results)
-        if total_files > 0:
-            self.cli.print_status(f"Processed metadata for {total_files} files", "success")
-
-        metadata_analyzer = MetadataAnalyzer(metadata_results)
-        metadata_analysis = metadata_analyzer.analyze_all()
-        
-        print("\n--- File Extension Statistics ---")
-        print(f"{'Extension':<10} | {'Count':<8} | {'Size':<15} | {'Percentage':<8} | {'Category'}")
-        print("-" * 70)
-        for ext, stats in metadata_analysis['extension_stats'].items():
-            print(f"{ext:<10} | {stats['count']:<8} | {stats['total_size']:<15} | {stats['percentage']:<8}% | {stats['category']}")
-        print(f"\nPrimary programming languages: {', '.join(metadata_analysis['primary_languages'])}\n")
-
-        git_repos: List[Node] = tree_processor.get_git_repos() 
-
-        doc_topic_vectors: list = []
-        topic_term_vectors: list = []
-        timeline: list = []
-        dictionary = None
-        lda_model = None
-        final_bow = []
-        medium_summary = ""
-
-        try:
-            text_nodes: List[Node] = tree_processor.get_text_files()
-            code_nodes: List[Node] = tree_processor.get_code_files()
+            text_nodes: List[Node] = self.tree_processor.get_text_files()
+            code_nodes: List[Node] = self.tree_processor.get_code_files()
             
             if text_nodes or code_nodes:
                 self.cli.print_header("Content Analysis")
@@ -352,10 +302,62 @@ class AnalysisPipeline:
                     words_str = ", ".join([word for word, prob in top_words])
                     print(f"Topic {i}: {words_str}")
                 
+                return lda_model,dictionary,doc_topic_vectors,topic_term_vectors,final_bow
+                
             else:
                 self.cli.print_status("No text/code files found to process.", "warning")
         except Exception as e:
-            self.cli.print_status(f"Error during content analysis: {e}", "error")
+           raise Exception(f"Error during topic analysis: {e}")
+    
+
+        print("\n--- File Extension Statistics ---")
+        print(f"{'Extension':<10} | {'Count':<8} | {'Size':<15} | {'Percentage':<8} | {'Category'}")
+        print("-" * 70)
+        for ext, stats in metadata_analysis['extension_stats'].items():
+            print(f"{ext:<10} | {stats['count']:<8} | {stats['total_size']:<15} | {stats['percentage']:<8}% | {stats['category']}")
+        print(f"\nPrimary programming languages: {', '.join(metadata_analysis['primary_languages'])}\n")
+    
+    #main execution func
+    def run_analysis(self, filepath: str,return_id = False) -> None|str:
+        
+        #instance data classes
+        data_bundle = data_bundle() 
+        result_bundle = result_bundle()
+        
+        #Load Files using Filemanager
+        try:
+            fm_result = self.load_files(self,filepath) #File loading logic in helper function
+        except Exception as e:
+            self.cli.print_status(f"File Manager Error:{e}","error")
+            return
+        
+        #Load various parts of fm_result as vars for downstream use
+        file_tree:Node = fm_result["tree"] #Extract Filetree from fm_result
+        
+        binary_data: List[bytes] = fm_result.get("binary_data")
+        if not isinstance(binary_data, list):
+            self.cli.print_status("Warning: Binary data format unexpected. Proceeding empty.", "warning")
+            binary_data = []
+        
+        #Run Tree Processor, uses tree Processor class.
+        try:
+            processed_tree:Node = self.process_filetree(self,file_tree)
+        except Exception as e:
+            self.cli.print_status(f"Tree Processor Error:{e}","error")
+            return
+        
+        #run metadata analysis
+        data_bundle.metadata_results, result_bundle.metadata_analysis = self.run_metadata_analysis_pipeline(self,processed_tree,binary_data)
+        #print metadata analysis results
+        self.print_metadata_pipeline_results(result_bundle.metadata_analysis)
+
+        data_bundle.lda_model, data_bundle.dictionary, result_bundle.doc_topic_vectors, result_bundle.topic_term_vectors,data_bundle.final_bow = self.run_topic_analysis_pipeline(self)
+        
+        git_repos: List[Node] = self.tree_processor.get_git_repos() 
+
+       
+
+       
 
         processed_git_repos: List[Dict[str, Any]] = None
         analyzed_repos: List[Dict[str, Any]] = None
