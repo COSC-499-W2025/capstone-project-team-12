@@ -223,7 +223,7 @@ class AnalysisPipeline:
         metadata_analysis: dict[str,any]
         doc_topic_vectors: list = []
         topic_term_vectors: list = []
-        project_analysis_data = None
+        project_analysis_data:dict= None
         medium_summary = ""
     
     def save_results(self,data_bundle,results_bundle,return_id:bool = False)->str:
@@ -396,74 +396,7 @@ class AnalysisPipeline:
             else:
                 self.cli.print_status("Skipping Git linking.", "info")
         
-    #main execution func
-    def run_analysis(self, filepath: str,return_id = False) -> None|str:
-        """
-        Runs the various analysis pipelines in sequence. 
-        Important Note: 
-            - Early steps common to all pipelines return from function when error is encountered
-            - When Pipelines encounter error, error is printed to console and next pipeline is executed.
-        """
-        
-        #instance data classes
-        data_bundle = data_bundle() 
-        result_bundle = result_bundle()
-        
-        #Load Files using Filemanager
-        try:
-            fm_result = self.load_files(self,filepath) #File loading logic in helper function
-        except Exception as e:
-            self.cli.print_status(f"File Manager Error:{e}","error")
-            return
-        
-        #Load various parts of fm_result as vars for downstream use
-        file_tree:Node = fm_result["tree"] #Extract Filetree from fm_result
-        
-        binary_data: List[bytes] = fm_result.get("binary_data")
-        if not isinstance(binary_data, list):
-            self.cli.print_status("Warning: Binary data format unexpected. Proceeding empty.", "warning")
-            binary_data = []
-        
-        #Run Tree Processor, uses tree Processor class.
-        try:
-            processed_tree:Node = self.process_filetree(self,file_tree)
-        except Exception as e:
-            self.cli.print_status(f"Tree Processor Error:{e}","error")
-            return
-        
-        #run metadata analysis
-        try:
-            data_bundle.metadata_results, result_bundle.metadata_analysis = self.run_metadata_analysis_pipeline(self,processed_tree,binary_data)
-            #print metadata analysis results
-            self.print_metadata_pipeline_results(result_bundle.metadata_analysis)
-        except Exception as e:
-            self.cli.print_status(f"Metadata Analysis Error:{e}","error")
-       
-        #run topic analysis_pipeline
-        try:
-            data_bundle.lda_model, data_bundle.dictionary, result_bundle.doc_topic_vectors, result_bundle.topic_term_vectors,data_bundle.final_bow = self.run_topic_analysis_pipeline(self)
-        except Exception as e:
-            self.cli.print_status(f"Topic Analysis Error: {e}","error")
-        
-        try:    
-            git_repos,analyzed_repos,timeline = self.run_metadata_analysis_pipeline()
-        except Exception as e:
-            self.cli.print_status(f"{e}","error")
-            import traceback
-            traceback.print_exc()
-            
-        text_analysis_data = {
-            "num_documents": len(result_bundle.doc_topic_vectors),
-            "num_topics": len(result_bundle.topic_term_vectors),
-            "doc_topic_vectors": result_bundle.doc_topic_vectors,
-            "topic_term_vectors": result_bundle.topic_term_vectors
-        } if result_bundle.doc_topic_vectors else {}
-        
-        result_bundle.project_analysis_data = {
-            "analyzed_insights": analyzed_repos if analyzed_repos else [],
-            "timeline": timeline if timeline else []
-        } if git_repos else []
-        
+    def run_AI_NLG(self,data_bundle,result_bundle,text_analysis_data):
         try:
             self.cli.print_header("AI Summary Generation")
             self.cli.print_status("Collecting analysis statistics...", "info")
@@ -548,11 +481,84 @@ class AnalysisPipeline:
                 self.cli.print_header("Standard Summary")
                 print(result_bundle.medium_summary)
                 print("=" * 60 + "\n")
+                return result_bundle.medium_summary
                 
             except Exception as e:
-                self.cli.print_status(f"Error generating summary: {e}", "error")
-        
+                raise RuntimeError(f"Error generating summary: {e}")
         except Exception as e:
-            self.cli.print_status(f"Error collecting statistics: {e}", "error")
-
-        self.save_results()
+            raise RuntimeError(f"Error collecting statistics: {e}")
+    
+    #main execution func
+    def run_analysis(self, filepath: str,return_id = False) -> None|str:
+        """
+        Runs the various analysis pipelines in sequence. 
+        Important Note: 
+            - Early steps common to all pipelines return from function when error is encountered
+            - When Pipelines encounter error, error is printed to console and next pipeline is executed.
+        """
+        
+        #instance data classes
+        data_bundle = data_bundle() 
+        result_bundle = result_bundle()
+        
+        #Load Files using Filemanager
+        try:
+            fm_result = self.load_files(self,filepath) #File loading logic in helper function
+        except Exception as e:
+            self.cli.print_status(f"File Manager Error:{e}","error")
+            return
+        
+        #Load various parts of fm_result as vars for downstream use
+        file_tree:Node = fm_result["tree"] #Extract Filetree from fm_result
+        
+        binary_data: List[bytes] = fm_result.get("binary_data")
+        if not isinstance(binary_data, list):
+            self.cli.print_status("Warning: Binary data format unexpected. Proceeding empty.", "warning")
+            binary_data = []
+        
+        #Run Tree Processor, uses tree Processor class.
+        try:
+            processed_tree:Node = self.process_filetree(self,file_tree)
+        except Exception as e:
+            self.cli.print_status(f"Tree Processor Error:{e}","error")
+            return
+        
+        #run metadata analysis
+        try:
+            data_bundle.metadata_results, result_bundle.metadata_analysis = self.run_metadata_analysis_pipeline(self,processed_tree,binary_data)
+            #print metadata analysis results
+            self.print_metadata_pipeline_results(result_bundle.metadata_analysis)
+        except Exception as e:
+            self.cli.print_status(f"Metadata Analysis Error:{e}","error")
+       
+        #run topic analysis_pipeline
+        try:
+            data_bundle.lda_model, data_bundle.dictionary, result_bundle.doc_topic_vectors, result_bundle.topic_term_vectors,data_bundle.final_bow = self.run_topic_analysis_pipeline(self)
+        except Exception as e:
+            self.cli.print_status(f"Topic Analysis Error: {e}","error")
+        
+        #run git_repo_analysis
+        try:    
+            git_repos,analyzed_repos,timeline = self.run_metadata_analysis_pipeline()
+        except Exception as e:
+            self.cli.print_status(f"{e}","error")
+            import traceback
+            traceback.print_exc()
+            
+        text_analysis_data = {
+            "num_documents": len(result_bundle.doc_topic_vectors),
+            "num_topics": len(result_bundle.topic_term_vectors),
+            "doc_topic_vectors": result_bundle.doc_topic_vectors,
+            "topic_term_vectors": result_bundle.topic_term_vectors
+        } if result_bundle.doc_topic_vectors else {}
+        
+        result_bundle.project_analysis_data = {
+            "analyzed_insights": analyzed_repos if analyzed_repos else [],
+            "timeline": timeline if timeline else []
+        } if git_repos else {}
+        
+        #Run AI based Natural language generation
+        result_bundle.medium_summary = self.run_AI_NLG(self,data_bundle,result_bundle,text_analysis_data)
+        
+        #Save All relevent input data and results to DB
+        self.save_results(data_bundle,result_bundle)
