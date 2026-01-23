@@ -17,6 +17,7 @@ from llm_local import LocalLLMClient
 from display_helpers import display_project_insights, display_project_summary, display_project_timeline
 from project_selection import choose_projects_for_analysis
 from project_reranking import rerank_projects
+from dataclasses import dataclass
 
 
 class AnalysisPipeline:
@@ -168,52 +169,64 @@ class AnalysisPipeline:
         bundle['topic_keywords'] = topic_keywords
         return bundle
 
+
+    
+    @dataclass
+    class data_bundle:
+        metadata_results: Dict[str, Dict[str, Any]]
+        final_bow
+        processed_git_repos
+    
+    @dataclass
+    class results_bundle:
+        metadata_analysis
+        doc_topic_vectors
+        topic_term_vectors
+        project_analysis_data
+        medium_summary
+    
+    def save_results(self,data_bundle,results_bundle,return_id:bool = False)->str:
+         # save tracked data and insights to database
+        try:
+            result_id: str = self.database_manager.create_new_result() 
+            # save tracked data
+            self.database_manager.save_tracked_data(result_id, data_bundle.metadata_results, data_bundle.final_bow, data_bundle.processed_git_repos)
+
+            # save insights
+            self.database_manager.save_metadata_analysis(result_id, results_bundle.metadata_analysis)
+            self.database_manager.save_text_analysis(result_id, results_bundle.doc_topic_vectors, results_bundle.topic_term_vectors)
+            self.database_manager.save_repository_analysis(result_id, results_bundle.project_analysis_data)
+            self.database_manager.save_resume_points(result_id, results_bundle.medium_summary)
+            if return_id:
+                return result_id
+        except Exception as e:
+            self.cli.print_status(f"Error saving result to database: {e}", "error")
+    
     #main execution func
     def run_analysis(self, filepath: str,return_id = False) -> None|str:
-        self.cli.print_status("Loading file manager...", "info")
-
-        file_manager = FileManager()
-        fm_result: Dict[str, str | Node | None] = file_manager.load_from_filepath(filepath)
-
-        if "status" not in fm_result:
-            self.cli.print_status("FileManager did not return expected status.", "error")
-            return
-
-        if fm_result["status"] == "error":
-            self.cli.print_status(f"Load Error: {fm_result.get('message', 'Unknown error')}", "error")
-            return
-
-        # Success path
-        self.cli.print_status(f"File Manager: {fm_result.get('message', 'No message')}", "success")
-
-        # Update internal state (formerly global file_data_list)
-        self.file_data_list = fm_result.get("binary_data", [])
-        if not self.file_data_list:
-            self.cli.print_status("No binary data returned. Text preprocessing may fail.", "warning")
-        else:
-            self.cli.print_status(f"Loaded {len(self.file_data_list)} binary file(s).", "success")
-
-        if "tree" not in fm_result or fm_result["tree"] is None:
-            self.cli.print_status("FileManager did not return a tree.", "error")
+        
+        #Load Files using Filemanager
+        try:
+            fm_result = self.load_files(self,filepath) #File loading logic in helper function
+        except Exception as e:
+            self.cli.print_status(f"File Manager Error:{e}","error")
             return
         
-        file_tree: Node = fm_result["tree"]
-
-        try:
-            tree_processor = TreeProcessor()
-            processed_tree: Node = tree_processor.process_file_tree(file_tree)
-            self.cli.print_status("Tree structure processed successfully.", "success")
-        except (ValueError, TypeError, RuntimeError) as e:
-            self.cli.print_status(f"Tree processing failed: {e}", "error")
-            return
-        except Exception as e:
-            self.cli.print_status(f"Error processing tree: {e}", "error")
-            return
-
+        #Load various parts of fm_result as vars for downstream use
+        file_tree:Node = fm_result["tree"] #Extract Filetree from fm_result
+        
         binary_data: List[bytes] = fm_result.get("binary_data")
         if not isinstance(binary_data, list):
             self.cli.print_status("Warning: Binary data format unexpected. Proceeding empty.", "warning")
             binary_data = []
+        
+        #Run Tree Processor, uses tree Processor class.
+        
+        try:
+            processed_tree:Node = self.process_filetree(self,file_tree)
+        except Exception as e:
+            self.cli.print_status(f"Tree Processor Error:{e}","error")
+            return
         
         self.cli.print_header("Metadata Analysis")
         metadata_extractor = MetadataExtractor()
@@ -474,18 +487,4 @@ class AnalysisPipeline:
         except Exception as e:
             self.cli.print_status(f"Error collecting statistics: {e}", "error")
 
-        # save tracked data and insights to database
-        try:
-            result_id: str = self.database_manager.create_new_result() 
-            # save tracked data
-            self.database_manager.save_tracked_data(result_id, metadata_results, final_bow, processed_git_repos)
-
-            # save insights
-            self.database_manager.save_metadata_analysis(result_id, metadata_analysis)
-            self.database_manager.save_text_analysis(result_id, doc_topic_vectors, topic_term_vectors)
-            self.database_manager.save_repository_analysis(result_id, project_analysis_data)
-            self.database_manager.save_resume_points(result_id, medium_summary)
-            if return_id:
-                return result_id
-        except Exception as e:
-            self.cli.print_status(f"Error saving result to database: {e}", "error")
+        save_results()
