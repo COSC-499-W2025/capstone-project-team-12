@@ -198,7 +198,16 @@ class AnalysisPipeline:
         return fm_result
         
     
-
+    def process_filetree(self,file_tree)->Node:
+        try:
+            tree_processor = TreeProcessor()
+            processed_tree: Node = tree_processor.process_file_tree(file_tree)
+            self.cli.print_status("Tree structure processed successfully.", "success")
+            return processed_tree
+        except (ValueError, TypeError, RuntimeError) as e:
+            raise e(f"Tree processing failed: {e}")
+        except Exception as e:
+            raise RuntimeError(f"Error processing tree: {e}")
     
     @dataclass
     class data_bundle:
