@@ -223,7 +223,7 @@ class AnalysisPipeline:
         metadata_analysis: dict[str,any]
         doc_topic_vectors: list = []
         topic_term_vectors: list = []
-        project_analysis_data
+        project_analysis_data = None
         medium_summary = ""
     
     def save_results(self,data_bundle,results_bundle,return_id:bool = False)->str:
@@ -330,56 +330,7 @@ class AnalysisPipeline:
             print(f"{ext:<10} | {stats['count']:<8} | {stats['total_size']:<15} | {stats['percentage']:<8}% | {stats['category']}")
         print(f"\nPrimary programming languages: {', '.join(metadata_analysis['primary_languages'])}\n")
     
-    #main execution func
-    def run_analysis(self, filepath: str,return_id = False) -> None|str:
-        """
-        Runs the various analysis pipelines in sequence. 
-        Important Note: 
-            - Early steps common to all pipelines return from function when error is encountered
-            - When Pipelines encounter error, error is printed to console and next pipeline is executed.
-        """
-        
-        #instance data classes
-        data_bundle = data_bundle() 
-        result_bundle = result_bundle()
-        
-        #Load Files using Filemanager
-        try:
-            fm_result = self.load_files(self,filepath) #File loading logic in helper function
-        except Exception as e:
-            self.cli.print_status(f"File Manager Error:{e}","error")
-            return
-        
-        #Load various parts of fm_result as vars for downstream use
-        file_tree:Node = fm_result["tree"] #Extract Filetree from fm_result
-        
-        binary_data: List[bytes] = fm_result.get("binary_data")
-        if not isinstance(binary_data, list):
-            self.cli.print_status("Warning: Binary data format unexpected. Proceeding empty.", "warning")
-            binary_data = []
-        
-        #Run Tree Processor, uses tree Processor class.
-        try:
-            processed_tree:Node = self.process_filetree(self,file_tree)
-        except Exception as e:
-            self.cli.print_status(f"Tree Processor Error:{e}","error")
-            return
-        
-        #run metadata analysis
-        try:
-            data_bundle.metadata_results, result_bundle.metadata_analysis = self.run_metadata_analysis_pipeline(self,processed_tree,binary_data)
-            #print metadata analysis results
-            self.print_metadata_pipeline_results(result_bundle.metadata_analysis)
-        except Exception as e:
-            self.cli.print_status(f"Metadata Analysis Error:{e}","error")
-       
-        #run topic analysis_pipeline
-        try:
-            data_bundle.lda_model, data_bundle.dictionary, result_bundle.doc_topic_vectors, result_bundle.topic_term_vectors,data_bundle.final_bow = self.run_topic_analysis_pipeline(self)
-        except Exception as e:
-            self.cli.print_status(f"Topic Analysis Error: {e}","error")
-            
-            
+    def run_repo_analysis_pipeline(self,binary_data):
         git_repos: List[Node] = self.tree_processor.get_git_repos() 
         processed_git_repos: List[Dict[str, Any]] = None
         analyzed_repos: List[Dict[str, Any]] = None
@@ -438,14 +389,69 @@ class AnalysisPipeline:
                             display_project_insights(analyzed_repos, top_n=3)
 
                             display_project_timeline(timeline)
+                            return git_repos,analyzed_repos,timeline
                         
                 except Exception as e:
-                    self.cli.print_status(f"Repository processing failed: {e}", "error")
-                    import traceback
-                    traceback.print_exc()
+                    raise RuntimeError(f"Repository processing failed: {e}")
             else:
                 self.cli.print_status("Skipping Git linking.", "info")
         
+    #main execution func
+    def run_analysis(self, filepath: str,return_id = False) -> None|str:
+        """
+        Runs the various analysis pipelines in sequence. 
+        Important Note: 
+            - Early steps common to all pipelines return from function when error is encountered
+            - When Pipelines encounter error, error is printed to console and next pipeline is executed.
+        """
+        
+        #instance data classes
+        data_bundle = data_bundle() 
+        result_bundle = result_bundle()
+        
+        #Load Files using Filemanager
+        try:
+            fm_result = self.load_files(self,filepath) #File loading logic in helper function
+        except Exception as e:
+            self.cli.print_status(f"File Manager Error:{e}","error")
+            return
+        
+        #Load various parts of fm_result as vars for downstream use
+        file_tree:Node = fm_result["tree"] #Extract Filetree from fm_result
+        
+        binary_data: List[bytes] = fm_result.get("binary_data")
+        if not isinstance(binary_data, list):
+            self.cli.print_status("Warning: Binary data format unexpected. Proceeding empty.", "warning")
+            binary_data = []
+        
+        #Run Tree Processor, uses tree Processor class.
+        try:
+            processed_tree:Node = self.process_filetree(self,file_tree)
+        except Exception as e:
+            self.cli.print_status(f"Tree Processor Error:{e}","error")
+            return
+        
+        #run metadata analysis
+        try:
+            data_bundle.metadata_results, result_bundle.metadata_analysis = self.run_metadata_analysis_pipeline(self,processed_tree,binary_data)
+            #print metadata analysis results
+            self.print_metadata_pipeline_results(result_bundle.metadata_analysis)
+        except Exception as e:
+            self.cli.print_status(f"Metadata Analysis Error:{e}","error")
+       
+        #run topic analysis_pipeline
+        try:
+            data_bundle.lda_model, data_bundle.dictionary, result_bundle.doc_topic_vectors, result_bundle.topic_term_vectors,data_bundle.final_bow = self.run_topic_analysis_pipeline(self)
+        except Exception as e:
+            self.cli.print_status(f"Topic Analysis Error: {e}","error")
+        
+        try:    
+            git_repos,analyzed_repos,timeline = self.run_metadata_analysis_pipeline()
+        except Exception as e:
+            self.cli.print_status(f"{e}","error")
+            import traceback
+            traceback.print_exc()
+            
         text_analysis_data = {
             "num_documents": len(result_bundle.doc_topic_vectors),
             "num_topics": len(result_bundle.topic_term_vectors),
@@ -453,7 +459,7 @@ class AnalysisPipeline:
             "topic_term_vectors": result_bundle.topic_term_vectors
         } if result_bundle.doc_topic_vectors else {}
         
-        project_analysis_data = {
+        result_bundle.project_analysis_data = {
             "analyzed_insights": analyzed_repos if analyzed_repos else [],
             "timeline": timeline if timeline else []
         } if git_repos else []
@@ -461,23 +467,23 @@ class AnalysisPipeline:
         try:
             self.cli.print_header("AI Summary Generation")
             self.cli.print_status("Collecting analysis statistics...", "info")
-            data_bundle = collect_stats(
-                metadata_stats=metadata_results,
-                metadata_analysis=metadata_analysis,
+            ai_data_bundle = collect_stats(
+                metadata_stats=data_bundle.metadata_results,
+                metadata_analysis=result_bundle.metadata_analysis,
                 text_analysis=text_analysis_data,
-                project_analysis=project_analysis_data
+                project_analysis=result_bundle.project_analysis_data
             )
             
             topn_keywords = 10
             topic_keywords = []
-            if lda_model is not None and dictionary is not None:
-                num_topics = len(topic_term_vectors) if topic_term_vectors else 0
+            if data_bundle.lda_model is not None and data_bundle.dictionary is not None:
+                num_topics = len(result_bundle.topic_term_vectors) if result_bundle.topic_term_vectors else 0
                 for topic_id in range(num_topics):
-                    words = [w for (w, _) in lda_model.show_topic(topic_id, topn=topn_keywords)]
+                    words = [w for (w, _) in data_bundle.lda_model.show_topic(topic_id, topn=topn_keywords)]
                     topic_keywords.append({"topic_id": topic_id, "keywords": words})
 
             doc_top_topics = []
-            for doc_idx, vec in enumerate(doc_topic_vectors or []):
+            for doc_idx, vec in enumerate(result_bundle.doc_topic_vectors or []):
                 if not vec:
                     doc_top_topics.append({"doc_id": doc_idx, "top_topics": []})
                     continue
@@ -496,9 +502,9 @@ class AnalysisPipeline:
 
             #extract detected skills from metadata analysis
             detected_skills = []
-            if metadata_analysis:
-                primary_languages = metadata_analysis.get('primary_languages', [])
-                primary_skills = metadata_analysis.get('primary_skills', [])
+            if result_bundle.metadata_analysis:
+                primary_languages = result_bundle.metadata_analysis.get('primary_languages', [])
+                primary_skills = result_bundle.metadata_analysis.get('primary_skills', [])
                 #combine languages and skills, we can let the user decide on the scope
                 seen = set()
                 for skill in primary_languages + primary_skills:
@@ -538,9 +544,9 @@ class AnalysisPipeline:
             self.cli.print_status("Generating project summary (this may take a moment)...", "info")
             
             try:
-                medium_summary = llm_client.generate_summary(topic_vector_bundle)
+                result_bundle.medium_summary = llm_client.generate_summary(topic_vector_bundle)
                 self.cli.print_header("Standard Summary")
-                print(medium_summary)
+                print(result_bundle.medium_summary)
                 print("=" * 60 + "\n")
                 
             except Exception as e:
