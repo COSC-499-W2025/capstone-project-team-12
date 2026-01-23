@@ -309,7 +309,20 @@ class AnalysisPipeline:
         except Exception as e:
            raise Exception(f"Error during topic analysis: {e}")
     
+    def run_metadata_analysis_pipeline(self,processed_tree,binary_data):
+        self.cli.print_header("Metadata Analysis")
+        metadata_extractor = MetadataExtractor()
+        metadata_results: Dict[str, Dict[str, Any]] = metadata_extractor.extract_all_metadata(processed_tree, binary_data)
+        
+        total_files: int = len(metadata_results)
+        if total_files > 0:
+            self.cli.print_status(f"Processed metadata for {total_files} files", "success")
 
+        metadata_analyzer = MetadataAnalyzer(metadata_results)
+        metadata_analysis = metadata_analyzer.analyze_all()
+        return metadata_results,metadata_analysis
+
+    def print_metadata_pipeline_results(metadata_analysis):
         print("\n--- File Extension Statistics ---")
         print(f"{'Extension':<10} | {'Count':<8} | {'Size':<15} | {'Percentage':<8} | {'Category'}")
         print("-" * 70)
