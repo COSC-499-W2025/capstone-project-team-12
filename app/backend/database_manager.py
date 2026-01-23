@@ -304,7 +304,7 @@ class DatabaseManager:
             #main result data
             row = results[0]
             
-            # Flat structure for backward compatibility
+
             return {
                 "analysis_id": str(row['analysis_id']),
                 "topic_vector": row['topic_vector'],
