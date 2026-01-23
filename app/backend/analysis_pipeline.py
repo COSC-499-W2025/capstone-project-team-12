@@ -169,6 +169,35 @@ class AnalysisPipeline:
         bundle['topic_keywords'] = topic_keywords
         return bundle
 
+    def load_files(self,filepath:str):
+        """Validates and loads files from filepath using Filemanager"""
+        self.cli.print_status("Loading file manager...", "info")
+
+        file_manager = FileManager()
+        fm_result: Dict[str, str | Node | None] = file_manager.load_from_filepath(filepath)
+
+        if "status" not in fm_result:
+            raise RuntimeError("FileManager did not return expected status.")
+
+        if fm_result["status"] == "error":
+            raise RuntimeError(f"Load Error: {fm_result.get('message', 'Unknown error')}")
+
+        # Success path
+        self.cli.print_status(f"File Manager: {fm_result.get('message', 'No message')}", "success")
+
+        # Update internal state (formerly global file_data_list)
+        self.file_data_list = fm_result.get("binary_data", [])
+        if not self.file_data_list:
+            self.cli.print_status("No binary data returned. Text preprocessing may fail.", "warning")
+        else:
+            self.cli.print_status(f"Loaded {len(self.file_data_list)} binary file(s).", "success")
+
+        if "tree" not in fm_result or fm_result["tree"] is None:
+            raise RuntimeError("FileManager did not return a tree.")
+        
+        return fm_result
+        
+    
 
     
     @dataclass
