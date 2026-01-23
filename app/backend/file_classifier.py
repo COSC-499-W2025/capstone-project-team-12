@@ -69,7 +69,6 @@ class FileClassifier:
                         self._detach_node(node, binary_data)
                 name = getattr(node, "name", "unnamed")
                 classification = getattr(node, "classification", "unclassified")
-                print(f"{name} classified as {classification}")
             except Exception as e:
                 print(f"An error occurred while classifying node {node.name}: {e}")
                 continue
