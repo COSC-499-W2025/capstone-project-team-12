@@ -17,16 +17,37 @@ from llm_local import LocalLLMClient
 from display_helpers import display_project_insights, display_project_summary, display_project_timeline
 from project_selection import choose_projects_for_analysis
 from project_reranking import rerank_projects
-from dataclasses import dataclass
 
 
 class AnalysisPipeline:
+    
+    #Dataclasses for bundling input data and result data
+    class data_bundle_cls:
+        def __init__(self):
+            self.metadata_results: Dict[str, Dict[str, Any]] = []
+            self.timeline: list = []
+            self.dictionary = None
+            self.lda_model = None
+            self.final_bow = []
+            self.processed_git_repos = []
+        
+    class result_bundle_cls:
+        def __init__(self):
+            self.metadata_analysis: dict[str,any]
+            self.doc_topic_vectors: list = []
+            self.topic_term_vectors: list = []
+            self.project_analysis_data:dict= None
+            self.medium_summary = ""   
+    
     def __init__(self, cli, config_manager, database_manager):
         self.cli = cli
         self.config_manager = config_manager
         self.database_manager = database_manager
         self.file_data_list: List = []
         self.tree_processor = TreeProcessor()
+        self.data_bundle = self.data_bundle_cls()
+        self.result_bundle = self.result_bundle_cls()
+
     #helpers from amin
     def get_bin_data_by_Id(self, bin_Idx: int) -> BinaryIO | None:
         if self.file_data_list is None or len(self.file_data_list) == 0:
@@ -209,22 +230,7 @@ class AnalysisPipeline:
         except Exception as e:
             raise RuntimeError(f"Error processing tree: {e}")
     
-    @dataclass
-    class data_bundle:
-        metadata_results: Dict[str, Dict[str, Any]]
-        timeline: list = []
-        dictionary = None
-        lda_model = None
-        final_bow = []
-        
     
-    @dataclass
-    class results_bundle:
-        metadata_analysis: dict[str,any]
-        doc_topic_vectors: list = []
-        topic_term_vectors: list = []
-        project_analysis_data:dict= None
-        medium_summary = ""
     
     def save_results(self,data_bundle,results_bundle,return_id:bool = False)->str:
          # save tracked data and insights to database
@@ -320,15 +326,15 @@ class AnalysisPipeline:
 
         metadata_analyzer = MetadataAnalyzer(metadata_results)
         metadata_analysis = metadata_analyzer.analyze_all()
-        return metadata_results,metadata_analysis
-
-    def print_metadata_pipeline_results(metadata_analysis):
+        
         print("\n--- File Extension Statistics ---")
         print(f"{'Extension':<10} | {'Count':<8} | {'Size':<15} | {'Percentage':<8} | {'Category'}")
         print("-" * 70)
         for ext, stats in metadata_analysis['extension_stats'].items():
             print(f"{ext:<10} | {stats['count']:<8} | {stats['total_size']:<15} | {stats['percentage']:<8}% | {stats['category']}")
         print(f"\nPrimary programming languages: {', '.join(metadata_analysis['primary_languages'])}\n")
+        
+        return metadata_results,metadata_analysis
     
     def run_repo_analysis_pipeline(self,binary_data):
         git_repos: List[Node] = self.tree_processor.get_git_repos() 
@@ -389,12 +395,13 @@ class AnalysisPipeline:
                             display_project_insights(analyzed_repos, top_n=3)
 
                             display_project_timeline(timeline)
-                            return git_repos,analyzed_repos,timeline
+                            return git_repos,analyzed_repos,timeline,processed_git_repos
                         
                 except Exception as e:
                     raise RuntimeError(f"Repository processing failed: {e}")
             else:
                 self.cli.print_status("Skipping Git linking.", "info")
+                return [],[],[]
         
     def run_AI_NLG(self,data_bundle,result_bundle,text_analysis_data):
         try:
@@ -496,14 +503,9 @@ class AnalysisPipeline:
             - Early steps common to all pipelines return from function when error is encountered
             - When Pipelines encounter error, error is printed to console and next pipeline is executed.
         """
-        
-        #instance data classes
-        data_bundle = data_bundle() 
-        result_bundle = result_bundle()
-        
         #Load Files using Filemanager
         try:
-            fm_result = self.load_files(self,filepath) #File loading logic in helper function
+            fm_result = self.load_files(filepath) #File loading logic in helper function
         except Exception as e:
             self.cli.print_status(f"File Manager Error:{e}","error")
             return
@@ -518,47 +520,47 @@ class AnalysisPipeline:
         
         #Run Tree Processor, uses tree Processor class.
         try:
-            processed_tree:Node = self.process_filetree(self,file_tree)
+            processed_tree:Node = self.process_filetree(file_tree)
         except Exception as e:
             self.cli.print_status(f"Tree Processor Error:{e}","error")
             return
         
         #run metadata analysis
         try:
-            data_bundle.metadata_results, result_bundle.metadata_analysis = self.run_metadata_analysis_pipeline(self,processed_tree,binary_data)
-            #print metadata analysis results
-            self.print_metadata_pipeline_results(result_bundle.metadata_analysis)
+            self.data_bundle.metadata_results, self.result_bundle.metadata_analysis = self.run_metadata_analysis_pipeline(processed_tree,binary_data)
         except Exception as e:
             self.cli.print_status(f"Metadata Analysis Error:{e}","error")
        
         #run topic analysis_pipeline
         try:
-            data_bundle.lda_model, data_bundle.dictionary, result_bundle.doc_topic_vectors, result_bundle.topic_term_vectors,data_bundle.final_bow = self.run_topic_analysis_pipeline(self)
+            self.data_bundle.lda_model, self.data_bundle.dictionary, self.result_bundle.doc_topic_vectors, self.result_bundle.topic_term_vectors,self.data_bundle.final_bow = self.run_topic_analysis_pipeline()
         except Exception as e:
             self.cli.print_status(f"Topic Analysis Error: {e}","error")
         
         #run git_repo_analysis
         try:    
-            git_repos,analyzed_repos,timeline = self.run_metadata_analysis_pipeline()
+            git_repos,analyzed_repos,timeline,processed_git_repos = self.run_repo_analysis_pipeline(binary_data)
         except Exception as e:
             self.cli.print_status(f"{e}","error")
             import traceback
             traceback.print_exc()
             
         text_analysis_data = {
-            "num_documents": len(result_bundle.doc_topic_vectors),
-            "num_topics": len(result_bundle.topic_term_vectors),
-            "doc_topic_vectors": result_bundle.doc_topic_vectors,
-            "topic_term_vectors": result_bundle.topic_term_vectors
-        } if result_bundle.doc_topic_vectors else {}
+            "num_documents": len(self.result_bundle.doc_topic_vectors),
+            "num_topics": len(self.result_bundle.topic_term_vectors),
+            "doc_topic_vectors": self.result_bundle.doc_topic_vectors,
+            "topic_term_vectors": self.result_bundle.topic_term_vectors
+        } if self.result_bundle.doc_topic_vectors else {}
         
-        result_bundle.project_analysis_data = {
+        #Save project data to bundle
+        self.result_bundle.project_analysis_data = {
             "analyzed_insights": analyzed_repos if analyzed_repos else [],
             "timeline": timeline if timeline else []
         } if git_repos else {}
+        self.data_bundle.processed_git_repos = processed_git_repos
         
         #Run AI based Natural language generation
-        result_bundle.medium_summary = self.run_AI_NLG(self,data_bundle,result_bundle,text_analysis_data)
+        self.result_bundle.medium_summary = self.run_AI_NLG(self.data_bundle,self.result_bundle,text_analysis_data)
         
         #Save All relevent input data and results to DB
-        self.save_results(data_bundle,result_bundle)
+        self.save_results(self.data_bundle,self.result_bundle)
