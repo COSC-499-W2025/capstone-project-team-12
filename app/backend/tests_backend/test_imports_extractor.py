@@ -140,7 +140,7 @@ class TestImportsExtractor:
         extractor = ImportsExtractor()
         code = "import static org.junit.Assert.assertEquals;"
         imports = extractor.extract_java_imports(code)
-        assert 'junit' in imports
+        assert 'junit.Assert' in imports
     
     def test_extract_java_imports_wildcard(self):
         """Test wildcard imports"""
