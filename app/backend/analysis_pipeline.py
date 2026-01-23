@@ -332,6 +332,12 @@ class AnalysisPipeline:
     
     #main execution func
     def run_analysis(self, filepath: str,return_id = False) -> None|str:
+        """
+        Runs the various analysis pipelines in sequence. 
+        Important Note: 
+            - Early steps common to all pipelines return from function when error is encountered
+            - When Pipelines encounter error, error is printed to console and next pipeline is executed.
+        """
         
         #instance data classes
         data_bundle = data_bundle() 
@@ -360,18 +366,21 @@ class AnalysisPipeline:
             return
         
         #run metadata analysis
-        data_bundle.metadata_results, result_bundle.metadata_analysis = self.run_metadata_analysis_pipeline(self,processed_tree,binary_data)
-        #print metadata analysis results
-        self.print_metadata_pipeline_results(result_bundle.metadata_analysis)
-
-        data_bundle.lda_model, data_bundle.dictionary, result_bundle.doc_topic_vectors, result_bundle.topic_term_vectors,data_bundle.final_bow = self.run_topic_analysis_pipeline(self)
-        
+        try:
+            data_bundle.metadata_results, result_bundle.metadata_analysis = self.run_metadata_analysis_pipeline(self,processed_tree,binary_data)
+            #print metadata analysis results
+            self.print_metadata_pipeline_results(result_bundle.metadata_analysis)
+        except Exception as e:
+            self.cli.print_status(f"Metadata Analysis Error:{e}","error")
+       
+        #run topic analysis_pipeline
+        try:
+            data_bundle.lda_model, data_bundle.dictionary, result_bundle.doc_topic_vectors, result_bundle.topic_term_vectors,data_bundle.final_bow = self.run_topic_analysis_pipeline(self)
+        except Exception as e:
+            self.cli.print_status(f"Topic Analysis Error: {e}","error")
+            
+            
         git_repos: List[Node] = self.tree_processor.get_git_repos() 
-
-       
-
-       
-
         processed_git_repos: List[Dict[str, Any]] = None
         analyzed_repos: List[Dict[str, Any]] = None
 
@@ -438,11 +447,11 @@ class AnalysisPipeline:
                 self.cli.print_status("Skipping Git linking.", "info")
         
         text_analysis_data = {
-            "num_documents": len(doc_topic_vectors),
-            "num_topics": len(topic_term_vectors),
-            "doc_topic_vectors": doc_topic_vectors,
-            "topic_term_vectors": topic_term_vectors
-        } if doc_topic_vectors else {}
+            "num_documents": len(result_bundle.doc_topic_vectors),
+            "num_topics": len(result_bundle.topic_term_vectors),
+            "doc_topic_vectors": result_bundle.doc_topic_vectors,
+            "topic_term_vectors": result_bundle.topic_term_vectors
+        } if result_bundle.doc_topic_vectors else {}
         
         project_analysis_data = {
             "analyzed_insights": analyzed_repos if analyzed_repos else [],
@@ -540,4 +549,4 @@ class AnalysisPipeline:
         except Exception as e:
             self.cli.print_status(f"Error collecting statistics: {e}", "error")
 
-        save_results()
+        self.save_results()
