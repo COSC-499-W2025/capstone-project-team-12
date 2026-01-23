@@ -304,27 +304,19 @@ class DatabaseManager:
             #main result data
             row = results[0]
             
-            # Construct nested dictionary response
+            # Flat structure for backward compatibility
             return {
                 "analysis_id": str(row['analysis_id']),
-                "results": {
-                    "topic_vector": row['topic_vector'],
-                    "resume_points": row['resume_points'],
-                    "project_insights": row['project_insights'],
-                    "package_insights": row['package_insights'],
-                    "metadata_insights": row['metadata_insights'],
-                },
+                "topic_vector": row['topic_vector'],
+                "resume_points": row['resume_points'],
+                "project_insights": row['project_insights'],
+                "package_insights": row['package_insights'],
+                "metadata_insights": row['metadata_insights'],
                 "tracked_data": {
                     "bow_cache": row['bow_cache'],
                     "project_data": row['project_data'],
                     "package_data": row['package_data'],
                     "metadata_stats": row['metadata_stats']
-                },
-                "resume_data": {
-                    "summary": row['resume_summary'],
-                    "projects": row['resume_projects'],
-                    "skills": row['resume_skills'],
-                    "full_resume": row['full_resume']
                 }
             }
         except Exception as e:
