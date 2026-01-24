@@ -38,7 +38,7 @@ class RepositoryProcessor:
     def _extract_all_repository_data(self, repo_node: Node, git_folder_path: Path) -> Dict[str, Any]:
         # Analyze a single repository using PyDriller to extract commit information
         try:
-            repo: Repository = Repository(str(git_folder_path))
+            repo: Repository = Repository(str(git_folder_path), include_remotes=True)
             
             commits_result: Dict[str, Any] = self._extract_commits_data(repo)
             user_dates: List[datetime] = commits_result['user_dates']
