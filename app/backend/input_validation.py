@@ -19,7 +19,7 @@ def is_valid_path(filepath:str)->Path:
     filepath = filepath.strip().strip('"').strip("'")
     
     #Check if empty
-    if filepath is None or "":
+    if not filepath:
         raise ValueError("Filepath cannot be empty")
     
     #try to make a valid absolute path based on input path
