@@ -1,8 +1,8 @@
 from typing import Dict, Any, Optional
 import uuid
 from cli_interface import CLI
-from database_manager import DatabaseManager
 
+from database_manager import DatabaseManager
 from resume_data_processor import ResumeDataProcessor
 
 
@@ -71,7 +71,7 @@ class ResumeBuilder:
 
             else:
                 cli.print_status("Resume generated successfully!", "success")
-            
+
             return resume
 
         except Exception as e:
