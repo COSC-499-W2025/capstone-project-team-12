@@ -1,4 +1,29 @@
 # Madelyn DeGruchy Personal Log (85064962 - maddydeg)
+
+## Term 2 Week 3 (01/19/2026 - 01/25/2026)
+- Implemented logic to allow the user to edit a resume that was generated
+  - Given the ongoing database rework, this currently takes place immediately after the resume is generated given it could not be stored to be retreived later
+  - Added the relevant testing for this editing function
+- Assisted in troubleshooting the bugs from last week and diagnosing an issue where the number of contributors is miscounted.
+- Participated in the weekly team meeting to plan tasks for the week
+
+## In Progress
+- I have started to change the logic used when considering stats for each author within a project to ensure that duplicates are counted properly
+
+## Next Week
+- Once all current PR's are merged, I will be able to store the generated resumes in the database so they can be viewed and edited at a later point in time. This PR will include logic to store and retrieve generated resumes, and will add options to the main menu to view previously generated resumes (all or by ID) and then allow users to edit these resumes that are retrieved.
+- Have added a refactoring to update parts of the resume editing logic:
+  - Move the add/remove logic that is similar to a helper method to clean up the current implementation
+  - Allow the user to decide if they want to edit wording that is currently used for the summary, or start from scratch
+- Finish the debug work to ensure contributors are counted correctly
+  - Currently we can not identify the pattern of when the system uses the full name on GitHub vs when it uses the username that is attached to each commit. Given that depending on the users security settings, sometimes a commit has their personla email attached and sometimes it has the privatized GitHub noreply email. There also is not pattern between how these two fields (name and email) are connected. For example, I have a repository with some commits attached to (John Doe, JohnDoe@example.com) and other commits under (JohnDoe, 123456+johnsuser@noreply.github.com). In another repository, the same user was (johnsuser, 123456+johnsuser@noreply.github.com) and (John Doe, JohnDoe@example.com), and in another repository, these are flipped.
+ 
+# Reflection
+- Overall, made strong progress on another requirement, and just need to ensure the database is fully functioning to finish closing those 2.
+- The team was able to resolve a lot of loose bugs and now has a strong understanding of where the others stem from. It will just take some time to fully implement the logic to get us closer to 99% accuracy
+
+![Peer Evaluation Term 2 Week 1](imgs/Madelyn%20DeGruchy%20T2%20Week%203.png)
+
 ## Term 2 Week 2 (01/12/2026 - 01/18/2026)
 - Completed the Resume Generation Implementation
   - Resume Data Processor collects the relevant data from each analysis pipeline (topic vectors, projects, and metadata) to be displayed in a resume

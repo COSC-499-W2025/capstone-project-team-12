@@ -1,5 +1,26 @@
 # Lexi Loudiadis (93546844) Personal Log
 
+## Term 2 - Week 3 (01/19/2026 - 01/25/2026)
+
+- Refactoring our imports/framework extractor as the original regex pattern matching ability was limited and failed to correctly parse imports in a lot of cases. Expanded capability for pattern matching to include Kotlin, C#, Go, Rust, Ruby, PHP, Swift, in addition to Python, Java, TypeScript, JavaScript, C, C++ (PR #333)
+- Had a very productive debugging session with Maddy in which we tackled 3 problematic and noticeable bugs in our project analysis pipeline. The changes for 2 of these bugs were pushed and a plan of action was formed to target the third bug (PR #341)
+- Resolved a further two more minor bugs on my own (PR #333)
+- Wrote extensive tests for my feature (PR #333)
+- Team meetings
+- Testing teammates' code
+
+### In Progress
+- During our debugging session, we had one bug that we identified a solution for but have yet to implement it. This will get done in the next week or two.
+
+### What's Next
+- Our database refactor has started, though more is to come. When that is finalized, we will be able to connect a lot of functionality. In the meantime, those of us not working on the database will either work on tasks that are not related to the database, or work around the database until the full refactor is done
+
+### Reflection
+- All tasks that were planned at our weekly meeting were completed. I did say I wanted to start requirement 25 if time allowed, however I had my hands full with the work I did
+
+![Type of tasks I worked on](imgs/Week%2017%20Lexi.png)
+
+
 ## Term 2 - Week 2 (01/12/2026 - 01/18/2026)
 
 - Wrote the code to satisfy Requirement 23 - I did reranking projects and selecting projects to showcase, making sure to incorporate plenty of options for users to choose from (e.g., change the rankings by changing the weight of metrics contributing to determining the project importance score; or manually rank; if rank by weight -> select which weights the user wishes to use) (PR #308)

@@ -1,5 +1,6 @@
 ## Devin Huang Personal Log (86828886)
 
+[Term 2 Week 3](#t2-week-3)  
 [Term 2 Week 2](#t2-week-2)  
 [Term 2 Week 1](#t2-week-1)  
 [Week 14](#week-14)  
@@ -13,6 +14,23 @@
 [Week 5](#week-5)  
 [Week 4](#week-4)  
 [Week 3](#week-3)
+
+
+### T2 Week 3
+- Updated the whole database manager to handle the new database schema (revamped to prepare for tackling incremental analysis) (https://github.com/COSC-499-W2025/capstone-project-team-12/pull/338)
+  - Updated all downstream components affected by the changes in database manager
+  - Updated all testing affected by changes in database manager
+- Fixed some minor issues in the database schema
+- Set ollama version to 0.14.0 instead of getting latest on build
+- Team meeting
+#### Next week
+- Once all the current PRs are merged, we can start working towards the incremental analysis feature
+- Refactor the LLM clients for easier handling later on
+
+#### Reflection
+- This weeks PR involved significant changes to the database manager, which then also made multiple downstream components and tests to break. I had come accross some issues with testing, that was pointed out by Maddy and Sara, that have now been resolved.
+
+<img width="951" height="489" alt="image" src="https://github.com/user-attachments/assets/942d8f9e-8aef-463f-8ef9-c685bfb61b1c" />
 
 
 ### T2 Week 2

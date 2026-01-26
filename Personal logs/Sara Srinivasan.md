@@ -1,5 +1,27 @@
 # Sara Srinivasan Personal Log (10801751)
 
+## Term 2 Week 3
+
+### Work Done
+
+- Note my contributions for this week are not merged to main as it is blocked by some other PRs that needed to be merged and resolved first.
+- Additionally DBschema rework mandated a rework of the primary analysis pipeline as the function was ~350 line bulky coupled mess.
+  See Draft PRs  [#342](https://github.com/COSC-499-W2025/capstone-project-team-12/pull/342) and [#343](https://github.com/COSC-499-W2025/capstone-project-team-12/pull/343) for WIP commits and code changes for both of the above respectively.
+- Designed Created new DB schema and associated rework.
+  - Both Devin and Sithara's Tasks for the week are based on this new design
+  - Explained to team new design an appropriate use of new db using design mocks
+- Extracted and simplified functionality of analysis pipeline
+- Helped Sithara and devin with implementation of db manager rework and file tracking reworks
+- Commented and reviewed PRs 
+
+### Quiz Response
+
+![Term 2 Week 3 Quiz Response](imgs/Sara%20Srinivasan%20T2%20Week%203.png)
+
+### Review and Plans
+
+Unfortunately my work was blocked by other PRs that needed to be merged first, the contributing factors were that the team members were busy and occupied with other classes and simply the scale of the rework, drastically affecting numerous modules. Next week will likely be a team effort to complete,test and merge this rework!
+
 ## Term 2 Week 2
 
 ### Work Done

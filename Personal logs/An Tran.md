@@ -1,6 +1,23 @@
 # An Tran Personal Log (79499364)
 
-## Term 2 Week 11 (01/05/2026 - 01/11/2026)
+## Term 2 Week 3 (01/19/2026 - 01/25/2026)
+### Tasks completed
+- Reworked file classifier and tree processor
+  - File classifier now handles tree traversing and type classification and returns text file and code file lists, as well as updated binary data array
+  - isCode of file classifier now uses Pygments to account for more possible code files and to match with code processor
+  - Fixed a bug where for invalid files, nodes were not detached and binary data was not set to None
+  - Tree processor now handles git repo detection and returns git repo tree
+- Due to the change in return values of file classifier, I had to also update inputs in analysis pipeline and metadata extractor
+- Changed metadata analyzer to use Pygments for language classification instead of dictionary
+
+![Term 2 Week 3](imgs/An%20Tran%20T2W3.png)
+
+### Reflection and plans for future
+- I finished the work I was supposed to do last week
+- Metadata analyzer now outputs 'N/A' and 'Text only' for Language, so that still needs to get fixed because we want to get rid of N/A
+- Next week, I will work on incorporating evidence of success for a project (requirement 25)
+
+## Term 2 Week 1 (01/05/2026 - 01/11/2026)
 ### Tasks completed
 - Attended weekly team meeting
 - Added programming language stats to metadata analyzer, which maps the extension to the appropriate langugage
