@@ -1,7 +1,8 @@
 from collections import defaultdict
 from typing import Dict, Any, List, Tuple
 from datetime import datetime
-
+import pygments.lexers
+import pygments.util
 class MetadataAnalyzer:
     """
     Analyzes extracted metadata for insights
@@ -150,6 +151,7 @@ class MetadataAnalyzer:
                     avg_size = total_size / count if count > 0 else 0
                     category = self._classify_extension(ext)
                     language = self._classify_programming_language(ext)
+
 
                 except Exception as e:
                     print(f"Error processing extension stats for {ext}: {e}")
@@ -334,43 +336,20 @@ class MetadataAnalyzer:
 
     def _classify_programming_language(self, ext: str) -> str:
         """
-        Classify file extension into categories
+        Classify file extension into categories using Pygments
         """
         try:
-            programming_languages: Dict[str, str] = {
-                '.py': 'Python',
-                '.js': 'JavaScript',
-                'jsx': 'JavaScript',
-                'tsx': 'TypeScript',
-                '.ts': 'TypeScript',
-                '.vue': 'JavaScript',
-                '.java': 'Java',
-                '.cpp': 'C++',
-                '.c': 'C',
-                '.cs': 'C#',
-                '.rb': 'Ruby',
-                '.go': 'Go',
-                '.php': 'PHP',
-                '.kt': 'Kotlin',
-                '.swift': 'Swift',
-                '.dart': 'Dart',
-                '.html': 'HTML',
-                '.htm': 'HTML',
-                '.css': 'CSS',
-                '.sql': 'SQL',
-                '.sqlite': 'SQL',
-                '.r': 'R',
-                '.rmd': 'R',
-            }
 
-            if ext in programming_languages:
-                return programming_languages[ext]
-            else:
-                return "N/A"
+            lexer: pygments.lexer = None
+            lexer = pygments.lexers.get_lexer_for_filename(ext)
+            language = lexer.name
+            return language
 
-        except Exception as e:
-            print(f"Error classifying extension to programming language {ext}: {e}")
+        except pygments.util.ClassNotFound:
+            # raise ValueError(f"No lexer found for extension: {ext}")
             return "N/A"
+        except Exception as e:
+            raise ValueError(f"Error classifying programming language for extension {ext}: {e}")
     
     def return_metadata_stats(self) -> Dict[str, Any]:
         """
