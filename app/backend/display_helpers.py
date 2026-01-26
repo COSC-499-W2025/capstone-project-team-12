@@ -43,8 +43,10 @@ def display_project_insights(analyzed_repos: List[Dict[str, Any]], top_n: int = 
 
         # User Role
         if 'user_role' in project:
-            print(f"\n> User Role: {project.get('user_role', 'Unknown')}")
-            role_blurb = project.get('role_blurb', '')
+            user_role = project.get('user_role', {})
+            role_name = user_role.get('role', 'Unknown')
+            role_blurb = user_role.get('blurb', '')
+            print(f"\n> User Role: {role_name}")
             if role_blurb:
                 print(f"  - {role_blurb}")
         
@@ -72,7 +74,7 @@ def display_project_insights(analyzed_repos: List[Dict[str, Any]], top_n: int = 
             
             for imp, stats in sorted_imports:
                 freq = stats.get('frequency', 0)
-                duration = stats.get('duration_days', 0)
+                duration = max(stats.get('duration_days', 0), 1)
                 print(f"  • {imp}: used {freq} times over {duration} days")
         else:
             print("  No external libraries detected.")
@@ -102,7 +104,7 @@ def display_project_summary(ranked_projects: List[Dict[str, Any]], top_n: int = 
         print(f"   Score: {round(proj.get('importance_score', 0), 2)}")
         print(f"   Commits: {len(proj.get('user_commits', []))}")
         print(f"   Lines Added: {stats.get('user_lines_added', 0)}")
-        print(f"   Role: {proj.get('user_role', 'Unknown')}")
+        print(f"   Role: {proj.get('user_role', {}).get('role', 'Unknown')}")
         print(f"   Duration: {dates.get('duration_days', 0)} days\n")
 
 

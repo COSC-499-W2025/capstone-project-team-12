@@ -9,23 +9,6 @@ class RepositoryAnalyzer:
         self.username = username
         self.user_email = user_email if user_email else None
 
-    # Regex patterns for import statements in various languages
-    # Python: from X import Y -> captures X; import X, Y -> captures X, Y
-    PYTHON_IMPORT_RE = re.compile(r'^\s*(?:from\s+([a-zA-Z0-9_\.]+)\s+import|import\s+([a-zA-Z0-9_\., ]+))', re.MULTILINE)
-
-    # JavaScript/TypeScript: import X from 'module' or require('module') -> captures 'module'
-    JS_IMPORT_RE = re.compile(r'^\s*import\s+(?:.*?\s+from\s+)?["\']([^"\']+)["\']|^\s*const\s+\w+\s*=\s*require\(["\']([^"\']+)["\']\)', re.MULTILINE)
-
-    # Java: import package.Class; -> captures package.Class
-    JAVA_IMPORT_RE = re.compile(r'^\s*import\s+([\w\.]+);', re.MULTILINE)
-
-    # C/C++: #include <header> or #include "header" -> captures header
-    C_IMPORT_RE = re.compile(r'^\s*#include\s*[<"]([^>"]+)[>"]', re.MULTILINE)
-
-    # If none of the above, here is a generic pattern to capture common import/include statements
-    GENERIC_IMPORT_RE = re.compile(r'\b(import|require|include)\b.*?[\'"<]([\w\./-]+)[\'">]', re.MULTILINE)
-
-
     def generate_project_insights(self, project_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         # Generate insights from extracted project data
 
@@ -53,7 +36,6 @@ class RepositoryAnalyzer:
                 'contribution_analysis': self._calculate_contribution_insights(project),
                 'collaboration_insights': self._generate_collaboration_insights(project),
                 'testing_insights': self._generate_testing_insights(project),
-                'imports_summary': self.extract_repo_import_stats(project),
                 'user_role': self.infer_user_role(project)
             }
             projects_insights.append(project_insight)
@@ -123,167 +105,6 @@ class RepositoryAnalyzer:
             "blurb": blurb
         }
 
-
-    def extract_repo_import_stats(self, project: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Extracts the import statistics for all files modified by the user in one repo.
-        Uses the modified files from the raw data extracted in the processor
-        Returns a dict with repository_name and imports_summary. For each import, we track:
-        - frequency
-        - start_date
-        - end_date
-        - duration_days
-
-        Doing this allows us to find skills and technologies the user has worked with over time.
-        """
-        repo_name = project.get('repository_name', 'Unknown')
-        commits_data: List[Dict[str, Any]] = project.get('user_commits', [])
-        imports_data: Dict[str, Dict[str, Any]] = {}
-
-        # Loop through all commits in the raw data
-        for commit in commits_data:
-            commit_date_str = commit.get('date')
-            if not commit_date_str:
-                continue
-            
-            try:
-                commit_date = datetime.fromisoformat(commit_date_str)
-            except (ValueError, TypeError):
-                continue
-
-            # Loop through all modified files in the commit
-            for mod in commit.get('modified_files', []):
-                src = mod.get('source_code', '')
-                if not src.strip():
-                    continue
-
-                # Get file extension to determine language
-                filename = mod.get('filename', 'unknown')
-                ext = filename.split('.')[-1].lower() if '.' in filename else ""
-
-                # Extract imports based on programming language using regex patterns
-                imports: List[str] = []
-                if ext == "py":
-                    matches = self.PYTHON_IMPORT_RE.findall(src)
-                    for m_from, m_imp in matches:
-                        if m_from:
-                            imports.append(m_from)
-                        elif m_imp:
-                            imports += [i.split(" as ")[0].strip() for i in m_imp.split(',')]
-                elif ext in {"js", "ts"}:
-                    matches = self.JS_IMPORT_RE.findall(src)
-                    for m in matches:
-                        imports.append(m[0] or m[1])
-                elif ext == "java":
-                    imports += self.JAVA_IMPORT_RE.findall(src)
-                elif ext in {"c", "cpp", "h", "hpp"}:
-                    imports += self.C_IMPORT_RE.findall(src)
-
-                # imports_data is a dict with per-import statistics
-                for imp in imports:
-                    if imp not in imports_data:
-                        imports_data[imp] = {
-                            "frequency": 0,
-                            "start_date": commit_date,
-                            "end_date": commit_date
-                        }
-                    imports_data[imp]["frequency"] += 1
-                    if commit_date < imports_data[imp]["start_date"]:
-                        imports_data[imp]["start_date"] = commit_date
-                    if commit_date > imports_data[imp]["end_date"]:
-                        imports_data[imp]["end_date"] = commit_date
-
-        # Convert dates and calculate duration
-        for imp, data in imports_data.items():
-            start = data["start_date"]
-            end = data["end_date"]
-            data["start_date"] = start.isoformat() if start else None
-            data["end_date"] = end.isoformat() if end else None
-            data["duration_days"] = (end - start).days if start and end else None
-
-        return imports_data   
-
-    def get_all_repo_import_stats(self, project_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """
-        Get the import statistics for all repos that were modified by the user.
-        Returns a list of dicts (one per repository), each containing:
-        - repository_name
-        - imports_summary (as defined in extract_repo_import_stats)
-        """
-
-        repo_summaries: List[Dict[str, Any]] = []
-
-        for project in project_data:
-            if project.get('status') != 'success':
-                repo_summaries.append({
-                    "repository_name": project.get('repository_name', 'Unknown'),
-                    "imports_summary": {},
-                    "error": project.get('error_message', 'Unknown error')
-                })
-                continue
-            
-            try:
-                imports_summary = self.extract_repo_import_stats(project)
-                repo_summaries.append({
-                    "repository_name": project.get('repository_name', 'Unknown'),
-                    "imports_summary": imports_summary
-                })
-            except Exception as e:
-                repo_summaries.append({
-                    "repository_name": project.get('repository_name', 'Unknown'),
-                    "imports_summary": {},
-                    "error": str(e)
-                })
-
-        return repo_summaries
-    
-    def sort_repo_imports_in_chronological_order(self, repo_summary: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Sorts the imports of a single repo in chronological order by start_date DESC
-        """
-        imports = repo_summary.get("imports_summary", {})
-
-        sorted_imports = sorted(imports.items(), key=lambda item: datetime.fromisoformat(item[1]["start_date"]) if item[1].get("start_date") else datetime.min, reverse=True)
-        repo_summary["imports_summary"] = {imp: stats for imp, stats in sorted_imports}
-
-        return repo_summary
-    
-    
-    def sort_all_repo_imports_chronologically(self, all_repo_summaries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """
-        Takes the full list from get_all_repo_import_stats() and sorts all imports across all repositories in chronological order 
-        (by start_date DESC)
-        """
-        aggregated = []
-
-        for repo_summary in all_repo_summaries:
-            repo_name = repo_summary["repository_name"]
-            imports_summary = repo_summary.get("imports_summary", {})
-
-            for imp, stats in imports_summary.items():
-                start_str = stats.get("start_date")
-                start_dt = (
-                    datetime.fromisoformat(start_str)
-                    if start_str else datetime.min
-                )
-
-                aggregated.append({
-                    "import": imp,
-                    "repository_name": repo_name,
-                    "start_date": stats.get("start_date"),
-                    "end_date": stats.get("end_date"),
-                    "duration_days": stats.get("duration_days"),
-                    "frequency": stats.get("frequency"),
-                    "start_dt": start_dt,   # keep this only for sorting
-                })
-
-        aggregated.sort(key=lambda x: x["start_dt"], reverse=True)
-
-        # remove the helper datetime object before returning
-        for entry in aggregated:
-            entry.pop("start_dt", None)
-
-        return aggregated 
 
     def _generate_collaboration_insights(self, project: Dict[str, Any]) -> Dict[str, Any]:
         # Analyze collaboration patterns and team dynamics

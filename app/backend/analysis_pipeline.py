@@ -18,6 +18,7 @@ from llm_local import LocalLLMClient
 from display_helpers import display_project_insights, display_project_summary, display_project_timeline
 from project_selection import choose_projects_for_analysis
 from project_reranking import rerank_projects
+from imports_extractor import ImportsExtractor
 
 
 class AnalysisPipeline:
@@ -352,9 +353,23 @@ class AnalysisPipeline:
                         self.cli.print_status("Repositories processed successfully.", "success")
                         
                         analyzer = RepositoryAnalyzer(github_username)
+                        imports_extractor = ImportsExtractor()
 
                         #Generate the insights for ALL selected projects (not just what is displayed to allow for storage in db)
                         analyzed_repos = analyzer.generate_project_insights(selected_repos)
+                        imports_data = imports_extractor.get_all_repo_import_stats(selected_repos)
+
+                        # merge imports_data back into analyzed_repos
+                        for repo in analyzed_repos:
+                            repo_name = repo.get('repository_name')
+                            matching_import = next(
+                                (imp for imp in imports_data if imp.get('repository_name') == repo_name),
+                                None
+                            )
+                            if matching_import:
+                                repo['imports_summary'] = matching_import.get('imports_summary', {})
+                            else:
+                                repo['imports_summary'] = {}
 
                         if not analyzed_repos:
                             self.cli.print_status("No successful repository analyses.", "warning")
