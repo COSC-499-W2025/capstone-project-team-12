@@ -15,20 +15,23 @@
 
 ### Work Done
 - Reworked file classifier and tree processor - among other things, our file classifier and metadata analyzer now use Pygments for language classification
+- Designing a new database schema
 - Started refactoring the database, beginning with updating the whole database manager to handle the new database schema
-- 
+- Refactored and improved upon our imports/framework extractor to make it much more accurate and expanded its capability
+- Debugging the project analysis pipeline
+- Implemented a resume editing feature
 
 
 ### Burnup chart & Task Table
-![T2 Week 2 Burn Up](/imgs/T2%20Week2%20Burnup%20chart.png)
+![T2 Week 3 Burn Up](/imgs/T2%20Week3%20Burnup%20chart.png)
 
 
-![T2 Week 2 Tasks Table](/imgs/T2%20Week%202%20Task%20Table.png) 
-Filtered to only show Tasks with changes this week.
+![T2 Week 3 Tasks Table](/imgs/T2%20Week%203%20Task%20Table.png) 
+Filtered to only show Tasks with changes this week. We had to use this format due to issues not linking to dates in "Completed Tasks".
 
 ### Test Report
-3 failing tests which will be looked at next week.
-![Term 2 Week 2 Test Report](/imgs/T2%20Week%202%20Test%20Report.png)
+2 failing tests which will be looked at next week.
+![Term 2 Week 2 Test Report](/imgs/T2%20Week%203%20Test%20Report.png)
 
 ### In Progress
 - The database refactor to support the requirements of Milestone 2
@@ -36,7 +39,8 @@ Filtered to only show Tasks with changes this week.
 
 ### Upcoming plans
 - Start working on incremental file addition
+- Finish project debug work
 - Continue to work on milestone 2
 
 ### Reflections
-- This week was a big refactoring/debugging week for us. Most team members worked to improve/add upon our existing functionality instead of adding completely new features. It seemed that we made good progress this week despite being down a member.
+- This week was a big refactoring/debugging week for us. Most team members worked to improve/add upon our existing functionality instead of adding completely new features. It seemed that we made good progress this week despite being down a member and having another member's PR not get merged to main.
