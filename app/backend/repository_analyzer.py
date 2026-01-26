@@ -275,9 +275,9 @@ class RepositoryAnalyzer:
         projects: List[Dict[str, Any]] = []
 
         for repo in all_repo_data:
-            if repo.get('status') != 'success':
+            if repo.get('status') == 'failed': 
                 continue
-            
+
             dates = repo.get('dates',{})
             start_date = dates.get('start_date')
 

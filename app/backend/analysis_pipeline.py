@@ -352,7 +352,7 @@ class AnalysisPipeline:
                         selected_repos = choose_projects_for_analysis(processed_git_repos)
                         self.cli.print_status("Repositories processed successfully.", "success")
                         
-                        analyzer = RepositoryAnalyzer(github_username)
+                        analyzer = RepositoryAnalyzer(github_username, user_email)
                         imports_extractor = ImportsExtractor()
 
                         #Generate the insights for ALL selected projects (not just what is displayed to allow for storage in db)
