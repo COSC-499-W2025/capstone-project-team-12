@@ -2,7 +2,8 @@ import hashlib
 from typing import List, BinaryIO, Dict, Any
 from anytree import Node
 from file_manager import FileManager
-from tree_processor import TreeProcessor
+from repo_detector import RepoDetector
+from file_classifier import FileClassifier
 from repository_processor import RepositoryProcessor
 from metadata_extractor import MetadataExtractor
 from metadata_analyzer import MetadataAnalyzer
@@ -200,25 +201,36 @@ class AnalysisPipeline:
         
         file_tree: Node = fm_result["tree"]
 
+        # detect git repositories from the file tree
         try:
-            tree_processor = TreeProcessor()
-            processed_tree: Node = tree_processor.process_file_tree(file_tree)
-            self.cli.print_status("Tree structure processed successfully.", "success")
+            repo_detector = RepoDetector()
+            repo_detector.process_git_repos(file_tree)
+            git_repos: List[Node] = repo_detector.get_git_repos()
+            if git_repos:
+                self.cli.print_status(f"Tree structure for .git repo processed successfully.", "success")
         except (ValueError, TypeError, RuntimeError) as e:
-            self.cli.print_status(f"Tree processing failed: {e}", "error")
+            self.cli.print_status(f"Failed to detect git repositories: {e}", "error")
             return
         except Exception as e:
-            self.cli.print_status(f"Error processing tree: {e}", "error")
+            self.cli.print_status(f"Unexpected error detecting git repositories: {e}", "error")
             return
+
 
         binary_data: List[bytes] = fm_result.get("binary_data")
         if not isinstance(binary_data, list):
             self.cli.print_status("Warning: Binary data format unexpected. Proceeding empty.", "warning")
             binary_data = []
-        
+
+        # classifying files into text and code
+        file_classifier = FileClassifier()
+        text_nodes, code_nodes, cleaned_binary_data = file_classifier.classify_files(file_tree, binary_data)
+        self.cli.print_status("File classification completed successfully.", "success")
+
         self.cli.print_header("Metadata Analysis")
         metadata_extractor = MetadataExtractor()
-        metadata_results: Dict[str, Dict[str, Any]] = metadata_extractor.extract_all_metadata(processed_tree, binary_data)
+        all_nodes = text_nodes + code_nodes
+        metadata_results: Dict[str, Dict[str, Any]] = metadata_extractor.extract_all_metadata(all_nodes, cleaned_binary_data)
+
         
         total_files: int = len(metadata_results)
         if total_files > 0:
@@ -234,7 +246,7 @@ class AnalysisPipeline:
             print(f"{ext:<10} | {stats['count']:<8} | {stats['total_size']:<15} | {stats['percentage']:<8}% | {stats['category']}")
         print(f"\nPrimary programming languages: {', '.join(metadata_analysis['primary_languages'])}\n")
 
-        git_repos: List[Node] = tree_processor.get_git_repos() 
+        # git_repos: List[Node] = tree_processor.get_git_repos() 
 
         doc_topic_vectors: list = []
         topic_term_vectors: list = []
@@ -245,8 +257,6 @@ class AnalysisPipeline:
         medium_summary = ""
 
         try:
-            text_nodes: List[Node] = tree_processor.get_text_files()
-            code_nodes: List[Node] = tree_processor.get_code_files()
             
             if text_nodes or code_nodes:
                 self.cli.print_header("Content Analysis")

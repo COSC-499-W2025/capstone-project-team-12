@@ -24,7 +24,7 @@ def test_file_load_failure(mock_fm, pipeline):
     pipeline.cli.print_status.assert_any_call("Load Error: fail", "error")
 
 @patch("analysis_pipeline.FileManager")
-@patch("analysis_pipeline.TreeProcessor")
+@patch("analysis_pipeline.RepoDetector")
 @patch("analysis_pipeline.LocalLLMClient")
 
 def test_successful_save(mock_llm, mock_tp, mock_fm, pipeline):
