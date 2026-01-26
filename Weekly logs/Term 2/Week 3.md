@@ -30,7 +30,6 @@
 Filtered to only show Tasks with changes this week. We had to use this format due to issues not linking to dates in "Completed Tasks".
 
 ### Test Report
-2 failing tests which will be looked at next week.
 ![Term 2 Week 2 Test Report](/imgs/T2%20Week%203%20Test%20Report.png)
 
 ### In Progress
