@@ -40,7 +40,7 @@ def test_successful_save(mock_llm, mock_tp, mock_fm, pipeline):
     mock_llm.return_value.generate_summary.return_value = "Summary"
     pipeline.run_analysis("valid_path")
 
-    assert pipeline.database_manager.create_new_result.called #check if asked db for new entry
+    assert pipeline.database_manager.create_analyses.called #check if asked db for new entry
     assert pipeline.database_manager.save_resume_points.called #check that summary was sent to be saved
 
 def test_reviews_proceed_immediately(pipeline):

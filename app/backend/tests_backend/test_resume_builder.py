@@ -49,7 +49,7 @@ class TestResumeBuilder:
     def test_create_resume_from_result_id_success(self, mock_db_manager, mock_cli, sample_result_data):
         """Test successful resume creation from result ID"""
         builder = ResumeBuilder()
-        mock_db_manager.get_result_by_id.return_value = sample_result_data
+        mock_db_manager.get_analysis_data.return_value = sample_result_data
         
         resume = builder.create_resume_from_result_id(mock_db_manager, mock_cli, 'test-result-id')
         
@@ -66,7 +66,7 @@ class TestResumeBuilder:
     def test_create_resume_result_not_found(self, mock_db_manager, mock_cli):
         """Test handling when result is not found in database"""
         builder = ResumeBuilder()
-        mock_db_manager.get_result_by_id.return_value = None
+        mock_db_manager.get_analysis_data.return_value = None
         
         resume = builder.create_resume_from_result_id(mock_db_manager, mock_cli, 'invalid-id')
         
@@ -81,7 +81,7 @@ class TestResumeBuilder:
             'metadata_insights': {},
             'project_insights': {}
         }
-        mock_db_manager.get_result_by_id.return_value = empty_data
+        mock_db_manager.get_analysis_data.return_value = empty_data
         
         resume = builder.create_resume_from_result_id(mock_db_manager, mock_cli, 'test-id')
         
@@ -93,7 +93,7 @@ class TestResumeBuilder:
     def test_create_resume_handles_exception(self, mock_db_manager, mock_cli):
         """Test error handling during resume creation"""
         builder = ResumeBuilder()
-        mock_db_manager.get_result_by_id.side_effect = Exception("Database error")
+        mock_db_manager.get_analysis_data.side_effect = Exception("Database error")
         
         resume = builder.create_resume_from_result_id(mock_db_manager, mock_cli, 'test-id')
         

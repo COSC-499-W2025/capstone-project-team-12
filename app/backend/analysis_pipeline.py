@@ -501,16 +501,16 @@ class AnalysisPipeline:
 
         # save tracked data and insights to database
         try:
-            result_id: str = self.database_manager.create_new_result() 
+            analysis_id: str = self.database_manager.create_analyses() 
             # save tracked data
-            self.database_manager.save_tracked_data(result_id, metadata_results, final_bow, processed_git_repos)
+            self.database_manager.save_tracked_data(analysis_id, metadata_results, final_bow, processed_git_repos)
 
             # save insights
-            self.database_manager.save_metadata_analysis(result_id, metadata_analysis)
-            self.database_manager.save_text_analysis(result_id, doc_topic_vectors, topic_term_vectors)
-            self.database_manager.save_repository_analysis(result_id, project_analysis_data)
-            self.database_manager.save_resume_points(result_id, medium_summary)
+            self.database_manager.save_metadata_analysis(analysis_id, metadata_analysis)
+            self.database_manager.save_text_analysis(analysis_id, doc_topic_vectors, topic_term_vectors)
+            self.database_manager.save_repository_analysis(analysis_id, project_analysis_data)
+            self.database_manager.save_resume_points(analysis_id, medium_summary)
             if return_id:
-                return result_id
+                return analysis_id
         except Exception as e:
             self.cli.print_status(f"Error saving result to database: {e}", "error")
