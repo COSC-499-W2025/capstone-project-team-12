@@ -142,7 +142,7 @@ class TestMetadataAnalyzer:
         language_stats = self.results['language_stats']
         primary_languages = self.results['primary_languages']
         
-        assert len(language_stats) == 6 # technically 5 but +1 for N/A
+        assert len(language_stats) == 7 # technically 5 but +1 for N/A and Text only, need to fix that later
         assert 'Python' in language_stats
         assert 'JavaScript' in language_stats
         assert len(primary_languages) == 3

@@ -2,7 +2,8 @@ import hashlib
 from typing import List, BinaryIO, Dict, Any
 from anytree import Node
 from file_manager import FileManager
-from tree_processor import TreeProcessor
+from repo_detector import RepoDetector
+from file_classifier import FileClassifier
 from repository_processor import RepositoryProcessor
 from metadata_extractor import MetadataExtractor
 from metadata_analyzer import MetadataAnalyzer
@@ -17,6 +18,7 @@ from llm_local import LocalLLMClient
 from display_helpers import display_project_insights, display_project_summary, display_project_timeline
 from project_selection import choose_projects_for_analysis
 from project_reranking import rerank_projects
+from imports_extractor import ImportsExtractor
 
 
 class AnalysisPipeline:
@@ -199,25 +201,36 @@ class AnalysisPipeline:
         
         file_tree: Node = fm_result["tree"]
 
+        # detect git repositories from the file tree
         try:
-            tree_processor = TreeProcessor()
-            processed_tree: Node = tree_processor.process_file_tree(file_tree)
-            self.cli.print_status("Tree structure processed successfully.", "success")
+            repo_detector = RepoDetector()
+            repo_detector.process_git_repos(file_tree)
+            git_repos: List[Node] = repo_detector.get_git_repos()
+            if git_repos:
+                self.cli.print_status(f"Tree structure for .git repo processed successfully.", "success")
         except (ValueError, TypeError, RuntimeError) as e:
-            self.cli.print_status(f"Tree processing failed: {e}", "error")
+            self.cli.print_status(f"Failed to detect git repositories: {e}", "error")
             return
         except Exception as e:
-            self.cli.print_status(f"Error processing tree: {e}", "error")
+            self.cli.print_status(f"Unexpected error detecting git repositories: {e}", "error")
             return
+
 
         binary_data: List[bytes] = fm_result.get("binary_data")
         if not isinstance(binary_data, list):
             self.cli.print_status("Warning: Binary data format unexpected. Proceeding empty.", "warning")
             binary_data = []
-        
+
+        # classifying files into text and code
+        file_classifier = FileClassifier()
+        text_nodes, code_nodes, cleaned_binary_data = file_classifier.classify_files(file_tree, binary_data)
+        self.cli.print_status("File classification completed successfully.", "success")
+
         self.cli.print_header("Metadata Analysis")
         metadata_extractor = MetadataExtractor()
-        metadata_results: Dict[str, Dict[str, Any]] = metadata_extractor.extract_all_metadata(processed_tree, binary_data)
+        all_nodes = text_nodes + code_nodes
+        metadata_results: Dict[str, Dict[str, Any]] = metadata_extractor.extract_all_metadata(all_nodes, cleaned_binary_data)
+
         
         total_files: int = len(metadata_results)
         if total_files > 0:
@@ -233,7 +246,7 @@ class AnalysisPipeline:
             print(f"{ext:<10} | {stats['count']:<8} | {stats['total_size']:<15} | {stats['percentage']:<8}% | {stats['category']}")
         print(f"\nPrimary programming languages: {', '.join(metadata_analysis['primary_languages'])}\n")
 
-        git_repos: List[Node] = tree_processor.get_git_repos() 
+        # git_repos: List[Node] = tree_processor.get_git_repos() 
 
         doc_topic_vectors: list = []
         topic_term_vectors: list = []
@@ -244,8 +257,6 @@ class AnalysisPipeline:
         medium_summary = ""
 
         try:
-            text_nodes: List[Node] = tree_processor.get_text_files()
-            code_nodes: List[Node] = tree_processor.get_code_files()
             
             if text_nodes or code_nodes:
                 self.cli.print_header("Content Analysis")
@@ -341,10 +352,24 @@ class AnalysisPipeline:
                         selected_repos = choose_projects_for_analysis(processed_git_repos)
                         self.cli.print_status("Repositories processed successfully.", "success")
                         
-                        analyzer = RepositoryAnalyzer(github_username)
+                        analyzer = RepositoryAnalyzer(github_username, user_email)
+                        imports_extractor = ImportsExtractor()
 
                         #Generate the insights for ALL selected projects (not just what is displayed to allow for storage in db)
                         analyzed_repos = analyzer.generate_project_insights(selected_repos)
+                        imports_data = imports_extractor.get_all_repo_import_stats(selected_repos)
+
+                        # merge imports_data back into analyzed_repos
+                        for repo in analyzed_repos:
+                            repo_name = repo.get('repository_name')
+                            matching_import = next(
+                                (imp for imp in imports_data if imp.get('repository_name') == repo_name),
+                                None
+                            )
+                            if matching_import:
+                                repo['imports_summary'] = matching_import.get('imports_summary', {})
+                            else:
+                                repo['imports_summary'] = {}
 
                         if not analyzed_repos:
                             self.cli.print_status("No successful repository analyses.", "warning")
@@ -476,16 +501,16 @@ class AnalysisPipeline:
 
         # save tracked data and insights to database
         try:
-            result_id: str = self.database_manager.create_new_result() 
+            analysis_id: str = self.database_manager.create_analyses() 
             # save tracked data
-            self.database_manager.save_tracked_data(result_id, metadata_results, final_bow, processed_git_repos)
+            self.database_manager.save_tracked_data(analysis_id, metadata_results, final_bow, processed_git_repos)
 
             # save insights
-            self.database_manager.save_metadata_analysis(result_id, metadata_analysis)
-            self.database_manager.save_text_analysis(result_id, doc_topic_vectors, topic_term_vectors)
-            self.database_manager.save_repository_analysis(result_id, project_analysis_data)
-            self.database_manager.save_resume_points(result_id, medium_summary)
+            self.database_manager.save_metadata_analysis(analysis_id, metadata_analysis)
+            self.database_manager.save_text_analysis(analysis_id, doc_topic_vectors, topic_term_vectors)
+            self.database_manager.save_repository_analysis(analysis_id, project_analysis_data)
+            self.database_manager.save_resume_points(analysis_id, medium_summary)
             if return_id:
-                return result_id
+                return analysis_id
         except Exception as e:
             self.cli.print_status(f"Error saving result to database: {e}", "error")
