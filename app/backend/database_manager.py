@@ -71,7 +71,6 @@ class DatabaseManager:
             #check if fileset exists to determine INSERT or UPDATE
             check_query = "SELECT fileset_id FROM Filesets WHERE analysis_id = %s;"
             existing = self.db.execute_query(check_query, (uid,))
-            
             if existing:
                 #update existing binary
                 fileset_id = existing[0]['fileset_id']
@@ -85,14 +84,23 @@ class DatabaseManager:
                     RETURNING fileset_id;
                 """
                 res = self.db.execute_update(insert_query, (uid, file_binary), returning=True)
-                fileset_id = res['fileset_id']
+                fileset_id = res[0]['fileset_id']
 
             #add to filetree
             #just append new row here
             tree_query = "INSERT INTO Filetrees (fileset_id, filetree) VALUES (%s, %s);"
-            self.db.execute_update(tree_query, (fileset_id, json.dumps(file_tree)))
-            
+            tree_res = self.db.execute_update(tree_query, (fileset_id, json.dumps(file_tree)),returning=True)
             print(f"Saved fileset and tree for analysis_id: {analysis_id}")
+            
+            try:
+                if not fileset_id:
+                    print (f"Error associating new tree to updated fileset, defaulted to NULL: Invalid or Null fileset_id")
+                    raise ValueError
+                fileset_tree_query = "UPDATE Filesets SET file_data_tree_id = %s WHERE fileset_id = %s;"
+                res = self.db.execute_update(fileset_tree_query,(tree_res[0]['filetree_id'],fileset_id),returning=True)
+            except Exception as e:
+                print (f"Error associating new tree to updated fileset, defaulted to NULL: Failed Query execution:{e}") # Add custom raised error to identify association failure instead of fileset failure
+                raise e
             return True
             
         except Exception as e:
