@@ -20,7 +20,6 @@ from project_selection import choose_projects_for_analysis
 from project_reranking import rerank_projects
 from imports_extractor import ImportsExtractor
 
-
 class AnalysisPipeline:
     
     #Dataclasses for bundling input data and result data
@@ -46,9 +45,10 @@ class AnalysisPipeline:
         self.config_manager = config_manager
         self.database_manager = database_manager
         self.file_data_list: List = []
-        self.tree_processor = TreeProcessor()
+        self.file_classifer = FileClassifier()
         self.data_bundle = self.data_bundle_cls()
         self.result_bundle = self.result_bundle_cls()
+        self.repo_detector = RepoDetector()
 
     #helpers from amin
     def get_bin_data_by_Id(self, bin_Idx: int) -> BinaryIO | None:
@@ -219,21 +219,7 @@ class AnalysisPipeline:
             raise RuntimeError("FileManager did not return a tree.")
         
         return fm_result
-        
-    
-    def process_filetree(self,file_tree)->Node:
-        try:
             
-            processed_tree: Node = self.tree_processor.process_file_tree(file_tree)
-            self.cli.print_status("Tree structure processed successfully.", "success")
-            return processed_tree
-        except (ValueError, TypeError, RuntimeError) as e:
-            raise e(f"Tree processing failed: {e}")
-        except Exception as e:
-            raise RuntimeError(f"Error processing tree: {e}")
-    
-    
-    
     def save_results(self,data_bundle,results_bundle,return_id:bool = False)->str:
          # save tracked data and insights to database
         try:
@@ -251,17 +237,24 @@ class AnalysisPipeline:
         except Exception as e:
             self.cli.print_status(f"Error saving result to database: {e}", "error")
     
-    def run_topic_analysis_pipeline(self):
+    def classify_files(self,filetree,binary_data):
+        #classify and retrieve text and code files        
+        textfile_nodes: List[Node] = []
+        codefile_nodes: List[Node] = []
         try:
-            text_nodes: List[Node] = self.tree_processor.get_text_files()
-            code_nodes: List[Node] = self.tree_processor.get_code_files()
-        file_tree: Node = fm_result["tree"]
-
-        # detect git repositories from the file tree
+            
+            textfile_nodes, codefile_nodes, binary_data = self.file_classifer.classify_files(filetree,binary_data)
+            self.cli.print_status("File classification completed successfully.", "success")
+        except Exception as e:
+            self.cli.print_status(f"File Classifier error :{e}: Aborting analysis")
+            return
+        
+        
+        #identify and retrieve git repos:        
+        git_repos: List[Node] = []
         try:
-            repo_detector = RepoDetector()
-            repo_detector.process_git_repos(file_tree)
-            git_repos: List[Node] = repo_detector.get_git_repos()
+            self.repo_detector.process_git_repos(filetree)
+            git_repos = self.repo_detector.get_git_repos()
             if git_repos:
                 self.cli.print_status(f"Tree structure for .git repo processed successfully.", "success")
         except (ValueError, TypeError, RuntimeError) as e:
@@ -270,47 +263,16 @@ class AnalysisPipeline:
         except Exception as e:
             self.cli.print_status(f"Unexpected error detecting git repositories: {e}", "error")
             return
-
-
-        binary_data: List[bytes] = fm_result.get("binary_data")
-        if not isinstance(binary_data, list):
-            self.cli.print_status("Warning: Binary data format unexpected. Proceeding empty.", "warning")
-            binary_data = []
-
-        # classifying files into text and code
-        file_classifier = FileClassifier()
-        text_nodes, code_nodes, cleaned_binary_data = file_classifier.classify_files(file_tree, binary_data)
-        self.cli.print_status("File classification completed successfully.", "success")
-
-        self.cli.print_header("Metadata Analysis")
-        metadata_extractor = MetadataExtractor()
-        all_nodes = text_nodes + code_nodes
-        metadata_results: Dict[str, Dict[str, Any]] = metadata_extractor.extract_all_metadata(all_nodes, cleaned_binary_data)
-
         
-        total_files: int = len(metadata_results)
-        if total_files > 0:
-            self.cli.print_status(f"Processed metadata for {total_files} files", "success")
-
-        metadata_analyzer = MetadataAnalyzer(metadata_results)
-        metadata_analysis = metadata_analyzer.analyze_all()
-        
-        print("\n--- File Extension Statistics ---")
-        print(f"{'Extension':<10} | {'Count':<8} | {'Size':<15} | {'Percentage':<8} | {'Category'}")
-        print("-" * 70)
-        for ext, stats in metadata_analysis['extension_stats'].items():
-            print(f"{ext:<10} | {stats['count']:<8} | {stats['total_size']:<15} | {stats['percentage']:<8}% | {stats['category']}")
-        print(f"\nPrimary programming languages: {', '.join(metadata_analysis['primary_languages'])}\n")
-
-        # git_repos: List[Node] = tree_processor.get_git_repos() 
-
+        return textfile_nodes,codefile_nodes,git_repos,binary_data
+    
+    def run_topic_analysis_pipeline(self,text_nodes,code_nodes):
+    
         doc_topic_vectors: list = []
         topic_term_vectors: list = []
-        timeline: list = []
         dictionary = None
         lda_model = None
         final_bow = []
-        medium_summary = ""
 
         try:
             
@@ -375,11 +337,12 @@ class AnalysisPipeline:
         except Exception as e:
            raise Exception(f"Error during topic analysis: {e}")
     
-    def run_metadata_analysis_pipeline(self,processed_tree,binary_data):
+    def run_metadata_analysis_pipeline(self,text_nodes,code_nodes,binary_data):        
         self.cli.print_header("Metadata Analysis")
         metadata_extractor = MetadataExtractor()
-        metadata_results: Dict[str, Dict[str, Any]] = metadata_extractor.extract_all_metadata(processed_tree, binary_data)
-        
+        all_nodes = text_nodes + code_nodes
+        metadata_results: Dict[str, Dict[str, Any]] = metadata_extractor.extract_all_metadata(all_nodes, binary_data)
+
         total_files: int = len(metadata_results)
         if total_files > 0:
             self.cli.print_status(f"Processed metadata for {total_files} files", "success")
@@ -396,8 +359,7 @@ class AnalysisPipeline:
         
         return metadata_results,metadata_analysis
     
-    def run_repo_analysis_pipeline(self,binary_data):
-        git_repos: List[Node] = self.tree_processor.get_git_repos() 
+    def run_repo_analysis_pipeline(self,git_repos,binary_data):
         processed_git_repos: List[Dict[str, Any]] = None
         analyzed_repos: List[Dict[str, Any]] = None
 
@@ -475,7 +437,7 @@ class AnalysisPipeline:
                     raise RuntimeError(f"Repository processing failed: {e}")
             else:
                 self.cli.print_status("Skipping Git linking.", "info")
-                return [],[],[]
+                return [],[],[],[]
         
     def run_AI_NLG(self,data_bundle,result_bundle,text_analysis_data):
         try:
@@ -585,35 +547,35 @@ class AnalysisPipeline:
             return
         
         #Load various parts of fm_result as vars for downstream use
-        file_tree:Node = fm_result["tree"] #Extract Filetree from fm_result
+        filetree:Node = fm_result["tree"] #Extract Filetree from fm_result
         
         binary_data: List[bytes] = fm_result.get("binary_data")
         if not isinstance(binary_data, list):
-            self.cli.print_status("Warning: Binary data format unexpected. Proceeding empty.", "warning")
+            self.cli.print_status("File Manager Error: Binary data not loaded. Aborting analysis.", " error") #changed because without any binary data cannot do any analysis
             binary_data = []
-        
-        #Run Tree Processor, uses tree Processor class.
-        try:
-            processed_tree:Node = self.process_filetree(file_tree)
-        except Exception as e:
-            self.cli.print_status(f"Tree Processor Error:{e}","error")
             return
-        
+       
+        #classify loaded files in text or code and extract git repos
+        try:
+            textfile_nodes,codefile_nodes,git_repos,binary_data = self.file_classifer.classify_files(filetree,binary_data)
+        except Exception as e:
+            self.cli.print_status("File Classifier Error, Aborting analysis:{e}")
+            
         #run metadata analysis
         try:
-            self.data_bundle.metadata_results, self.result_bundle.metadata_analysis = self.run_metadata_analysis_pipeline(processed_tree,binary_data)
+            self.data_bundle.metadata_results, self.result_bundle.metadata_analysis = self.run_metadata_analysis_pipeline(textfile_nodes,codefile_nodes,binary_data)
         except Exception as e:
             self.cli.print_status(f"Metadata Analysis Error:{e}","error")
        
         #run topic analysis_pipeline
         try:
-            self.data_bundle.lda_model, self.data_bundle.dictionary, self.result_bundle.doc_topic_vectors, self.result_bundle.topic_term_vectors,self.data_bundle.final_bow = self.run_topic_analysis_pipeline()
+            self.data_bundle.lda_model, self.data_bundle.dictionary, self.result_bundle.doc_topic_vectors, self.result_bundle.topic_term_vectors,self.data_bundle.final_bow = self.run_topic_analysis_pipeline(textfile_nodes,codefile_nodes)
         except Exception as e:
             self.cli.print_status(f"Topic Analysis Error: {e}","error")
         
         #run git_repo_analysis
         try:    
-            git_repos,analyzed_repos,timeline,processed_git_repos = self.run_repo_analysis_pipeline(binary_data)
+            git_repos,analyzed_repos,timeline,processed_git_repos = self.run_repo_analysis_pipeline(git_repos,binary_data)
         except Exception as e:
             self.cli.print_status(f"{e}","error")
             import traceback
