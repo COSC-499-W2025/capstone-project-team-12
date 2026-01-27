@@ -128,17 +128,7 @@ class RepositoryAnalyzer:
         context: Dict[str, Any] = project.get('repository_context', {})
         all_authors_stats: Dict[str, Dict[str, int]] = context.get('all_authors_stats', {})
 
-        # TODO: Rework this and processor to anonymize emails to ensure no PII is stored
-        # For now, we find the user's email from all_authors_stats
-        user_stats = None
-
-        if self.user_email and self.user_email in all_authors_stats:
-            user_stats = all_authors_stats[self.user_email]
-        else:
-            for email, stats in all_authors_stats.items():
-                if self.username.lower() in email.lower():
-                    user_stats = stats
-                    break
+        user_stats = all_authors_stats.get('target_user')
         
         if not user_stats:
             return {
@@ -151,8 +141,8 @@ class RepositoryAnalyzer:
 
         # Count how many authors have more commits than the user
         rank: int = 1
-        for email, stats in all_authors_stats.items():
-            if stats['commits'] > user_commits:
+        for key, stats in all_authors_stats.items():
+            if key != 'target_user' and stats['commits'] > user_commits:
                 rank += 1
 
         total_authors: int = len(all_authors_stats)
