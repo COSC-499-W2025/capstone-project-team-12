@@ -77,7 +77,7 @@ async def upload_project(
 
     try:
         # 3. Create the Database Row manually
-        # We bypass db.create_new_result() because we want to specify the ID.
+        # We bypass db.create_analyses() because we want to specify the ID.
         # We use the raw connection from DatabaseManager.
         insert_query = "INSERT INTO Results (result_id) VALUES (%s);"
         db.db.execute_update(insert_query, (result_id,))
@@ -91,7 +91,7 @@ async def upload_project(
             return result_id
             
         # Overwrite the method on this specific instance
-        db.create_new_result = use_preexisting_id
+        db.create_analyses = use_preexisting_id
 
         # 5. Run Pipeline
         pipeline = AnalysisPipeline(cli, config, db)
@@ -155,7 +155,7 @@ async def get_skills(db: DatabaseManager = Depends(get_db)):
 
 @app.get("/resume/{result_id}")
 async def get_resume(result_id: str, db: DatabaseManager = Depends(get_db)):
-    res = db.get_result_by_id(result_id)
+    res = db.get_analysis_data(result_id)
     if not res:
         raise HTTPException(status_code=404, detail="Project not found")
     return {"resume_points": res.get("resume_points")}
@@ -163,7 +163,7 @@ async def get_resume(result_id: str, db: DatabaseManager = Depends(get_db)):
 @app.post("/resume/generate")
 async def generate_resume_manual(result_id: str = Form(...), db: DatabaseManager = Depends(get_db)):
     """Triggers LLM generation manually using stored topic vectors."""
-    result = db.get_result_by_id(result_id)
+    result = db.get_analysis_data(result_id)
     if not result:
         raise HTTPException(status_code=404, detail="Result not found")
     

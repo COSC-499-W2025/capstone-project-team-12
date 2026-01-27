@@ -11,7 +11,7 @@ from pathlib import Path
 def view_all_results(database_manager:DatabaseManager) -> None:
     all_results: List[Dict] = database_manager.get_all_results_summary()
     for res in all_results:
-        print(f"Result ID: {res['result_id']}")
+        print(f"Analysis ID: {res['analysis_id']}")
         print("\nMetadata insights:")
         print(f"{'Extension':<10} | {'Count':<8} | {'Size':<15} | {'Percentage':<8} | {'Category'}")
         print("-" * 70)
@@ -24,7 +24,7 @@ def view_all_results(database_manager:DatabaseManager) -> None:
 
 
 def view_result_by_id(database_manager:DatabaseManager, cli:CLI, view_id:str,debug_data:bool = False) -> None:        
-    result: Dict[str, Any] = database_manager.get_result_by_id(view_id)
+    result: Dict[str, Any] = database_manager.get_analysis_data(view_id)
     if result:
         cli.print_header(f"Result ID: {view_id}")
         # Check that results are saved properly
@@ -71,7 +71,7 @@ def view_result_by_id(database_manager:DatabaseManager, cli:CLI, view_id:str,deb
         raise ValueError(f"No result found with ID: {view_id}")
 
 def delete_result_by_id(database_manager:DatabaseManager,cli:CLI,delete_id:str)->None:
-    result = database_manager.delete_result(delete_id)
+    result = database_manager.delete_analysis(delete_id)
     if result:
         cli.print_status(f"Result with ID {delete_id} deleted from database.", "success")
     else:

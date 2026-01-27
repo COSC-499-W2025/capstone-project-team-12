@@ -40,7 +40,8 @@ def mock_backend(mocker):
         return [{"result_id": "fake-uuid-123", "project_data": {"name": "Test Project"}}]
         
     db_instance.db.execute_query.side_effect = simple_query_side_effect
-    db_instance.get_result_by_id.side_effect = lambda rid: None if rid == "missing-id" else {"topic_vector": {}, "resume_points": "Old Summary"}
+    db_instance.get_analysis_data.side_effect = lambda rid: None if rid == "missing-id" else {"topic_vector": {}, "resume_points": "Old Summary"}
+    
     db_instance.save_resume_points.return_value = True
     db_instance.get_all_results_summary.return_value = []
 

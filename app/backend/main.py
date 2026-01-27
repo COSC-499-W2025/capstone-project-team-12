@@ -9,6 +9,7 @@ from analysis_pipeline import AnalysisPipeline
 from main_utils import *
 from input_validation import *
 from resume_builder import ResumeBuilder
+from resume_editor import ResumeEditor
 
 
     
@@ -120,6 +121,11 @@ def main() -> None:
                         resume = resume_builder.create_resume_from_result_id(database_manager, cli, result_id)
                         if resume:
                             resume_builder.display_resume(resume, cli)
+                            # Allow the user to edit the resume before saving
+                            edit_choice:str = cli.get_input("Would you like to edit the resume before saving? (y/n): ").strip().lower()
+                            if edit_choice in ('y', 'yes'):
+                                editor = ResumeEditor(cli)
+                                resume = editor.edit_resume(resume)
 
                     except ValueError as e:
                         cli.print_status(f"UUID Error:{e}", "error")
