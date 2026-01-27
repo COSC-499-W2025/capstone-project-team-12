@@ -11,8 +11,9 @@ CREATE TABLE IF NOT EXISTS
 Filesets(
     fileset_id SERIAL PRIMARY KEY,
     analysis_id uuid REFERENCES Analyses(analysis_id) NOT NULL UNIQUE,
-    file_data bytea -- Only the most recent set of binary data for the files is maintained. 
+    file_data bytea, -- Only the most recent set of binary data for the files is maintained. 
                     --But multiple trees can be maintained for the same analysis in Filetrees table
+    file_data_tree_id integer REFERENCES Filetrees(filetree_id) DEFAULT NULL -- points to the most recent tree
 );
 
 CREATE TABLE IF NOT EXISTS
