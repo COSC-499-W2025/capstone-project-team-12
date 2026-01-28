@@ -174,10 +174,11 @@ class TestPersonalEmailMatching:
     @pytest.fixture
     def mock_commit(self, mocker):
         """Factory fixture for creating mock commits"""
-        def _create(email: str, has_modified_file: bool = False):
+        def _create(email: str, name: str, has_modified_file: bool = False):
             commit = mocker.Mock()
             commit.hash = "abc123"
             commit.author.email = email
+            commit.author.name = name
             commit.author_date = datetime(2024, 1, 1)
             
             if has_modified_file:
@@ -212,7 +213,7 @@ class TestPersonalEmailMatching:
         processor = RepositoryProcessor("testuser", [], user_email="john.doe@gmail.com")
         
         mock_repo = mocker.Mock()
-        mock_repo.traverse_commits.return_value = [mock_commit(email)]
+        mock_repo.traverse_commits.return_value = [mock_commit(email, "Test User")]
         
         mocker.patch('repository_processor.Repository', return_value=mock_repo)
         result = processor._extract_commits_data(mock_repo)
@@ -226,8 +227,8 @@ class TestPersonalEmailMatching:
         
         mock_repo = mocker.Mock()
         mock_repo.traverse_commits.return_value = [
-            mock_commit("12345+testuser@users.noreply.github.com"),
-            mock_commit("john@gmail.com")
+            mock_commit("12345+testuser@users.noreply.github.com", "Test User"),
+            mock_commit("john@gmail.com", "Test User")
         ]
         
         mocker.patch('repository_processor.Repository', return_value=mock_repo)
@@ -241,8 +242,8 @@ class TestPersonalEmailMatching:
         
         mock_repo = mocker.Mock()
         mock_repo.traverse_commits.return_value = [
-            mock_commit("12345+testuser@users.noreply.github.com", has_modified_file=True),
-            mock_commit("john@gmail.com", has_modified_file=True)
+            mock_commit("12345+testuser@users.noreply.github.com", "Test User", has_modified_file=True),
+            mock_commit("john@gmail.com", "Test User", has_modified_file=True)
         ]
         
         mocker.patch('repository_processor.Repository', return_value=mock_repo)
@@ -258,8 +259,8 @@ class TestPersonalEmailMatching:
         # Create commits with different emails from the same user
         mock_repo = mocker.Mock()
         mock_repo.traverse_commits.return_value = [
-            mock_commit("12345+testuser@users.noreply.github.com", has_modified_file=True),
-            mock_commit("john@gmail.com", has_modified_file=True)
+            mock_commit("12345+testuser@users.noreply.github.com", "Test User", has_modified_file=True),
+            mock_commit("john@gmail.com", "Test User", has_modified_file=True)
         ]
         
         mocker.patch('repository_processor.Repository', return_value=mock_repo)
@@ -270,10 +271,10 @@ class TestPersonalEmailMatching:
         # Should only have one entry for the user (combined)
         assert len(all_authors) == 1
         # Combined entry should use user_email as key
-        assert "john@gmail.com" in all_authors
+        assert "target_user" in all_authors
         # Stats should be combined
-        assert all_authors["john@gmail.com"]['commits'] == 2
-        assert all_authors["john@gmail.com"]['lines_added'] == 20
+        assert all_authors["target_user"]['commits'] == 2
+        assert all_authors["target_user"]['lines_added'] == 20
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
