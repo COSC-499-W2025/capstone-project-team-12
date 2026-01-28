@@ -65,7 +65,7 @@ def main() -> None:
                     #Thumbnail handling
                     
                     #Prompt to add thumbnail
-                    img_response = cli.get_input("Would you like to add a thumbnail to represent this result? (y/N) \n")            
+                    img_response = cli.get_input("Would you like to add a thumbnail to represent this analysis? (y/N) \n")            
                     if img_response.lower() in ('y','yes'):
                         try:    
                             #Receive image filepath
@@ -97,23 +97,23 @@ def main() -> None:
                 case 'a':
                     # View all saved insights from database
                     try:
-                        cli.print_header("All Stored Results Summary")
+                        cli.print_header("All Stored Analysis Summary")
                         view_all_results(database_manager)
                     except Exception as e:
-                        cli.print_status(f"Error retrieving all results: {e}", "error")
+                        cli.print_status(f"Error retrieving all analysis: {e}", "error")
                 case 'v':
                     try:    
-                        result_id = cli.get_input("Enter Result ID: ").strip()
+                        result_id = cli.get_input("Enter Analysis ID: ").strip()
                         result_id = validate_uuid(result_id)
                         view_result_by_id(database_manager,cli,result_id)        
                     except ValueError as e:
                         cli.print_status(f"UUID Error:{e}", "error")
                     except Exception as e:
-                        cli.print_status(f"Error retrieving result: {e}", "error")
+                        cli.print_status(f"Error retrieving analysis: {e}", "error")
                 case 'g':
                     # Generate new resume
                     try:
-                        result_id = cli.get_input("Enter Result ID to generate resume from: ").strip()
+                        result_id = cli.get_input("Enter Analysis ID to generate resume from: ").strip()
                         result_id = validate_uuid(result_id)
 
                         resume = resume_builder.create_resume_from_result_id(database_manager, cli, result_id)
@@ -158,11 +158,11 @@ def main() -> None:
                         continue   
                 
                 case 'u':
-                    # TODO functionality to update past result (incremental requirment)
+                    # TODO functionality to update past analysis (incremental requirment)
                     print() #Place holder to satisfy match-case syntax
                 case 'd':
-                    # Delete specific result from database
-                    delete_result = cli.get_input("\nDelete a stored result? (y/n): ").lower()
+                    # Delete specific analysis from database
+                    delete_result = cli.get_input("\nDelete a stored analysis? (y/n): ").lower()
                     if delete_result in ('y', 'yes'):
                         try:
                             result_id = cli.get_input("Enter Result ID to delete: ").strip()
