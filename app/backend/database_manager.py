@@ -384,7 +384,7 @@ class DatabaseManager:
             print(f"Error wiping database tables: {e}")
             return False
     
-    def save_result_thumbnail(self, analysis_id: str, data: BinaryIO) -> bool:
+    def save_analysis_thumbnail(self, analysis_id: str, data: BinaryIO) -> bool:
         """Update thumbnail image for a particular analysis result."""
         try:
             query = "UPDATE Results SET thumbnail_image = %s WHERE analysis_id = %s;"
@@ -395,7 +395,16 @@ class DatabaseManager:
         except Exception as e:
             print(f"Error inserting image: {e}")
             return False
-            
+    
+    def get_analysis_thumbnail(self,analysis_id):
+        """Retrieve thumbnail image for a particular analysis result."""
+        try:
+            query = "SELECT thumbnail_image from Results WHERE analysis_id = %s;"
+            result = self.db.execute_query(query, (analysis_id,))
+            return result
+        except Exception as e:
+            raise Exception(f"Error Retrieving image: {e}")
+             
     def close(self):
         """Close the database connection."""
         #DB_connector uses context managers, so connections auto-close

@@ -42,6 +42,7 @@ def main() -> None:
             -'A' to view all past results.\n\t
             -'V' to view particular result.\n\t
             -'G' to generate resume from past result.\n\t
+            -'T' to edit or update thumbnail for past analysis\n\t
             -'U' to update a past result.\n\t
             -'D' to delete particular result.\n\t
             -'R' to delete all past results.\n\t
@@ -128,7 +129,34 @@ def main() -> None:
                         cli.print_status(f"UUID Error:{e}", "error")
                     except Exception as e:
                         cli.print_status(f"Error generating resume: {e}", "error")
+                
+                case 't':
+                    analysis_id:str = cli.get_input("Enter Analysis ID to add/edit the thumbnail of:")
+                    img_path:str = cli.get_input(f"Accepted formats are: {accepted_formats} of maximum size 10MB.\n Please enter a filepath to a valid image:\n")
+                            
+                    #Validate image filepath 
+                    try:
+                        img_valid_path:Path = validate_thumbnail_path(img_path)
+                    except Exception as e:
+                        raise RuntimeError(f"Image filepath Error:{e}")
                     
+                    #Read image
+                    try:
+                        img_data:BinaryIO = read_image(img_valid_path)
+                    except Exception as e:
+                        raise RuntimeError(f"Error reading image:{e}")
+                    #Save Image to db
+                    try:
+                        insert_thumbnail(database_manager,cli,analysis_id,img_data)
+                        cli.print_status(f"Image added successfully!","success")
+                    except Exception as e:
+                        raise RuntimeError(f"Failed to add image to db:{e}")
+                    except RuntimeError as e:
+                        cli.print_status(f"Thumbnail Association failed:{e}","warning")
+                    except Exception as e:
+                        cli.print_status(f"Unhandled Thumbnail Error:{e} \n Returning to main menu", "warning")
+                        continue   
+                
                 case 'u':
                     # TODO functionality to update past result (incremental requirment)
                     print() #Place holder to satisfy match-case syntax
