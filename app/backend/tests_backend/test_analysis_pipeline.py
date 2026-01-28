@@ -21,13 +21,12 @@ def test_file_load_failure(mock_fm, pipeline):
     #forcing hte file manager to return error
     mock_fm.return_value.load_from_filepath.return_value = {"status": "error", "message": "fail"}
     pipeline.run_analysis("fake_path")
-    pipeline.cli.print_status.assert_any_call("Load Error: fail", "error")
+    pipeline.cli.print_status.assert_any_call("File Manager Error:Load Error: fail", "error")
 
-@patch("analysis_pipeline.FileManager")
-@patch("analysis_pipeline.RepoDetector")
 @patch("analysis_pipeline.LocalLLMClient")
-
-def test_successful_save(mock_llm, mock_tp, mock_fm, pipeline):
+@patch("analysis_pipeline.RepoDetector")
+@patch("analysis_pipeline.FileManager")
+def test_successful_save(mock_llm, mock_rd, mock_fm,pipeline):
     """Tests that the pipeline actually triggers a database save on success"""
     #success event 
     mock_fm.return_value.load_from_filepath.return_value = {

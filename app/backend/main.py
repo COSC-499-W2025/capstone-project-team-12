@@ -54,12 +54,15 @@ def main() -> None:
                     try:
                         path: Path = validate_analysis_path(filepath)
                         cli.print_status(f"Path valid: {path}", "success")
-                        
+                    except Exception as e:
+                        cli.print_status(f"File path is not valid: {e}", "error")
+                    
+                    try:
                         #analysis pipeline starting, moved to another file
                         pipeline = AnalysisPipeline(cli, config_manager, database_manager)
                         result_id = pipeline.run_analysis(str(path),return_id=True) #Return the new result id so it can be used to add image to result
                     except Exception as e:
-                        cli.print_status(f"File path is not valid: {e}", "error")
+                        cli.print_status(f"Analysis Pipeline Error: {e}", "error")
                         
                     #Thumbnail handling
                     
