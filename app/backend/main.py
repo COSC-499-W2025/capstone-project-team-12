@@ -9,6 +9,7 @@ from analysis_pipeline import AnalysisPipeline
 from main_utils import *
 from input_validation import *
 from resume_builder import ResumeBuilder
+from resume_editor import ResumeEditor
 
 
     
@@ -38,12 +39,13 @@ def main() -> None:
         operation: str = cli.get_input(
             """Press: \n\t
             -'N' to perform analysis on new filepath\n\t
-            -'A' to view all past results.\n\t
-            -'V' to view particular result.\n\t
-            -'G' to generate resume from past result.\n\t
-            -'U' to update a past result.\n\t
-            -'D' to delete particular result.\n\t
-            -'R' to delete all past results.\n\t
+            -'A' to view all past analysis.\n\t
+            -'V' to view particular analysis.\n\t
+            -'G' to generate resume from past analysis.\n\t
+            -'T' to edit or update thumbnail for past analysis\n\t
+            -'U' to update a past analysis.\n\t
+            -'D' to delete particular analysis.\n\t
+            -'R' to delete all past analysis.\n\t
             -'Q' to quit app\n""").strip().lower() 
         try:
             match(operation):
@@ -63,7 +65,7 @@ def main() -> None:
                     #Thumbnail handling
                     
                     #Prompt to add thumbnail
-                    img_response = cli.get_input("Would you like to add a thumbnail to represent this result? (y/N) \n")            
+                    img_response = cli.get_input("Would you like to add a thumbnail to represent this analysis? (y/N) \n")            
                     if img_response.lower() in ('y','yes'):
                         try:    
                             #Receive image filepath
@@ -95,40 +97,72 @@ def main() -> None:
                 case 'a':
                     # View all saved insights from database
                     try:
-                        cli.print_header("All Stored Results Summary")
+                        cli.print_header("All Stored Analysis Summary")
                         view_all_results(database_manager)
                     except Exception as e:
-                        cli.print_status(f"Error retrieving all results: {e}", "error")
+                        cli.print_status(f"Error retrieving all analysis: {e}", "error")
                 case 'v':
                     try:    
-                        result_id = cli.get_input("Enter Result ID: ").strip()
+                        result_id = cli.get_input("Enter Analysis ID: ").strip()
                         result_id = validate_uuid(result_id)
                         view_result_by_id(database_manager,cli,result_id)        
                     except ValueError as e:
                         cli.print_status(f"UUID Error:{e}", "error")
                     except Exception as e:
-                        cli.print_status(f"Error retrieving result: {e}", "error")
+                        cli.print_status(f"Error retrieving analysis: {e}", "error")
                 case 'g':
                     # Generate new resume
                     try:
-                        result_id = cli.get_input("Enter Result ID to generate resume from: ").strip()
+                        result_id = cli.get_input("Enter Analysis ID to generate resume from: ").strip()
                         result_id = validate_uuid(result_id)
 
                         resume = resume_builder.create_resume_from_result_id(database_manager, cli, result_id)
                         if resume:
                             resume_builder.display_resume(resume, cli)
+                            # Allow the user to edit the resume before saving
+                            edit_choice:str = cli.get_input("Would you like to edit the resume before saving? (y/n): ").strip().lower()
+                            if edit_choice in ('y', 'yes'):
+                                editor = ResumeEditor(cli)
+                                resume = editor.edit_resume(resume)
 
                     except ValueError as e:
                         cli.print_status(f"UUID Error:{e}", "error")
                     except Exception as e:
                         cli.print_status(f"Error generating resume: {e}", "error")
-                    
+                
+                case 't':
+                    analysis_id:str = cli.get_input("Enter Analysis ID to add/edit the thumbnail of:")
+                    img_path:str = cli.get_input(f"Accepted formats are: {accepted_formats} of maximum size 10MB.\n Please enter a filepath to a valid image:\n")
+                    try:       
+                        #Validate image filepath 
+                        try:
+                            img_valid_path:Path = validate_thumbnail_path(img_path)
+                        except Exception as e:
+                            raise RuntimeError(f"Image filepath Error:{e}")
+                        
+                        #Read image
+                        try:
+                            img_data:BinaryIO = read_image(img_valid_path)
+                        except Exception as e:
+                            raise RuntimeError(f"Error reading image:{e}")
+                        #Save Image to db
+                        try:
+                            insert_thumbnail(database_manager,cli,analysis_id,img_data)
+                            cli.print_status(f"Image added successfully!","success")
+                        except Exception as e:
+                            raise RuntimeError(f"Failed to add image to db:{e}")
+                    except RuntimeError as e:
+                        cli.print_status(f"Thumbnail Association failed:{e}","error")
+                    except Exception as e:
+                        cli.print_status(f"Unhandled Thumbnail Error:{e} \n Returning to main menu", "warning")
+                        continue   
+                
                 case 'u':
-                    # TODO functionality to update past result (incremental requirment)
+                    # TODO functionality to update past analysis (incremental requirment)
                     print() #Place holder to satisfy match-case syntax
                 case 'd':
-                    # Delete specific result from database
-                    delete_result = cli.get_input("\nDelete a stored result? (y/n): ").lower()
+                    # Delete specific analysis from database
+                    delete_result = cli.get_input("\nDelete a stored analysis? (y/n): ").lower()
                     if delete_result in ('y', 'yes'):
                         try:
                             result_id = cli.get_input("Enter Result ID to delete: ").strip()

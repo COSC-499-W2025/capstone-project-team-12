@@ -11,7 +11,7 @@ from pathlib import Path
 def view_all_results(database_manager:DatabaseManager) -> None:
     all_results: List[Dict] = database_manager.get_all_results_summary()
     for res in all_results:
-        print(f"Result ID: {res['result_id']}")
+        print(f"Analysis ID: {res['analysis_id']}")
         print("\nMetadata insights:")
         print(f"{'Extension':<10} | {'Count':<8} | {'Size':<15} | {'Percentage':<8} | {'Category'}")
         print("-" * 70)
@@ -24,7 +24,7 @@ def view_all_results(database_manager:DatabaseManager) -> None:
 
 
 def view_result_by_id(database_manager:DatabaseManager, cli:CLI, view_id:str,debug_data:bool = False) -> None:        
-    result: Dict[str, Any] = database_manager.get_result_by_id(view_id)
+    result: Dict[str, Any] = database_manager.get_analysis_data(view_id)
     if result:
         cli.print_header(f"Result ID: {view_id}")
         # Check that results are saved properly
@@ -59,7 +59,15 @@ def view_result_by_id(database_manager:DatabaseManager, cli:CLI, view_id:str,deb
         for ext, stats in result['metadata_insights']['extension_stats'].items():
             print(f"{ext:<10} | {stats['count']:<8} | {stats['total_size']:<15} | {stats['percentage']:<8}% | {stats['category']}")
         
-        # Check that tracked data is saved properly
+        try:
+            result = database_manager.get_analysis_thumbnail(view_id)
+            if result:
+                cli.print_status(f"A Thumbnail is associated with this analysis!","info")
+            else:
+                cli.print_status(f"There is NO thumbnail associated with this analysis!","info")
+        except Exception as e:
+            cli.print_status(f"DB_Manager_Error{e}","error")
+        #To Check that tracked data is saved properly
         if(debug_data):
             print(f"\nTracked data summary:")
             print(f"BoW cache: {result['tracked_data']['bow_cache']}")
@@ -71,7 +79,7 @@ def view_result_by_id(database_manager:DatabaseManager, cli:CLI, view_id:str,deb
         raise ValueError(f"No result found with ID: {view_id}")
 
 def delete_result_by_id(database_manager:DatabaseManager,cli:CLI,delete_id:str)->None:
-    result = database_manager.delete_result(delete_id)
+    result = database_manager.delete_analysis(delete_id)
     if result:
         cli.print_status(f"Result with ID {delete_id} deleted from database.", "success")
     else:
@@ -81,7 +89,7 @@ def insert_thumbnail(database_manager:DatabaseManager,cli:CLI,result_id:str,img_
     if result_id is None:
         raise TypeError("Result id is None")
     try:
-        database_manager.save_result_thumbnail(result_id,img_data)
+        database_manager.save_analysis_thumbnail(result_id,img_data)
     except Exception as e:
         raise e
 

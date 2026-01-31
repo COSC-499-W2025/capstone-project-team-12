@@ -1,8 +1,8 @@
 from typing import Dict, Any, Optional
 import uuid
 from cli_interface import CLI
-from database_manager import DatabaseManager
 
+from database_manager import DatabaseManager
 from resume_data_processor import ResumeDataProcessor
 
 
@@ -51,7 +51,7 @@ class ResumeBuilder:
             cli.print_header(f"Retrieving result {result_id}...")
 
             # Fetch the result data from the db
-            result_data = database_manager.get_result_by_id(result_id)
+            result_data = database_manager.get_analysis_data(result_id)
 
             if not result_data:
                 cli.print_status("Result not found in database.", "error")
@@ -71,7 +71,7 @@ class ResumeBuilder:
 
             else:
                 cli.print_status("Resume generated successfully!", "success")
-            
+
             return resume
 
         except Exception as e:
