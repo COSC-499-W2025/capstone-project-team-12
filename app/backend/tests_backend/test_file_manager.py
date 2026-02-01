@@ -61,7 +61,7 @@ def test_large_file_is_rejected(mocker):
 
 def test_git_repo_recognition():
     # Test that .git directories or files inside a repo are correctly recognized
-    repo_path = TEST_FILES_DIR / "capstone_team12_testrepo"
+    repo_path = Path("/app/repos")
     fm = FileManager()
     result = fm.load_from_filepath(repo_path)
 
