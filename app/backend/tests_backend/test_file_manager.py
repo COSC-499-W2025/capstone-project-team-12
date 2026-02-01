@@ -147,3 +147,21 @@ def test_get_binary_array():
         # Make sure the entry exists and is byte data
         assert binary_array[idx] is not None
         assert isinstance(binary_array[idx], (bytes, bytearray))
+
+def test_tree_metadata_timestamps():
+    #test that tree nodes have created_at and last_modified timestamps
+    file_path = TEST_FILES_DIR / "pii_text.txt"
+    fm = FileManager()
+    result = fm.load_from_filepath(str(file_path))
+
+    assert result["status"] == "success"
+    tree = result["tree"]
+
+    # Check root node created_at
+    assert hasattr(tree, "created_at")
+    assert isinstance(tree.created_at, str)
+
+    #Check file node last_modified
+    file_node = tree.children[0]
+    assert hasattr(file_node, "last_modified")
+    assert isinstance(file_node.last_modified, str)
