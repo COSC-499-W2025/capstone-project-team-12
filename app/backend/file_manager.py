@@ -3,10 +3,10 @@ from typing import Any, Dict, List, Tuple
 import zipfile
 import tempfile
 import shutil
+from datetime import datetime
 from anytree import Node, RenderTree
 
 
-#COMMENT ADDED TO MAKE INITIAL COMMIT INTO BRANCH 
 class FileManager:
     def __init__(self):
         self.max_size_bytes: int = 4 * 1024 * 1024 * 1024  # 4GB
@@ -33,7 +33,8 @@ class FileManager:
                 root_name,
                 type="directory",
                 filepath=str(path),
-                is_repo_head=False
+                is_repo_head=False,
+                created_at=datetime.now().isoformat()
             )
 
             # Load files and build tree
@@ -66,7 +67,7 @@ class FileManager:
 
         # Handle single regular file
         elif path.is_file():
-            if self._is_rar_file(path): #added line to deal with user uploading single rar file 
+            if self._is_rar_file(path):
                 return
 
             # Skip large single files and mark as invalid
@@ -84,7 +85,8 @@ class FileManager:
                     binary_index=binary_index,
                     file_data=file_obj,
                     classification=None,
-                    extension=file_obj['extension']
+                    extension=file_obj['extension'],
+                    last_modified=file_obj['last_modified']
                 )
                 self.file_objects.append(file_obj)
 
@@ -93,7 +95,6 @@ class FileManager:
             folder_nodes: Dict[str, Node] = {str(path): parent_node}
 
             for subpath in sorted(path.rglob('*')):
-                # added this to skip MAC artifacts when extracing zip files made with a mac
                 if self._is_mac_artifact(subpath):
                     continue
 
@@ -129,7 +130,8 @@ class FileManager:
                         binary_index=binary_index,
                         file_data=file_obj,
                         classification=None,
-                        extension=file_obj['extension']
+                        extension=file_obj['extension'],
+                        last_modified=file_obj['last_modified']
                     )
                     self.file_objects.append(file_obj)
 
@@ -172,13 +174,16 @@ class FileManager:
 
                 binary_index: int = len(self.binary_data_array)
                 self.binary_data_array.append(binary_data)
+            
+            last_modified = datetime.fromtimestamp(file_path.stat().st_mtime).isoformat()
 
             file_obj = {
                 'filename': file_path.name,
                 'filepath': str(file_path.absolute()),
                 'size_bytes': len(binary_data),
                 'extension': file_path.suffix.lower(),
-                'binary_index': binary_index
+                'binary_index': binary_index,
+                'last_modified': last_modified
             }
             return file_obj, binary_index
         except Exception as e:
@@ -215,7 +220,7 @@ class FileManager:
             # Walk through all files and folders
             for file_path in sorted(temp_path.rglob('*')):
                 if self._is_mac_artifact(file_path):
-                    continue  # skip macOS artifacts (when zip files are created on MAC there are also metadata files created which we want to ignore)
+                    continue  # skip macOS artifacts
 
                 if file_path.is_dir():
                     continue  # directories handled when creating folder nodes
@@ -246,7 +251,8 @@ class FileManager:
                         binary_index=binary_index,
                         file_data=file_obj,
                         extension=file_obj['extension'],
-                        classification=None
+                        classification=None,
+                        last_modified=file_obj['last_modified']
                     )
                     self.file_objects.append(file_obj)
 
@@ -264,7 +270,7 @@ class FileManager:
             # if function is called with a filepath
             if filepath:
                 load_result = self.load_from_filepath(filepath)
-                if load_result('status') != 'success':
+                if load_result.get('status') != 'success':
                     print(f"Error loading file(s): {load_result.get('message')}")
                     return None
             
@@ -287,7 +293,7 @@ class FileManager:
     # Helper method to determine if file is a mac artifact
     def _is_mac_artifact(self, path: Path) -> bool:
         return (
-            path.parts[0] == "__MACOSX"
+            "__MACOSX" in path.parts
             or path.name.startswith("._")
         )
 
