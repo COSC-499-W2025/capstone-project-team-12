@@ -43,7 +43,7 @@ def main() -> None:
             -'N' to perform analysis on new filepath\n\t
             -'A' to view all past analysis.\n\t
             -'V' to view particular analysis.\n\t
-            -'G' to generate resume from past analysis.\n\t
+            -'G' to generate resume or portfolio from past analysis.\n\t
             -'U' to update a past analysis.\n\t
             -'D' to delete particular analysis.\n\t
             -'R' to delete all past analysis.\n\t
