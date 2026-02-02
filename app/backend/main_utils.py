@@ -59,7 +59,15 @@ def view_result_by_id(database_manager:DatabaseManager, cli:CLI, view_id:str,deb
         for ext, stats in result['metadata_insights']['extension_stats'].items():
             print(f"{ext:<10} | {stats['count']:<8} | {stats['total_size']:<15} | {stats['percentage']:<8}% | {stats['category']}")
         
-        # Check that tracked data is saved properly
+        try:
+            result = database_manager.get_analysis_thumbnail(view_id)
+            if result:
+                cli.print_status(f"A Thumbnail is associated with this analysis!","info")
+            else:
+                cli.print_status(f"There is NO thumbnail associated with this analysis!","info")
+        except Exception as e:
+            cli.print_status(f"DB_Manager_Error{e}","error")
+        #To Check that tracked data is saved properly
         if(debug_data):
             print(f"\nTracked data summary:")
             print(f"BoW cache: {result['tracked_data']['bow_cache']}")
@@ -81,7 +89,7 @@ def insert_thumbnail(database_manager:DatabaseManager,cli:CLI,result_id:str,img_
     if result_id is None:
         raise TypeError("Result id is None")
     try:
-        database_manager.save_result_thumbnail(result_id,img_data)
+        database_manager.save_analysis_thumbnail(result_id,img_data)
     except Exception as e:
         raise e
 
