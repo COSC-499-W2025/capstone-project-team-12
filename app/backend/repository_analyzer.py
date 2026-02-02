@@ -33,6 +33,7 @@ class RepositoryAnalyzer:
                 'user_commits': project.get('user_commits', []),  # Keep the list
                 'statistics': project.get('statistics', {}),       # Keep stats
                 'dates': project.get('dates', {}),                 # Keep dates
+                'repository_context': project.get('repository_context', {}),
                 'contribution_analysis': self._calculate_contribution_insights(project),
                 'collaboration_insights': self._generate_collaboration_insights(project),
                 'testing_insights': self._generate_testing_insights(project),
