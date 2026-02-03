@@ -25,13 +25,8 @@ class LocalLLMClient(BaseLLMClient):
         timeout: Optional[int] = None
     ):
         """
-        Initialize the Local LLM client (Ollama with Phi-3 Mini).
-        
-        Args:
-            model: Model identifier (default: phi3:mini)
-            base_url: Ollama server URL (default: http://local_llm:11434)
-            max_retries: Maximum number of retry attempts (default: 3)
-            timeout: Request timeout in seconds (default: 300 for local inference)
+        Initializes the Ollama client with a specified local model, 
+        server URL, retry limit, and an extended timeout for local inference.
         """
         super().__init__(
             model=model or os.getenv("LOCAL_LLM_MODEL", self.DEFAULT_MODEL),
@@ -43,13 +38,8 @@ class LocalLLMClient(BaseLLMClient):
     def _format_and_send(self, prompt: str, bundle: Dict[str, Any]) -> str:
         """
         Format Ollama-specific payload and send request.
-        
-        Args:
-            prompt: The complete prompt text
-            bundle: Topic vector bundle data
-            
-        Returns:
-            Generated summary as a plain string
+    
+        Generates a plain string summary of the provided prompt based on the topic vector bundle data.
         """
         url = f"{self.base_url}/api/generate"
         
@@ -76,10 +66,7 @@ class LocalLLMClient(BaseLLMClient):
 
 class OnlineLLMClient(BaseLLMClient):
     """
-    LLM client for OpenRouter API.
-    
-    Uses GPT-4o-mini model via OpenRouter.
-    Requires API key via constructor or OPENROUTER_API_KEY environment variable.
+    LLM client for OpenRouter that uses GPT-4o-mini and requires an API key
     """
     
     #default configuration
@@ -97,16 +84,8 @@ class OnlineLLMClient(BaseLLMClient):
     ):
         """
         Initialize the Online LLM API client.
-        
-        Args:
-            api_key: OpenRouter API key (reads from OPENROUTER_API_KEY env if not given)
-            model: Model identifier (default: openai/gpt-4o-mini)
-            base_url: API base URL (default: https://openrouter.ai/api/v1)
-            max_retries: Maximum number of retry attempts (default: 3)
-            timeout: Request timeout in seconds (default: 30)
-            
-        Raises:
-            ValueError: If API key is not provided and not found in environment
+        Initializes the OpenRouter client using a provide API key, 
+        a specified model, base URL, retry limits, and timeout settings
         """
         self.api_key = api_key or os.getenv("OPENROUTER_API_KEY")
         
@@ -126,14 +105,8 @@ class OnlineLLMClient(BaseLLMClient):
     
     def _format_and_send(self, prompt: str, bundle: Dict[str, Any]) -> str:
         """
-        Format OpenRouter-specific payload and send request.
-        
-        Args:
-            prompt: The complete prompt text
-            bundle: Topic vector bundle data
-            
-        Returns:
-            Generated summary as a plain string
+        Formats the OpenRouter-specific payload and sends a request to generate a plain 
+        string summary from the provided prompt and topic vector bundle
         """
         url = f"{self.base_url}/chat/completions"
         

@@ -12,13 +12,7 @@ from .prompts import get_prompt, format_skill_highlight
 
 
 class BaseLLMClient(ABC):
-    """
-    Abstract Base Class for LLM clients.
-    
-    Handles shared logic such as data sanitization, retry logic,
-    and prompt construction. Subclasses must implement _format_and_send
-    for API-specific payload formatting.
-    """
+    """Abstract base for LLM clients with shared retry logic and sanitization."""
     
     def __init__(
         self, 
@@ -27,33 +21,14 @@ class BaseLLMClient(ABC):
         max_retries: int = 3,
         timeout: int = 30
     ):
-        """
-        Initialize the LLM client.
-        
-        Args:
-            model: The model identifier to use
-            base_url: Base URL for the API endpoint
-            max_retries: Maximum number of retry attempts (default: 3)
-            timeout: Request timeout in seconds (default: 30)
-        """
+        """Initialize LLM client with model, URL, retries, and timeout."""
         self.model = model
         self.base_url = base_url
         self.max_retries = max_retries
         self.timeout = timeout
     
     def _sanitize_bundle(self, bundle: Dict[str, Any]) -> str:
-        """
-        Sanitize and serialize the topic vector bundle to JSON.
-        
-        Recursively converts non-serializable objects (e.g., numpy types)
-        to their string representations to prevent JSON serialization crashes.
-        
-        Args:
-            bundle: Dictionary containing topic data
-            
-        Returns:
-            JSON-formatted string of the sanitized bundle
-        """
+        """Sanitize bundle for JSON serialization, converting non-serializable objects to strings."""
         def sanitize(obj: Any) -> Any:
             """Recursively sanitize objects for JSON serialization."""
             if isinstance(obj, dict):
@@ -79,20 +54,7 @@ class BaseLLMClient(ABC):
         payload: Dict[str, Any],
         headers: Optional[Dict[str, str]] = None
     ) -> Dict[str, Any]:
-        """
-        Execute HTTP POST request with retry logic and exponential backoff.
-        
-        Args:
-            url: Full URL for the API endpoint
-            payload: JSON payload to send
-            headers: Optional HTTP headers
-            
-        Returns:
-            Parsed JSON response from the API
-            
-        Raises:
-            Exception: If all retry attempts fail
-        """
+        """Execute HTTP POST with retry logic and exponential backoff."""
         last_exception: Optional[Exception] = None
         
         for attempt in range(self.max_retries):
@@ -143,16 +105,7 @@ class BaseLLMClient(ABC):
             raise requests.RequestException("All retry attempts failed with unknown error")
     
     def _build_user_content(self, prompt: str, bundle: Dict[str, Any]) -> str:
-        """
-        Build the complete user content string with prompt and topic data.
-        
-        Args:
-            prompt: The instruction/prompt text
-            bundle: Topic vector bundle data
-            
-        Returns:
-            Complete user content string
-        """
+        """Build complete user content combining prompt and topic data."""
         if not bundle:
             return prompt
         
@@ -164,19 +117,7 @@ class BaseLLMClient(ABC):
         topic_vector_bundle: Dict[str, Any], 
         summary_type: str = "standard"
     ) -> str:
-        """
-        Generate a project summary using the LLM.
-
-        Fetches the correct prompt template based on summary_type, Appends skill highlighting instruction if user_highlights present, 
-        Delegates to _format_and_send for API-specific handling
-        
-        Args:
-            topic_vector_bundle: Dictionary containing topic keywords and data
-            summary_type: One of "short", "standard", or "long" (default: "standard")
-            
-        Returns:
-            Generated summary as a plain string
-        """
+        """Generate project summary with skill highlighting if specified."""
         #get the base prompt for the requested summary type
         prompt = get_prompt(summary_type)
         
@@ -199,20 +140,5 @@ class BaseLLMClient(ABC):
     
     @abstractmethod
     def _format_and_send(self, prompt: str, bundle: Dict[str, Any]) -> str:
-        """
-        Format the API-specific payload and send the request.
-        
-        Subclasses must implement this method to:
-        1. Construct the API-specific JSON payload
-        2. Call self._execute_request with the payload
-        3. Parse the API-specific response format
-        4. Return the clean summary string
-        
-        Args:
-            prompt: The complete prompt with any skill highlighting
-            bundle: Topic vector bundle data
-            
-        Returns:
-            Generated summary as a plain string
-        """
+        """Format API payload, send request, and parse response. Must be implemented by subclasses."""
         pass

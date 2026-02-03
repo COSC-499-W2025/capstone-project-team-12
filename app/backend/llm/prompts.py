@@ -1,9 +1,4 @@
-"""
-Centralized Prompt Templates for LLM Clients
-
-This module contains all prompt templates used by the LLM clients.
-To change the AI's persona or behavior, edit the prompts in this file.
-"""
+#Centralized Prompt Templates for LLM Clients
 
 from typing import Dict
 
