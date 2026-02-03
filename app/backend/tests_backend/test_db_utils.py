@@ -101,19 +101,27 @@ def test_getting_connection():
 
 def test_inserts(set_db_Connector):
     global db
+    
+    #create Analysis first to satisfy Foreign Key constraint
+    analysis_res = db.execute_update(
+        "INSERT INTO Analyses DEFAULT VALUES RETURNING analysis_id",
+        returning=True
+    )
+    analysis_id = analysis_res['analysis_id']
+
     #Testing Invalid Column Name Inserts
     with pytest.raises(Exception):
         uuid = db.execute_update(
-        "INSERT INTO Results (topic_vector,resume_points,projeccct_insights,package_insights,metadata_insights) VALUES (%s, %s, %s, %s, %s) RETURNING result_id",
-        ("Sample String",Json(nested_json),Json(array_json),Json(mixed_types_json),Json(edge_cases_json)),
+        "INSERT INTO Results (analysis_id, topic_vector,resume_points,projeccct_insights,package_insights,metadata_insights) VALUES (%s, %s, %s, %s, %s, %s) RETURNING result_id",
+        (analysis_id, "Sample String",Json(nested_json),Json(array_json),Json(mixed_types_json),Json(edge_cases_json)),
         returning=True
     )
     
     #Testing Valid Inserts
     #Note the database is not responsible for ensuring JSON files are in valid format accepted by our app.
     uuid = db.execute_update(
-        "INSERT INTO Results (topic_vector,resume_points,project_insights,package_insights,metadata_insights) VALUES (%s, %s, %s, %s, %s) RETURNING result_id",
-        (Json("Sample String"),Json(nested_json),Json(array_json),Json(mixed_types_json),Json(edge_cases_json)),
+        "INSERT INTO Results (analysis_id, topic_vector,resume_points,project_insights,package_insights,metadata_insights) VALUES (%s, %s, %s, %s, %s, %s) RETURNING result_id",
+        (analysis_id, Json("Sample String"),Json(nested_json),Json(array_json),Json(mixed_types_json),Json(edge_cases_json)),
         returning=True
     )
     print(f"Inserted Row with ID: {uuid}")

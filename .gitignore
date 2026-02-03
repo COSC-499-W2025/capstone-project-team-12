@@ -10,3 +10,5 @@ __pycache__/
 .DS_Store
 
 .env
+#ignore the preferences to fix the "you have previously agreed/disagreed" prompt
+app/backend/configs/user_prefs.json

@@ -23,7 +23,7 @@ class MetadataExtractor:
         self.metadata_store: Dict[str, Dict[str, Any]] = {} # filepath -> metadata
         
     
-    def extract_all_metadata(self, file_tree: Node, binary_data_array: List[bytes] = None) -> Dict[str, Dict[str, Any]]:
+    def extract_all_metadata(self, file_nodes: List[Node], binary_data_array: List[bytes] = None) -> Dict[str, Dict[str, Any]]:
         """
         Extract metadata for all file nodes in the tree
         Uses binary_data_array for files that don't exist on filesystem  (zipped files)
@@ -31,8 +31,6 @@ class MetadataExtractor:
         self.metadata_store = {}
         
         try:
-            # get all file nodes from tree
-            file_nodes: List[Node] = self._get_all_file_nodes(file_tree)
             
             # extract metadata for each file node
             for node in file_nodes:
@@ -53,21 +51,6 @@ class MetadataExtractor:
             pass
             
         return self.metadata_store
-    
-    def _get_all_file_nodes(self, node: Node) -> List[Node]:
-        """
-        Recursively get all file nodes from the tree
-        """
-        file_nodes: List[Node] = []
-        
-        # check that the node is a file
-        if hasattr(node, 'type') and node.type == "file":
-            file_nodes.append(node)
-        
-        for child in node.children:
-            file_nodes.extend(self._get_all_file_nodes(child))
-            
-        return file_nodes
     
     def _extract_single_file_metadata(self, node: Node, binary_data_array: List[bytes] = None) -> Dict[str, Any]:
         """
@@ -192,6 +175,7 @@ class MetadataExtractor:
                     'word_count': 0,
                     'encoding': 'unknown'
                 })
+                
                 
         except Exception:
             metadata.update({

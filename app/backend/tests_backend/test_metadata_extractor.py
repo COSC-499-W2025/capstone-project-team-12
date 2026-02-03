@@ -24,23 +24,9 @@ class TestMetadataExtractor:
         )
         return node
 
-    def create_test_tree(self) -> Node:
-        """Create a test file tree structure"""
-        root = Node("root", type="directory")
-        
-        # Create test files
-        file1 = self.create_test_node("test.py", "/fake/path/test.py", ".py", 100)
-        file1.parent = root
-        
-        file2 = self.create_test_node("document.txt", "/fake/path/document.txt", ".txt", 200)
-        file2.parent = root
-        
-        return root
-
     def test_extract_all_metadata_empty_tree(self):
         """Test extraction with empty tree"""
-        empty_root = Node("empty", type="directory")
-        result = self.metadata_extractor.extract_all_metadata(empty_root)
+        result = self.metadata_extractor.extract_all_metadata([])
         
         assert result == {}
         assert self.metadata_extractor.metadata_store == {}
@@ -57,19 +43,12 @@ class TestMetadataExtractor:
             test_file2 = f2.name
         
         try:
-            # create test tree with real files
-            root = Node("root", type="directory")
-            
-            file1 = self.create_test_node("test_script.py", test_file1, ".py", os.path.getsize(test_file1))
-            file1.parent = root
-            
-            file2 = self.create_test_node("document.txt", test_file2, ".txt", os.path.getsize(test_file2))
-            os.path.getsize(test_file2)
-            
-            file2.parent = root
-            
+            # create list of file nodes
+            file_nodes = [self.create_test_node("test_script.py", test_file1, ".py", os.path.getsize(test_file1)),
+                          self.create_test_node("document.txt", test_file2, ".txt", os.path.getsize(test_file2))]
+
             # extract metadata
-            result = self.metadata_extractor.extract_all_metadata(root)
+            result = self.metadata_extractor.extract_all_metadata(file_nodes)
             
             # verify results
             assert len(result) == 2
@@ -98,18 +77,16 @@ class TestMetadataExtractor:
         test_content = b"First line\nSecond line\nThird line"
         binary_data_array = [test_content]
         
-        root = Node("root", type="directory")
         
-        file_node = self.create_test_node("zipped_file.txt",
+        file_node = [self.create_test_node("zipped_file.txt",
             "/tmp/nonexistent/zipped_file.txt",  # file doesn't exist on disk
             ".txt", len(test_content),
             binary_index=0  # points to our test content in binary_data_array
-        )
-        file_node.parent = root
+        )]
         
         # extract metadata using binary data
-        result = self.metadata_extractor.extract_all_metadata(root, binary_data_array)
-        
+        result = self.metadata_extractor.extract_all_metadata(file_node, binary_data_array)
+
         # verify binary data was used
         metadata = result["/tmp/nonexistent/zipped_file.txt"]
         assert metadata['creation_date'] == 'unknown_date'
@@ -121,16 +98,13 @@ class TestMetadataExtractor:
 
     def test_extract_metadata_fallback(self):
         """Test fallback metadata when no file and no binary data"""
-        root = Node("root", type="directory")
         
-        file_node = self.create_test_node("missing_file.txt",
+        file_node = [self.create_test_node("missing_file.txt",
             "/nonexistent/path/missing_file.txt",  # doesn't exist
             ".txt", 0, binary_index=999  # invalid index
-        )
-        file_node.parent = root
-        
-        result = self.metadata_extractor.extract_all_metadata(root, [])
-        
+        )]
+        result = self.metadata_extractor.extract_all_metadata(file_node, [])
+
         metadata = result["/nonexistent/path/missing_file.txt"]
         assert metadata['creation_date'] == 'unknown_date'
         assert metadata['last_modified_date'] == 'unknown_date'
@@ -156,11 +130,9 @@ class TestMetadataExtractor:
             test_file = f.name
         
         try:
-            root = Node("root", type="directory")
-            file_node = self.create_test_node("test_content.txt", test_file, ".txt", len(test_content))
-            file_node.parent = root
+            file_node = [self.create_test_node("test_content.txt", test_file, ".txt", len(test_content))]
             
-            result = self.metadata_extractor.extract_all_metadata(root)
+            result = self.metadata_extractor.extract_all_metadata(file_node)
             metadata = result[test_file]
             
             assert metadata['line_count'] == 3
@@ -179,11 +151,9 @@ class TestMetadataExtractor:
             test_file = f.name
         
         try:
-            root = Node("root", type="directory")
-            file_node = self.create_test_node("checksum_test.txt", test_file, ".txt", len(test_content))
-            file_node.parent = root
+            file_node = [self.create_test_node("checksum_test.txt", test_file, ".txt", len(test_content))]
             
-            result = self.metadata_extractor.extract_all_metadata(root)
+            result = self.metadata_extractor.extract_all_metadata(file_node)
             metadata = result[test_file]
             
             # checksum should be a valid MD5 hash
@@ -203,11 +173,9 @@ class TestMetadataExtractor:
             test_file = f.name
         
         try:
-            root = Node("root", type="directory")
-            file_node = self.create_test_node("encoding_test.txt", test_file, ".txt", len(test_content))
-            file_node.parent = root
-            
-            result = self.metadata_extractor.extract_all_metadata(root)
+            file_node = [self.create_test_node("encoding_test.txt", test_file, ".txt", len(test_content))]
+
+            result = self.metadata_extractor.extract_all_metadata(file_node)
             metadata = result[test_file]
             
             assert metadata['encoding'] == 'UTF-8'
@@ -222,11 +190,9 @@ class TestMetadataExtractor:
             test_file = f.name
         
         try:
-            root = Node("root", type="directory")
-            file_node = self.create_test_node("mime_test.py", test_file, ".py", os.path.getsize(test_file))
-            file_node.parent = root
+            file_node = [self.create_test_node("mime_test.py", test_file, ".py", os.path.getsize(test_file))]
             
-            result = self.metadata_extractor.extract_all_metadata(root)
+            result = self.metadata_extractor.extract_all_metadata(file_node)
             metadata = result[test_file]
             
             # should detect Python MIME type
@@ -254,15 +220,11 @@ class TestMetadataExtractor:
         doc.save(docx_path)
         
         try:
-            root = Node("root", type="directory")
-            
             pdf_node = self.create_test_node("test_pdf.pdf", pdf_path, ".pdf", os.path.getsize(pdf_path))
-            pdf_node.parent = root
-            
             docx_node = self.create_test_node("test_docx.docx", docx_path, ".docx", os.path.getsize(docx_path))
-            docx_node.parent = root
+            file_nodes = [pdf_node, docx_node]
             
-            result = self.metadata_extractor.extract_all_metadata(root)
+            result = self.metadata_extractor.extract_all_metadata(file_nodes)
             
             pdf_metadata = result[pdf_path]
             assert pdf_metadata['author'] == 'Test Author'
@@ -314,11 +276,9 @@ class TestMetadataExtractor:
             test_file = f.name
         
         try:
-            root = Node("root", type="directory")
-            file_node = self.create_test_node("empty.txt", test_file, ".txt", 0)
-            file_node.parent = root
-            
-            result = self.metadata_extractor.extract_all_metadata(root)
+            file_node = [self.create_test_node("empty.txt", test_file, ".txt", 0)]
+
+            result = self.metadata_extractor.extract_all_metadata(file_node)
             metadata = result[test_file]
             
             assert metadata['line_count'] == 0
@@ -338,11 +298,9 @@ class TestMetadataExtractor:
             test_file = f.name
         
         try:
-            root = Node("root", type="directory")
-            file_node = self.create_test_node("special_chars.txt", test_file, ".txt", len(test_content.encode('utf-8')))
-            file_node.parent = root
-            
-            result = self.metadata_extractor.extract_all_metadata(root)
+            file_node = [self.create_test_node("special_chars.txt", test_file, ".txt", len(test_content.encode('utf-8')))]
+
+            result = self.metadata_extractor.extract_all_metadata(file_node)
             metadata = result[test_file]
             
             # should handle special characters without crashing

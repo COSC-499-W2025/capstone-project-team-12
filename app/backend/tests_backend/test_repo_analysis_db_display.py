@@ -112,16 +112,16 @@ def test_save_tracked_data_success(mock_db_manager, sample_tracked_data):
     mock_db_manager.db.execute_update.assert_called_once()
     args, _ = mock_db_manager.db.execute_update.call_args
     # check JSON serialization for each field
-    assert json.loads(args[1][1]) == sample_tracked_data["metadata_results"]
-    assert json.loads(args[1][2]) == sample_tracked_data["bow_cache"]
-    assert json.loads(args[1][3]) == sample_tracked_data["project_data"]
-    assert json.loads(args[1][4]) == sample_tracked_data["package_data"]
+    assert json.loads(args[1][0]) == sample_tracked_data["metadata_results"]
+    assert json.loads(args[1][1]) == sample_tracked_data["bow_cache"]
+    assert json.loads(args[1][2]) == sample_tracked_data["project_data"]
+    assert json.loads(args[1][3]) == sample_tracked_data["package_data"]
 
 def test_get_result_by_id_formats_data(mock_db_manager, sample_analysis_data, sample_tracked_data):
     """Test get_result_by_id returns properly formatted data with tracked_data."""
     result_id = str(uuid.uuid4())
     mock_db_manager.db.execute_query.return_value = [{
-        "result_id": uuid.UUID(result_id),
+        "analysis_id": uuid.UUID(result_id), 
         "topic_vector": None,
         "resume_points": None,
         "project_insights": json.dumps(sample_analysis_data),
@@ -133,8 +133,10 @@ def test_get_result_by_id_formats_data(mock_db_manager, sample_analysis_data, sa
         "metadata_stats": json.dumps(sample_tracked_data["metadata_results"])
     }]
 
-    result = mock_db_manager.get_result_by_id(result_id)
-    assert result["result_id"] == result_id
+    # FIX: get_result_by_id -> get_analysis_data
+    result = mock_db_manager.get_analysis_data(result_id)
+    
+    assert result["analysis_id"] == result_id
     assert json.loads(result["project_insights"]) == sample_analysis_data
     assert json.loads(result["tracked_data"]["bow_cache"]) == sample_tracked_data["bow_cache"]
     assert json.loads(result["tracked_data"]["project_data"]) == sample_tracked_data["project_data"]
@@ -170,4 +172,3 @@ def test_display_project_timeline_no_unknown(capsys, sample_analysis_data):
     assert "repo2" in captured.out
 
     assert "Unknown" not in captured.out
-
