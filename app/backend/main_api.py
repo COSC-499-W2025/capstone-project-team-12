@@ -55,49 +55,35 @@ async def upload_project(
     file: UploadFile = File(...),
     github_username: Optional[str] = Form(None),
     github_email: Optional[str] = Form(None),
-    # Optional: Frontend can provide ID, or we generate one
-    result_id: Optional[str] = Form(None), 
+    # Removed frontend-generated result_id to enforce backend state management
     db: DatabaseManager = Depends(get_db)
 ):
 
     """
-    pipeline from uploading filepath, to returning back 
-    status along with result_id from db 
+    Pipeline from uploading filepath to returning back 
+    status along with the backend-generated result_id.
     """
 
-    #1. Determine the ID upfront
-    if not result_id:
-        result_id = str(uuid.uuid4())
-
-    # 2. Save File
+    # 1. Save File
     suffix = Path(file.filename).suffix
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         shutil.copyfileobj(file.file, tmp)
         tmp_path = tmp.name
 
     try:
-        # 3. Create the Database Row manually
-        # We bypass db.create_new_result() because we want to specify the ID.
-        # We use the raw connection from DatabaseManager.
-        insert_query = "INSERT INTO Results (result_id) VALUES (%s);"
-        db.db.execute_update(insert_query, (result_id,))
-
-        # 4. Initialize Classes
+        # 2. Initialize Classes
         cli = CLI()
         config = ConfigManager()
 
-
-        def use_preexisting_id():
-            return result_id
-            
-        # Overwrite the method on this specific instance
-        db.create_new_result = use_preexisting_id
-
-        # 5. Run Pipeline
+        # 3. Run Pipeline
+        # pipeline will call database_manager.create_new_result()
+        # internally, which generates and returns a new UUID.
         pipeline = AnalysisPipeline(cli, config, db)
-        pipeline.run_analysis(tmp_path)
+        
+        # return_id=True ensures we get the new UUID back to send to the frontend
+        result_id = pipeline.run_analysis(tmp_path, return_id=True)
 
-        # 6. Return the ID 
+        # 4. Return the ID 
         return {"status": "success", "result_id": result_id}
 
     except Exception as e:
