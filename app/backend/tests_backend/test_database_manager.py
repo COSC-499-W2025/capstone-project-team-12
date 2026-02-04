@@ -221,7 +221,7 @@ class TestWipeAllData:
 class TestSaveResultThumbnail:
     def test_save_thumbnail_success(self, db_manager, mock_db_connector, sample_analysis_id):
         mock_data = b"image_binary"
-        result = db_manager.save_result_thumbnail(sample_analysis_id, mock_data)
+        result = db_manager.save_analysis_thumbnail(sample_analysis_id, mock_data)
         
         assert result is True
         call_args = mock_db_connector.execute_update.call_args
