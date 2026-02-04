@@ -1,5 +1,5 @@
 from typing import Dict, Any, List
-
+from prompt_toolkit import prompt 
 
 class ResumeEditor:
     """
@@ -55,14 +55,9 @@ class ResumeEditor:
     def _edit_summary(self, current_summary: str) -> str:
         """
         Edit the summary section of the resume
-        Args:
-            current_summary (str): The current summary text
-        Returns:
-            str: The edited summary text
         """
         self.cli.print_status(f"Current Summary: {current_summary}", "info")
-        new_summary = self.cli.get_input("Enter new summary text and press Enter once complete. (or press Enter to keep current): \n> ").strip()
-        return new_summary if new_summary else current_summary  
+        return self._edit_text_field("Summary", current_summary, allow_multiline = True) 
 
     def _edit_projects(self, current_projects: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
@@ -111,13 +106,6 @@ class ResumeEditor:
         self.cli.print_status(f"Editing Project: {project.get('name', 'Unnamed Project')}", "info")
 
         while True:
-
-            # Printing all of the details again just so it is easily accessible to the user
-            print("\nCurrent Details:")
-            print(f"  Name: {project.get('name', 'Unknown')}")
-            print(f"  Date Range: {project.get('date_range', 'N/A')}")
-            print(f"  Frameworks: {', '.join(project.get('frameworks', []))}")
-            print(f"  Collaboration: {project.get('collaboration', 'N/A')}")
             
             project_choice = self.cli.get_input(
                 """Which section would you like to edit? \n\t
@@ -131,14 +119,12 @@ class ResumeEditor:
                 match(project_choice):
                     case 'n':
                         print(f"\nCurrent Name: {project.get('name', 'Unknown')}")
-                        new_name = self.cli.get_input("Enter new project name (or press Enter to keep current): \n> ").strip()
-                        if new_name:
-                            project['name'] = new_name
-                            self.cli.print_status("Project name updated.", "success")
+                        project['name'] = self._edit_text_field("Project Name", project.get('name'), allow_multiline = False)
+                        self.cli.print_status("Project name updated.", "success")
                     case 'd':
                         print(f"\nCurrent Date Range: {project.get('date_range', 'N/A')}")
                         print("\nFormat for date range: 'MMM YYYY - MMM YYYY' or 'MMM YYYY - Present'")
-                        new_date_range = self.cli.get_input("Enter new date range, must include '-' (or press Enter to keep current): \n> ").strip()
+                        new_date_range = self._edit_text_field("Date Range", project.get('date_range', ''), allow_multiline=False)
                         if new_date_range and '-' in new_date_range:
                             project['date_range'] = new_date_range
                             self.cli.print_status("Project date range updated.", "success")
@@ -146,31 +132,12 @@ class ResumeEditor:
                             self.cli.print_status("Invalid date range format, did not contain '-'. Update skipped.", "warning")
                     case 'f':
                         print(f"\nCurrent Frameworks: {', '.join(project.get('frameworks', []))}")
-                        while True:
-                            frameworks_input = self.cli.get_input("Type new framework to add, type current framework to remove, type done to finish editing frameworks): \n> ").strip()
-                            # Track regular and lower case version of frameworks for comparison purposes
-                            current_frameworks = project.get('frameworks', [])
-                            current_frameworks_lower = [frame.lower() for frame in project.get('frameworks', [])]
-                            if frameworks_input.lower() == 'done':
-                                break
-                            elif frameworks_input.lower() in current_frameworks_lower:
-                                # Find the framework with the proper casing
-                                actual_framework = current_frameworks[current_frameworks_lower.index(frameworks_input.lower())]
-
-                                confirm_remove = self.cli.get_input(f"Are you sure you want to remove the framework '{frameworks_input}'? (y/n): \n> ").strip().lower()
-                                if confirm_remove == 'y':
-                                    project['frameworks'].remove(actual_framework)
-                                    self.cli.print_status(f"Removed framework: {actual_framework}", "success")
-                            elif frameworks_input.lower() not in current_frameworks_lower and frameworks_input != '':
-                                project.setdefault('frameworks', []).append(frameworks_input)
-                                self.cli.print_status(f"Added framework: {frameworks_input}", "success")
+                        project['frameworks'] = self._edit_list_field("Frameworks", project.get('frameworks', []))
                             
                     case 'c':
                         print(f"\nCurrent Collaboration Blurb: {project.get('collaboration', 'N/A')}")
-                        new_collaboration = self.cli.get_input("Enter new collaboration details (or press Enter to keep current): \n> ").strip()
-                        if new_collaboration:
-                            project['collaboration'] = new_collaboration
-                            self.cli.print_status("Project collaboration details updated.", "success")
+                        project['collaboration'] = self._edit_text_field("Collaboration", project.get('collaboration', ''), allow_multiline=False)
+                        self.cli.print_status("Collaboration updated.", "success")
                     case 'q':
                         self.cli.print_status("Finished editing project.", "success")
                         break
@@ -183,93 +150,112 @@ class ResumeEditor:
     def _edit_skills(self, current_skills: List[str]) -> List[str]:
         """
         Edit the skills section of the resume. Allows user to remove current detected skills, or enter new skills.
-        Args:
-            current_skills (List[str]): The current list of skills
-        Returns:
-            List[str]: The edited list of skills
         """
         self.cli.print_header("Edit Skills")
-        self.cli.print_status(f"\nCurrent Skills: {', '.join(current_skills)}", "info")
-
-        #TODO: Currently the highlighted skills are not being stored in result_data. Once they are, we can add them here to also be considered.
-        while True:
-            skill_choice = self.cli.get_input("Type a skill to add, type a skill to remove, or type 'done' to finish editing skills: \n> ").strip()
-            
-            if skill_choice.lower() == 'done':
-                break
-            
-            # Create lower case skills for comparison purposes, ensures the case used by user is preserved in input but can compare to all
-            current_skills_lower = [skill.lower() for skill in current_skills]
-
-            # If skill is in the list then remove it, else add it. Confirm with user before removing.
-            if skill_choice.lower() in current_skills_lower:
-                
-                # Find the actual skill with the original casign
-                actual_skill = current_skills[current_skills_lower.index(skill_choice.lower())]
-
-                confirm_remove = self.cli.get_input(f"Are you sure you want to remove the skill '{skill_choice}'? (y/n): \n> ").strip().lower()
-                if confirm_remove == 'y':
-                    current_skills.remove(actual_skill)
-                    current_skills_lower.remove(skill_choice.lower())
-                    self.cli.print_status(f"Removed skill: {skill_choice}", "success")
-                elif confirm_remove == 'n':
-                    self.cli.print_status("No changes made.", "info")
-                elif confirm_remove != 'y' and confirm_remove != 'n':
-                    self.cli.print_status("Invalid input. No changes made.", "warning")
-
-            elif skill_choice.lower() not in current_skills_lower and skill_choice != '':
-                current_skills.append(skill_choice)
-                current_skills_lower.append(skill_choice.lower())
-                self.cli.print_status(f"Added skill: {skill_choice}", "success")
-
-        return current_skills
+        return self._edit_list_field("Skills", current_skills)
 
     def _edit_languages(self, current_languages: List[Dict[str,Any]]) -> List[Dict[str,Any]]:
         """
         Edit the languages section of the resume. Allows user to remove current detected languages, or enter new languages.
-        Args:
-            current_languages (List[Dict[str,Any]]): The current list of languages
-        Returns:
-            List[Dict[str,Any]]: The edited list of languages
         """
         self.cli.print_header("Edit Languages")
         language_names = [lang['name'] for lang in current_languages]
 
-        # Create the lower case version to allow for comparison while preserving case of actual languages
-        language_names_lower = [lang.lower() for lang in language_names]
+        # Use helper to edit list of names
+        edited_names = self._edit_list_field("Languages", language_names)
+
+        # Reconstruct the Dict format
+        result = []
+        for name in edited_names:
+            # Keep existing language with file_count if it exists
+            existing = next((lang for lang in current_languages if lang['name'] == name), None)
+            if existing:
+                result.append(existing)
+            else:
+                result.append({'name': name, 'file_count': 0})
+        
+        return result
+        
+
+    def _edit_text_field(self, field_name: str, current_value: str, allow_multiline: bool = False) -> str:
+        """
+        Helper to edit a text field . For multiline inputs, prompt the user to edit previous or fully replace it.
+        For single line outputs, we assume they are short enough to just provide the current one in an editable format so they
+        can make any changes or just delete and replace it themselves.
+        """
+        if allow_multiline:
+            edit_choice = self.cli.get_input(f"Would you like to [E]dit, [R]eplace, or press Enter to keep the current {field_name.lower()}?: \n> ").strip().lower()
+            try:
+                match(edit_choice):
+                    case 'e':
+                        """
+                        With this library the user is able to create multiple lines by pressing enter. This gives them more control over
+                        how the formatting will look of their resume. However, this does create the issue where Enter now does not immediatley submit their new input, 
+                        which does differ from most other user input we currently have. This is why I used ESC then Enter, or we can create custom key bindings, but 
+                        since this will change again once we have a frontend I wasnt sure if it was worth any additional efforts. 
+                        """
+                        self.cli.print_status(f"Edit {field_name.lower()} (ESC then Enter to finish editing, Ctrl+C to cancel):", "info")
+                        try:
+                            new_value = prompt('\n> ', default=current_value, multiline=True).strip()
+                        except KeyboardInterrupt:
+                            self.cli.print_status("Edit cancelled", "warning")
+                            new_value = current_value
+                    case 'r':
+                        self.cli.print_status(f"Enter your new {field_name.lower()}")
+                        try: 
+                            new_value = prompt('\n> ',multiline = True)
+                        except KeyboardInterrupt:
+                            self.cli.print_status("Edit cancelled", "warning")
+                            new_value = current_value
+                    case '':
+                        new_value = current_value
+                    case _:
+                        self.cli.print_status(f"Invalid option '{edit_choice}'. Keeping current {field_name.lower()}")
+            except Exception as e:
+                self.cli.print_status(f"Error during summary editing: {e}", "error")
+                new_value = current_value
+        else:
+            # Single line editing, we always give them the previous option to edit or delete and replace themselves
+            self.cli.print_status(f"Edit or replace the current {field_name.lower()} and press Enter to continue")
+            try:
+                new_value = prompt('\n> ', default = current_value)
+            except KeyboardInterrupt:
+                self.cli.print_status("Edit cancelled", "warning")
+                new_value = current_value
+
+        return new_value
+
+    def _edit_list_field(self, field_name: str, current_items: List[str]) -> List[str]:
+        """
+        Helper to manage a list of items with add/remove pattern
+        """
+        items_lower = [item.lower() for item in current_items]
+
         while True:
-            # Display current languages each time so user can see updates
-            self.cli.print_status(f"\nCurrent Languages: {', '.join(language_names)}", "info")
-            language_choice = self.cli.get_input("Type a language to add, type a language to remove, or type 'done' to finish editing languages: \n> ").strip()
+            self.cli.print_status(f"\nCurrent {field_name}: {', '.join(current_items)}", "info")
+            choice = self.cli.get_input(f"Type a {field_name.lower().rstrip('s')} to add/remove, or 'done' to finish: \n> ").strip()
             
-            if language_choice.lower() == 'done':
+            if choice.lower() == 'done':
                 break
             
-            # If language is in the list then remove it, else add it. Confirm with user before removing.
-            if language_choice.lower() in language_names_lower:
-
-                # Find the actual language in the list to be removed, with proper casing
-                actual_language = language_names[language_names_lower.index(language_choice.lower())]
+            if choice.lower() in items_lower:
+                # Remove item
+                actual_item = current_items[items_lower.index(choice.lower())]
+                confirm = self.cli.get_input(
+                    f"Remove '{actual_item}'? (y/n): \n> "
+                ).strip().lower()
                 
-                confirm_remove = self.cli.get_input(f"Are you sure you want to remove the language '{language_choice}'? (y/n): \n> ").strip().lower()
-                if confirm_remove == 'y':
-                    # Need to remove the full dict, not just the name string in the list
-                    language_names.remove(actual_language)
-                    current_languages.remove([lang for lang in current_languages if lang['name'] == actual_language][0])
-                    language_names_lower.remove(language_choice.lower())
-                    self.cli.print_status(f"Removed language: {language_choice}", "success")
-                elif confirm_remove == 'n':
-                    self.cli.print_status("No changes made.", "info")
-                elif confirm_remove != 'y' and confirm_remove != 'n':
-                    self.cli.print_status("Invalid input. No changes made.", "warning")
-
-            elif language_choice.lower() not in language_names_lower and language_choice != '':
-                language_names.append(language_choice)
-                current_languages.append({'name': language_choice, 'file_count': 0})
-                language_names_lower.append(language_choice.lower())
-                self.cli.print_status(f"Added language: {language_choice}", "success")
-
-        return current_languages
+                if confirm == 'y':
+                    current_items.remove(actual_item)
+                    items_lower.remove(choice.lower())
+                    self.cli.print_status(f"Removed: {actual_item}", "success")
+            elif choice.lower() not in items_lower and choice:
+                # Add item
+                current_items.append(choice)
+                items_lower.append(choice.lower())
+                self.cli.print_status(f"Added: {choice}", "success")
+        
+        return current_items
 
     def _preview_resume(self, resume: Dict[str, Any]) -> None:
         """
