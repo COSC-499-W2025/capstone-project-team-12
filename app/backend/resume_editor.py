@@ -124,12 +124,23 @@ class ResumeEditor:
                     case 'd':
                         print(f"\nCurrent Date Range: {project.get('date_range', 'N/A')}")
                         print("\nFormat for date range: 'MMM YYYY - MMM YYYY' or 'MMM YYYY - Present'")
-                        new_date_range = self._edit_text_field("Date Range", project.get('date_range', ''), allow_multiline=False)
-                        if new_date_range and '-' in new_date_range:
-                            project['date_range'] = new_date_range
-                            self.cli.print_status("Project date range updated.", "success")
-                        elif new_date_range:
-                            self.cli.print_status("Invalid date range format, did not contain '-'. Update skipped.", "warning")
+                        while True:
+                            new_date_range = self._edit_text_field("Date Range", project.get('date_range', ''), allow_multiline=False)
+                            
+                            # User cancelled or kept original
+                            if new_date_range == project.get('date_range', ''):
+                                break
+                                
+                            # Validate the new input
+                            if self._validate_date_range(new_date_range):
+                                project['date_range'] = new_date_range
+                                self.cli.print_status("Project date range updated.", "success")
+                                break
+                            else:
+                                self.cli.print_status(
+                                    "Invalid format. Expected 'MMM YYYY - MMM YYYY' or 'MMM YYYY - Present'. Please try again or press Ctrl+C to cancel.", 
+                                    "warning"
+                                )
                     case 'f':
                         print(f"\nCurrent Frameworks: {', '.join(project.get('frameworks', []))}")
                         project['frameworks'] = self._edit_list_field("Frameworks", project.get('frameworks', []))
@@ -146,6 +157,55 @@ class ResumeEditor:
             except Exception as e:
                 self.cli.print_status(f"Error during project editing: {e}", "error")
         return project
+
+    def _validate_date_range(self, date_range: str) -> bool:
+        """
+        Validate the date range format (e.g., 'Jan 2020 - Dec 2021' or 'Jan 2020 - Present')
+        """
+        if not date_range or '-' not in date_range:
+            return False
+        
+        # Pattern: MMM YYYY - MMM YYYY or MMM YYYY - Present
+        pattern = r'^[A-Za-z]{3}\s+\d{4}\s*-\s*([A-Za-z]{3}\s+\d{4}|Present)$'
+        
+        if not re.match(pattern, date_range.strip(), re.IGNORECASE):
+            return False
+        
+        # Additional validation: check if month abbreviations are valid
+        valid_months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 
+                    'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
+        
+        parts = date_range.strip().split('-')
+        
+        # Validate start date
+        start_parts = parts[0].strip().split()
+        if len(start_parts) == 2:
+            month, year = start_parts
+            if month.lower() not in valid_months:
+                return False
+            try:
+                year_int = int(year)
+                if year_int < 1900 or year_int > 2100:
+                    return False
+            except ValueError:
+                return False
+        
+        # Validate end date (if not "Present")
+        end_parts = parts[1].strip().split()
+        if end_parts[0].lower() != 'present':
+            if len(end_parts) == 2:
+                month, year = end_parts
+                if month.lower() not in valid_months:
+                    return False
+                try:
+                    year_int = int(year)
+                    if year_int < 1900 or year_int > 2100:
+                        return False
+                except ValueError:
+                    return False
+        
+        return True
+
 
     def _edit_skills(self, current_skills: List[str]) -> List[str]:
         """
