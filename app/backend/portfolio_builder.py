@@ -85,6 +85,7 @@ class PortfolioBuilder:
     def _build_portfolio(self, result_data: Dict[str, Any], result_id: str) -> Dict[str, Any]:
         """
         Internal method to build the portfolio dictionary from result data.
+        Enriches the data with display-ready metadata.
         
         Args:
             result_data: Dictionary containing all analysis results
@@ -93,7 +94,7 @@ class PortfolioBuilder:
         Returns:
             Portfolio dictionary with sections: portfolio_id, result_id,
             projects_detail, skill_timeline, growth_metrics.
-            This structure maps directly to the planned database schema.
+            This structure is ready for JSON serialization and database storage.
         """
         try:
             processor = PortfolioDataProcessor(result_data)
@@ -107,7 +108,12 @@ class PortfolioBuilder:
             # Calculate growth metrics (comparing earliest vs latest project)
             growth_metrics = processor.calculate_growth_metrics(projects_detail)
             
-            # Construct portfolio dictionary
+            # Enrich the existing dictionaries with display metadata
+            self._enrich_projects_with_display_data(projects_detail)
+            self._enrich_skill_timeline_with_display_data(skill_timeline)
+            self._enrich_growth_metrics_with_display_data(growth_metrics)
+            
+            # Construct portfolio dictionary - ready for JSON serialization
             portfolio = {
                 "portfolio_id": str(uuid.uuid4()),
                 "result_id": result_id,
@@ -122,10 +128,125 @@ class PortfolioBuilder:
             print(f"Error building portfolio: {e}")
             return {}
 
+    def _enrich_projects_with_display_data(self, projects: List[Dict[str, Any]]) -> None:
+        """
+        Enrich projects list with display metadata (modifies in place).
+        
+        Args:
+            projects: List of project dictionaries to enrich
+        """
+        for project in projects:
+            frameworks = project.get('frameworks', [])
+            project['frameworks_summary'] = {
+                "total_count": len(frameworks),
+                "top_frameworks": [fw.get('name', 'Unknown') for fw in frameworks[:10]],
+                "has_more": len(frameworks) > 10,
+                "additional_count": max(0, len(frameworks) - 10)
+            }
+
+    def _enrich_skill_timeline_with_display_data(self, skill_timeline: Dict[str, Any]) -> None:
+        """
+        Enrich skill timeline with display metadata (modifies in place).
+        
+        Args:
+            skill_timeline: Skill timeline dictionary to enrich
+        """
+        high_level_skills = skill_timeline.get('high_level_skills', [])
+        skill_timeline['high_level_skills_meta'] = {
+            "total_count": len(high_level_skills),
+            "display_count": min(20, len(high_level_skills)),
+            "has_more": len(high_level_skills) > 20,
+            "additional_count": max(0, len(high_level_skills) - 20)
+        }
+        
+        language_progression = skill_timeline.get('language_progression', [])
+        skill_timeline['language_meta'] = {
+            "total_count": len(language_progression),
+            "display_count": min(10, len(language_progression)),
+            "has_more": len(language_progression) > 10,
+            "additional_count": max(0, len(language_progression) - 10)
+        }
+        
+        # Convert framework_timeline dict to list for easier JSON storage/iteration
+        framework_timeline = skill_timeline.get('framework_timeline', {})
+        skill_timeline['framework_timeline_list'] = [
+            {
+                "project_name": project_name,
+                "date_range": proj_data.get('date_range', 'Unknown'),
+                "frameworks": proj_data.get('frameworks', []),
+                "total_frameworks": proj_data.get('total_frameworks', 0)
+            }
+            for project_name, proj_data in framework_timeline.items()
+        ]
+
+    def _enrich_growth_metrics_with_display_data(self, growth_metrics: Dict[str, Any]) -> None:
+        """
+        Enrich growth metrics with pre-computed display strings (modifies in place).
+        
+        Args:
+            growth_metrics: Growth metrics dictionary to enrich
+        """
+        if not growth_metrics.get('has_comparison'):
+            return
+        
+        # Add testing status string
+        testing = growth_metrics.get('testing_evolution', {})
+        if testing:
+            testing['testing_status'] = self._determine_testing_status(testing)
+        
+        # Add collaboration summary string
+        collab = growth_metrics.get('collaboration_evolution', {})
+        if collab:
+            collab['collaboration_summary'] = self._determine_collaboration_summary(collab)
+
+    def _determine_testing_status(self, testing_evolution: Dict[str, Any]) -> str:
+        """Helper to determine testing status message"""
+        earliest_tests = testing_evolution.get('earliest_has_tests', False)
+        latest_tests = testing_evolution.get('latest_has_tests', False)
+        coverage_change = testing_evolution.get('coverage_improvement', 0)
+        
+        if not earliest_tests and latest_tests:
+            return f"Adopted testing practices! (0% → {coverage_change:.1f}% test coverage)"
+        elif earliest_tests and latest_tests:
+            if coverage_change > 0:
+                return f"Improved test coverage by {coverage_change:.1f}%"
+            elif coverage_change < 0:
+                return f"Test coverage decreased by {abs(coverage_change):.1f}%"
+            else:
+                return "Maintained consistent testing practices"
+        elif earliest_tests and not latest_tests:
+            return "Testing practices not present in latest project"
+        else:
+            return "No testing detected in either project"
+
+    def _determine_collaboration_summary(self, collab_evolution: Dict[str, Any]) -> str:
+        """Helper to determine collaboration summary message"""
+        earliest_solo = collab_evolution.get('earliest_solo', True)
+        latest_solo = collab_evolution.get('latest_solo', True)
+        earliest_team = collab_evolution.get('earliest_team_size', 1)
+        latest_team = collab_evolution.get('latest_team_size', 1)
+        earliest_level = collab_evolution.get('earliest_level', 'Unknown')
+        latest_level = collab_evolution.get('latest_level', 'Unknown')
+        
+        if earliest_solo and not latest_solo:
+            return f"Transitioned from solo work to team collaboration (Solo → Team of {latest_team}), Role: {latest_level}"
+        elif not earliest_solo and not latest_solo:
+            if latest_team > earliest_team:
+                return f"Working with larger teams ({earliest_team} → {latest_team} contributors), {earliest_level} → {latest_level}"
+            elif latest_team < earliest_team:
+                return f"Working with smaller teams ({earliest_team} → {latest_team} contributors), {earliest_level} → {latest_level}"
+            else:
+                return f"Consistent team size ({latest_team} contributors), {earliest_level} → {latest_level}"
+        elif not earliest_solo and latest_solo:
+            return f"Transitioned from team collaboration to solo work (Team of {earliest_team} → Solo)"
+        else:
+            return "Consistent solo development approach"
+
     def display_portfolio(self, portfolio: Dict[str, Any], cli=None) -> None:
         """
         Display portfolio in CLI with comprehensive formatting.
         Shows project deep-dives, skill evolution, and growth metrics.
+        Uses enriched data from the portfolio dictionaries.
         
         Args:
             portfolio: Portfolio dictionary
@@ -167,7 +288,7 @@ class PortfolioBuilder:
         Display comprehensive growth comparison metrics showing learning progression.
         
         Args:
-            growth_metrics: Growth metrics dictionary with nested structure
+            growth_metrics: Growth metrics dictionary with enriched display data
         """
         print("LEARNING PROGRESSION & EVOLUTION")
         print("=" * 80)
@@ -193,69 +314,26 @@ class PortfolioBuilder:
         print(f"     ({earliest_fw} frameworks → {latest_fw} frameworks)")
         print("")
         
-        # Testing evolution
-        testing_evolution = growth_metrics.get('testing_evolution', {})
-        earliest_tests = testing_evolution.get('earliest_has_tests', False)
-        latest_tests = testing_evolution.get('latest_has_tests', False)
-        coverage_change = testing_evolution.get('coverage_improvement', 0)
-        
+        # Testing evolution - uses enriched testing_status
+        testing = growth_metrics.get('testing_evolution', {})
         print("Testing Practice Evolution:")
-        if not earliest_tests and latest_tests:
-            print(f"   Adopted testing practices! (0% → {coverage_change:.1f}% test coverage)")
-        elif earliest_tests and latest_tests:
-            if coverage_change > 0:
-                print(f"   Improved test coverage by {coverage_change:.1f}%")
-            elif coverage_change < 0:
-                print(f"   Test coverage decreased by {abs(coverage_change):.1f}%")
-            else:
-                print(f"   Maintained consistent testing practices")
-        elif earliest_tests and not latest_tests:
-            print(f"   Testing practices not present in latest project")
-        else:
-            print(f"   • No testing detected in either project")
+        print(f"   {testing.get('testing_status', 'No testing information')}")
         print("")
         
-        # Collaboration evolution
-        collab_evolution = growth_metrics.get('collaboration_evolution', {})
-        earliest_solo = collab_evolution.get('earliest_solo', True)
-        latest_solo = collab_evolution.get('latest_solo', True)
-        earliest_team = collab_evolution.get('earliest_team_size', 1)
-        latest_team = collab_evolution.get('latest_team_size', 1)
-        earliest_level = collab_evolution.get('earliest_level', 'Unknown')
-        latest_level = collab_evolution.get('latest_level', 'Unknown')
-        
+        # Collaboration evolution - uses enriched collaboration_summary
+        collab = growth_metrics.get('collaboration_evolution', {})
         print("Collaboration & Teamwork Evolution:")
-        if earliest_solo and not latest_solo:
-            print(f"   Transitioned from solo work to team collaboration")
-            print(f"     (Solo → Team of {latest_team})")
-            print(f"     Role: {latest_level}")
-        elif not earliest_solo and not latest_solo:
-            if latest_team > earliest_team:
-                print(f"   Working with larger teams ({earliest_team} → {latest_team} contributors)")
-            elif latest_team < earliest_team:
-                print(f"   Working with smaller teams ({earliest_team} → {latest_team} contributors)")
-            else:
-                print(f"   Consistent team size ({latest_team} contributors)")
-            print(f"     Contribution level: {earliest_level} → {latest_level}")
-        elif not earliest_solo and latest_solo:
-            print(f"   Transitioned from team collaboration to solo work")
-            print(f"     (Team of {earliest_team} → Solo)")
-        else:
-            print(f"   • Consistent solo development approach")
+        print(f"   {collab.get('collaboration_summary', 'No collaboration information')}")
         print("")
         
         # Role evolution
-        role_evolution = growth_metrics.get('role_evolution', {})
-        earliest_role = role_evolution.get('earliest_role', 'Unknown')
-        latest_role = role_evolution.get('latest_role', 'Unknown')
-        role_changed = role_evolution.get('role_changed', False)
-        
+        role = growth_metrics.get('role_evolution', {})
         print("Role & Contribution Style Evolution:")
-        if role_changed:
-            print(f"   {earliest_role} → {latest_role}")
+        if role.get('role_changed', False):
+            print(f"   {role.get('earliest_role', 'Unknown')} → {role.get('latest_role', 'Unknown')}")
             print(f"   Development approach evolved over time")
         else:
-            print(f"   Consistent role: {latest_role}")
+            print(f"   Consistent role: {role.get('latest_role', 'Unknown')}")
         print("")
 
     def _format_growth(self, percentage: float) -> str:
@@ -280,7 +358,7 @@ class PortfolioBuilder:
         Display detailed project showcases with comprehensive metrics.
         
         Args:
-            projects: List of detailed project dictionaries
+            projects: List of project dictionaries with enriched display data
         """
         print("PROJECT DEEP DIVES")
         print("=" * 80)
@@ -362,18 +440,16 @@ class PortfolioBuilder:
                 print(f"   • Test Coverage by Lines: {coverage_lines:.1f}%")
                 print("")
             
-            # Display technologies
-            frameworks = project.get('frameworks', [])
-            if frameworks:
+            # Display technologies using enriched summary
+            fw_summary = project.get('frameworks_summary', {})
+            if fw_summary.get('total_count', 0) > 0:
                 print("Technologies & Frameworks:")
-                # Display top frameworks with frequency
-                for framework in frameworks[:10]:  # Show top 10
-                    freq = framework.get('frequency', 0)
-                    name = framework.get('name', 'Unknown')
-                    print(f"   • {name} (used {freq}x)")
+                frameworks = project.get('frameworks', [])
+                for fw in frameworks[:10]:
+                    print(f"   • {fw.get('name', 'Unknown')} (used {fw.get('frequency', 0)}x)")
                 
-                if len(frameworks) > 10:
-                    print(f"   ... and {len(frameworks) - 10} more")
+                if fw_summary.get('has_more', False):
+                    print(f"   ... and {fw_summary.get('additional_count', 0)} more")
                 print("")
         
         print("")
@@ -384,46 +460,34 @@ class PortfolioBuilder:
         high-level skills and technical frameworks.
         
         Args:
-            skill_timeline: Skill timeline dictionary
+            skill_timeline: Skill timeline dictionary with enriched display data
         """
         print("SKILL EVOLUTION & TECHNICAL GROWTH")
         print("=" * 80)
         
         high_level_skills = skill_timeline.get('high_level_skills', [])
-        framework_timeline = skill_timeline.get('framework_timeline', {})
+        high_level_meta = skill_timeline.get('high_level_skills_meta', {})
         language_progression = skill_timeline.get('language_progression', [])
+        language_meta = skill_timeline.get('language_meta', {})
         
         # Display high-level skills overview
-        print(f"Core Competencies ({len(high_level_skills)} skills):")
+        print(f"Core Competencies ({high_level_meta.get('total_count', 0)} skills):")
         if high_level_skills:
-            skills_str = ", ".join(high_level_skills)
+            display_count = high_level_meta.get('display_count', 20)
+            skills_str = ", ".join(high_level_skills[:display_count])
             # Wrap text at reasonable width
             import textwrap
             wrapped = textwrap.fill(skills_str, width=76, initial_indent="   ", subsequent_indent="   ")
             print(wrapped)
-            print("")
-        
-        # Display framework/library progression across projects
-        if framework_timeline:
-            print("Technical Framework Evolution (Chronological):")
-            for project_name, proj_data in framework_timeline.items():
-                date_range = proj_data.get('date_range', 'Unknown')
-                frameworks = proj_data.get('frameworks', [])
-                total_fw = proj_data.get('total_frameworks', 0)
-                
-                print(f"\n   {project_name} ({date_range})")
-                if frameworks:
-                    frameworks_str = ", ".join(frameworks)
-                    wrapped = textwrap.fill(frameworks_str, width=73, initial_indent="      ", subsequent_indent="      ")
-                    print(wrapped)
-                    if total_fw > len(frameworks):
-                        print(f"      ... and {total_fw - len(frameworks)} more")
+            if high_level_meta.get('has_more', False):
+                print(f"   ... and {high_level_meta.get('additional_count', 0)} more")
             print("")
         
         # Display language progression
         if language_progression:
             print("Programming Language Proficiency:")
-            for lang in language_progression:
+            display_count = language_meta.get('display_count', 10)
+            for lang in language_progression[:display_count]:
                 name = lang.get('name', 'Unknown')
                 file_count = lang.get('file_count', 0)
                 percentage = lang.get('percentage', 0)
@@ -433,4 +497,7 @@ class PortfolioBuilder:
                 bar = "█" * bar_length
                 
                 print(f"   • {name:12} {bar} {percentage:.1f}% ({file_count} files)")
+            
+            if language_meta.get('has_more', False):
+                print(f"   ... and {language_meta.get('additional_count', 0)} more")
             print("")
