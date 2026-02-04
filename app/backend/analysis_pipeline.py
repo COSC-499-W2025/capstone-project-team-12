@@ -223,7 +223,7 @@ class AnalysisPipeline:
     def save_results(self,data_bundle,results_bundle,return_id:bool = False)->str:
          # save tracked data and insights to database
         try:
-            result_id: str = self.database_manager.create_new_result() 
+            result_id: str = self.database_manager.create_analyses() 
             # save tracked data
             self.database_manager.save_tracked_data(result_id, data_bundle.metadata_results, data_bundle.final_bow, data_bundle.processed_git_repos)
 
@@ -566,9 +566,9 @@ class AnalysisPipeline:
        
         #classify loaded files in text or code and extract git repos
         try:
-            textfile_nodes,codefile_nodes,git_repos,binary_data = self.file_classifer.classify_files(filetree,binary_data)
+            textfile_nodes,codefile_nodes,git_repos,binary_data = self.classify_files(filetree,binary_data)
         except Exception as e:
-            self.cli.print_status("File Classifier Error, Aborting analysis:{e}")
+            self.cli.print_status(f"File Classifier Error, Aborting analysis:{e}")
             
         #run metadata analysis
         try:
