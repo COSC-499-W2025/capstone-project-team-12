@@ -1,5 +1,6 @@
 from typing import Dict, Any, List
 from prompt_toolkit import prompt 
+import re
 
 class ResumeEditor:
     """
@@ -271,6 +272,7 @@ class ResumeEditor:
                         new_value = current_value
                     case _:
                         self.cli.print_status(f"Invalid option '{edit_choice}'. Keeping current {field_name.lower()}")
+                        new_value = current_value
             except Exception as e:
                 self.cli.print_status(f"Error during summary editing: {e}", "error")
                 new_value = current_value
