@@ -66,20 +66,20 @@ class RepositoryProcessor:
 
     def _extract_commits_data(self, repo: Repository) -> Dict[str, Any]:
         # Traverse commits and extracts user commits, statistics, and repo context
-        
+        resolver: AuthorIdentityResolver = AuthorIdentityResolver()
         # Initalize data collectors
         commits_data: List[Dict[str, Any]] = []
         user_dates: List[datetime] = []
-        all_authors_stats: Dict[str, Dict[str, int]] = {}
-        user_emails: Set[str] = set()
+        canonical_stats: Dict[str, Dict[str, int]] = {}
+        target_user_canonical_id: Optional[str] = None
 
-        # Initialize statistic accumulators
+        # User statistics
         user_files_modified: int = 0
         user_lines_added: int = 0
         user_lines_deleted: int = 0
         change_types: Set[str] = set()
 
-        # Initialize all user stats
+        # Repository-wide statistics
         repo_total_commits: int = 0
         repo_total_lines_added: int = 0
         repo_total_lines_deleted: int = 0
@@ -89,14 +89,14 @@ class RepositoryProcessor:
         for commit in repo.traverse_commits():
             repo_total_commits += 1
 
-            commit_email: str = commit.author.email.lower() if commit.author and commit.author.email else ""
+            author_name: str = commit.author.name if commit.author and commit.author.name else ""
+            author_email: str = commit.author.email.lower() if commit.author and commit.author.email else ""
+            # Resolve canonical author identity
+            canonical_id: str = resolver.get_canonical_id(author_name, author_email)
 
-            # Will return the Github privacy email with username so extract username (ex: 12345+yourusername@users.noreply.github.com)
-            commit_username: str = commit.author.email.split('@')[0].split('+')[-1].lower()
-
-            # Track stats for all users if first time seeing this author
-            if commit_email not in all_authors_stats:
-                all_authors_stats[commit_email] = {
+            # Track stats for a new author
+            if canonical_id not in canonical_stats:
+                canonical_stats[canonical_id] = {
                     'commits': 0,
                     'lines_added': 0,
                     'lines_deleted': 0,
@@ -104,7 +104,9 @@ class RepositoryProcessor:
                 }
             
             # Check if this commit belongs to the target user by username or email
-            is_user_commit: bool = (commit_username == self.username) or (self.user_email and commit_email == self.user_email)
+            is_user_commit: bool = resolver.is_target_user(author_email, self.username, self.user_email)
+            if is_user_commit and target_user_canonical_id is None:
+                target_user_canonical_id = canonical_id
 
             # Calculate stats for this commit
             commit_lines_added: int = 0
@@ -125,17 +127,13 @@ class RepositoryProcessor:
                 if is_user_commit and mod.change_type:
                     change_types.add(mod.change_type.name)
             
-            all_authors_stats[commit_email]['commits'] += 1
-            all_authors_stats[commit_email]['lines_added'] += commit_lines_added
-            all_authors_stats[commit_email]['lines_deleted'] += commit_lines_deleted
-            all_authors_stats[commit_email]['files_modified'] += commit_files
+            canonical_stats[canonical_id]['commits'] += 1
+            canonical_stats[canonical_id]['lines_added'] += commit_lines_added
+            canonical_stats[canonical_id]['lines_deleted'] += commit_lines_deleted
+            canonical_stats[canonical_id]['files_modified'] += commit_files
 
             # Only consider the commits of the user for detailed data
             if is_user_commit: 
-
-                # Track user emails incase personal and private versions are used
-                user_emails.add(commit_email)
-
                 # Builds the commit info
                 commit_info = self._build_commit_info(commit)
                 commits_data.append(commit_info)
@@ -149,25 +147,24 @@ class RepositoryProcessor:
                 user_lines_added += commit_lines_added
                 user_lines_deleted += commit_lines_deleted
 
-        is_collaborative: bool = len(all_authors_stats) > 1 if all_authors_stats else len(commits_data) < repo_total_commits
-
-        # Combine multiple user emails if needed
-        if len(user_emails) > 1:
-            combined_stats: Dict[str, int] = {
-                'commits': 0,
-                'lines_added': 0,
-                'lines_deleted': 0,
-                'files_modified': 0
+        # Anonymize contributor keys and track stats
+        anonymized_stats = {}
+        contributor_index: int = 1
+        for canonical_id, stats in canonical_stats.items():
+            is_target_user: bool = (canonical_id == target_user_canonical_id)
+            key: str = 'target_user' if is_target_user else f'contributor_{contributor_index}'
+            anonymized_stats[key] = {
+                'commits': stats['commits'],
+                'lines_added': stats['lines_added'],
+                'lines_deleted': stats['lines_deleted'],
+                'files_modified': stats['files_modified'],
+                'is_target_user': is_target_user
             }
 
-            for email in user_emails:
-                if email in all_authors_stats:
-                    for key in combined_stats:
-                        combined_stats[key] += all_authors_stats[email][key]
-                    del all_authors_stats[email]
-            
-            combined_key: str = self.user_email if self.user_email else self.username
-            all_authors_stats[combined_key] = combined_stats
+            if not is_target_user:
+                contributor_index += 1
+
+        is_collaborative: bool = len(canonical_stats) > 1 if canonical_stats else len(commits_data) < repo_total_commits
 
         return {
             'user_commits_data': commits_data,
@@ -179,12 +176,12 @@ class RepositoryProcessor:
                 'change_types': change_types
             },
             'repository_context': {
-                'total_contributors': len(all_authors_stats),
+                'total_contributors': len(canonical_stats),
                 'total_commits_all_authors': repo_total_commits,
                 'repo_total_lines_added': repo_total_lines_added,
                 'repo_total_lines_deleted': repo_total_lines_deleted,
                 'repo_total_files_modified': repo_total_files_modified,
-                'all_authors_stats': all_authors_stats,
+                'all_authors_stats': anonymized_stats,
                 'is_collaborative': is_collaborative
             }
         }
@@ -280,3 +277,68 @@ class RepositoryProcessor:
                 print(f"Warning: Could not remove temporary directory {temp_dir}: {e}")
         
         self.temp_dirs = []
+
+
+class AuthorIdentityResolver:
+    """
+    Handles the resolution of author identities across multiple email addresses, full names, and usernames.
+    """
+
+    def __init__(self) -> None:
+        self.identity_map: Dict[str, str] = {}
+
+    def _extract_username_from_email(self, email: str) -> str:
+        """
+        Extracts the username from an email address.
+        GitHub noreply emails are handled to extract the actual username.
+        Regular emails return the part before the "@" symbol.
+        """
+        if '+' in email and email.endswith('@users.noreply.github.com'):
+            return email.split('+')[1].split('@')[0].lower()
+        return email.split('@')[0].lower()
+
+    def get_canonical_id(self, author_name: str, author_email: str) -> str:
+        """
+        Returns a canonical identifier for the author based on their name and email.
+        If the author has been seen before with different emails or names, it resolves to a single ID.
+        """
+        email_key = author_email.lower()
+        name_key = author_name.lower()
+        username_key = self._extract_username_from_email(author_email)
+
+        # Check if any of the identifiers are already mapped
+        for key in [email_key, name_key, username_key]:
+            if key in self.identity_map:
+                canonical_id = self.identity_map[key]
+                # Map all identifiers to the canonical ID
+                self.identity_map[email_key] = canonical_id
+                self.identity_map[name_key] = canonical_id
+                self.identity_map[username_key] = canonical_id
+                return canonical_id
+
+        # If not seen before, create a new canonical ID
+        canonical_id = f"username:{username_key}" if username_key else f"email:{email_key}"
+        self.identity_map[email_key] = canonical_id
+        self.identity_map[name_key] = canonical_id
+        self.identity_map[username_key] = canonical_id
+        return canonical_id
+
+    def is_target_user(self, author_email: str, target_username: str, target_email: Optional[str] = None) -> bool:
+        """
+        Determines if the given author email corresponds to the target user by username or email.
+
+        Given that the email may be a GitHub privacy email, it extracts the username for comparison.
+        User has provided their personal email and GitHub username, so we just need to check these 2 possibilities. 
+        """
+
+        # Extracted username from both email types, GitHub privacy will give the username for GitHub
+        # There is a chance that the user's personal email username matches their GitHub username, but this is rare.
+        author_username = self._extract_username_from_email(author_email)
+        if author_username == target_username.lower():
+            return True
+        
+        # If the email on the commit was the user's personal email, check that as well
+        if target_email and author_email.lower() == target_email.lower():
+            return True
+        return False
+       

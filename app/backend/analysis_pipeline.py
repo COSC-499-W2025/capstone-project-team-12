@@ -227,6 +227,8 @@ class AnalysisPipeline:
         self.cli.print_status("File classification completed successfully.", "success")
 
         self.cli.print_header("Metadata Analysis")
+        self.cli.print_status("Analyzing file structures, languages, and sizes...", "info")
+        
         metadata_extractor = MetadataExtractor()
         all_nodes = text_nodes + code_nodes
         metadata_results: Dict[str, Dict[str, Any]] = metadata_extractor.extract_all_metadata(all_nodes, cleaned_binary_data)
@@ -260,6 +262,8 @@ class AnalysisPipeline:
             
             if text_nodes or code_nodes:
                 self.cli.print_header("Content Analysis")
+                self.cli.print_status("Processing file contents to extract keywords and remove sensitive data...", "info")
+                
                 self.cli.print_status(f"Found {len(text_nodes)} text files and {len(code_nodes)} code files.", "info")
                 self.cli.print_status("Running Bag-of-Words (BoW) pipeline...", "info")
 
@@ -322,6 +326,8 @@ class AnalysisPipeline:
 
         if git_repos:
             self.cli.print_header("Repository Linking")
+            self.cli.print_status("Attempting to link local files with GitHub repositories...", "info")
+            
             print(f"Detected {len(git_repos)} git repositories.")
 
             github_username: str = self.cli.get_input("Enter GitHub username to link (Press Enter to skip): \n> ").strip().lower()
@@ -409,7 +415,9 @@ class AnalysisPipeline:
         } if git_repos else []
         
         try:
-            self.cli.print_header("AI Summary Generation")
+            #"AI Summary Generation" header was here 
+            #I moved it down to after the skill selection.
+            
             self.cli.print_status("Collecting analysis statistics...", "info")
             data_bundle = collect_stats(
                 metadata_stats=metadata_results,
@@ -465,6 +473,9 @@ class AnalysisPipeline:
             #allow user to review and edit topic keywords
             #no db saving for edited topic words tho (for now)
             
+            
+            # MOVED: AI Summary Generation Header is now here
+            self.cli.print_header("AI Summary Generation")
             
             self.cli.print_privacy_notice()
 

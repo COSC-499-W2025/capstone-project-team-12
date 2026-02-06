@@ -25,8 +25,9 @@ def create_mock_project_data(
             'total_contributors': total_contributors, 'total_commits_all_authors': user_commits_count * 2,
             'repo_total_lines_added': lines_added * 2, 'repo_total_lines_deleted': 100,
             'repo_total_files_modified': user_commits_count * 2, 'is_collaborative': total_contributors > 1,
-            'all_authors_stats': {'testuser@example.com': {'commits': user_commits_count, 'lines_added': lines_added,
-                                                            'lines_deleted': 50, 'files_modified': user_commits_count}}
+            'all_authors_stats': {'target_user': {'commits': user_commits_count, 'lines_added': lines_added,
+                                                            'lines_deleted': 50, 'files_modified': user_commits_count,
+                                                            'is_target_user': True}}
         },
         'dates': {'start_date': start_date, 'end_date': start_date, 'duration_days': duration_days,
                   'duration_seconds': duration_days * 86400}
@@ -79,24 +80,34 @@ class TestRepositoryAnalyzer:
         # Top contributor (line 274)
         project = create_mock_project_data(total_contributors=3)
         project['repository_context']['all_authors_stats'] = {
-            'testuser@example.com': {'commits': 10}, 'u1@ex.com': {'commits': 5}, 'u2@ex.com': {'commits': 3}}
+            'target_user': {'commits': 10, 'is_target_user': True}, 
+            'contributor_1': {'commits': 5, 'is_target_user': False}, 
+            'contributor_2': {'commits': 3, 'is_target_user': False}}
         assert analyzer._calculate_contribution_insights(project)['contribution_level'] == 'Top Contributor'
         
         # Major contributor (line 276) - need 76th percentile or higher
         project['repository_context']['all_authors_stats'] = {
-            'testuser@example.com': {'commits': 9}, 'u1@ex.com': {'commits': 10}, 'u2@ex.com': {'commits': 5},
-            'u3@ex.com': {'commits': 4}, 'u4@ex.com': {'commits': 2}}
+            'target_user': {'commits': 9, 'is_target_user': True}, 
+            'contributor_1': {'commits': 10, 'is_target_user': False}, 
+            'contributor_2': {'commits': 5, 'is_target_user': False},
+            'contributor_3': {'commits': 4, 'is_target_user': False}, 
+            'contributor_4': {'commits': 2, 'is_target_user': False}}
         result = analyzer._calculate_contribution_insights(project)
         assert result['contribution_level'] == 'Significant Contributor' and result['percentile'] == 60.0
         
         # Regular contributor (line 280) - below 50th percentile
         project['repository_context']['all_authors_stats'] = {
-            'u1@ex.com': {'commits': 10}, 'u2@ex.com': {'commits': 8}, 'u3@ex.com': {'commits': 6},
-            'testuser@example.com': {'commits': 2}, 'u4@ex.com': {'commits': 4}}
+            'contributor_1': {'commits': 10, 'is_target_user': False}, 
+            'contributor_2': {'commits': 8, 'is_target_user': False}, 
+            'contributor_3': {'commits': 6, 'is_target_user': False},
+            'target_user': {'commits': 2, 'is_target_user': True}, 
+            'contributor_4': {'commits': 4, 'is_target_user': False}}
         assert analyzer._calculate_contribution_insights(project)['contribution_level'] == 'Contributor'
         
         # Unknown user
-        assert RepositoryAnalyzer("unknown")._calculate_contribution_insights(project)['contribution_level'] == 'Unknown'
+        empty_project = create_mock_project_data()
+        empty_project['repository_context']['all_authors_stats'] = {}
+        assert RepositoryAnalyzer("unknown")._calculate_contribution_insights(empty_project)['contribution_level'] == 'Unknown'
     
     def test_full_insights_generation(self):
         analyzer = RepositoryAnalyzer("testuser")

@@ -189,7 +189,7 @@ class TestMetadataAnalyzer:
         assert self.analyzer._classify_programming_language('.py') == 'Python'
         assert self.analyzer._classify_programming_language('.js') == 'JavaScript'
         assert self.analyzer._classify_programming_language('.java') == 'Java'
-        assert self.analyzer._classify_programming_language('.txt') == "N/A"
+        assert self.analyzer._classify_programming_language('.txt') == "Text only"
 
     def test_percentages_calculation(self):
         """Test percentage calculations in stats"""
