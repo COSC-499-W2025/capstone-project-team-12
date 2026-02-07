@@ -34,10 +34,10 @@ class AnalysisPipeline:
         
     class result_bundle_cls:
         def __init__(self):
-            self.metadata_analysis: dict[str,any]
+            self.metadata_analysis: dict[str,any] = {}
             self.doc_topic_vectors: list = []
             self.topic_term_vectors: list = []
-            self.project_analysis_data:dict= None
+            self.project_analysis_data:dict= {}
             self.medium_summary = ""   
     
     def __init__(self, cli, config_manager, database_manager):
