@@ -68,7 +68,7 @@ class PortfolioEditor:
                 if role.get('role'):
                     print(f"   Role: {role.get('role')}")
             
-            project_choice = self.cli.get_input("\nSelect a project number to edit or type 'done' to finish: \n> ").strip().lower()
+            project_choice = self.cli.get_input("\nSelect a project number to edit or enter 'done' to finish: \n> ").strip().lower()
             
             if project_choice == 'done':
                 break
@@ -251,7 +251,7 @@ class PortfolioEditor:
             if len(frameworks) > 15:
                 print(f"   ... and {len(frameworks) - 15} more")
             
-            fw_choice = self.cli.get_input("\nType framework name to add, type existing name to remove, or 'done': \n> ").strip()
+            fw_choice = self.cli.get_input("\nEnter the framework name to add, enter an existing framework name to remove, or type 'done' to finish: \n> ").strip()
             
             if fw_choice.lower() == 'done':
                 break
@@ -366,7 +366,7 @@ class PortfolioEditor:
             print(f"\nCurrent Skills ({len(current_skills)} total):")
             print(", ".join(current_skills))
             
-            skill_input = self.cli.get_input("\nType skill to add/remove, or 'done': \n> ").strip()
+            skill_input = self.cli.get_input("\nEnter a skill to add it, enter an existing skill to remove it, or type 'done' to finish: \n> ").strip()
             
             if skill_input.lower() == 'done':
                 break
@@ -398,7 +398,7 @@ class PortfolioEditor:
             if len(current_languages) > 15:
                 print(f"   ... and {len(current_languages) - 15} more")
             
-            lang_input = self.cli.get_input("\nType language to add/remove, or 'done': \n> ").strip()
+            lang_input = self.cli.get_input("\nEnter a language to add or remove it, or type 'done' to finish: \n> ").strip()
             
             if lang_input.lower() == 'done':
                 break
