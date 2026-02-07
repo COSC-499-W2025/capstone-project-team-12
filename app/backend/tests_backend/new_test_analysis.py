@@ -1,6 +1,6 @@
 import pytest
 from analysis_pipeline import *
-from unittest.mock import Mock,MagicMock
+from unittest.mock import Mock,MagicMock,patch
 
 
 #Series of fixtures for testing that follows
@@ -12,7 +12,7 @@ def pipeline():
 
 
 @pytest.fixture
-def mock_text_nodes(self):
+def mock_text_nodes():
     """Mock text nodes"""
     text_node1 = Node("text1.txt", file_data={'binary_index': 0})
     text_node1.filepath = "/path/text1.txt"
@@ -22,25 +22,75 @@ def mock_text_nodes(self):
 
 
 @pytest.fixture
-def mock_code_nodes(self):
+def mock_code_nodes():
     """Mock code nodes"""
     code_node1 = Node("code1.py", file_data={'binary_index': 2})
     code_node1.filepath = "/path/code1.py"
-    code_node2 = Node("code2.c", file_data={'binary_index': 3})
-    code_node2.filepath = "/path/code2.c"
+    code_node2 = Node("code2.cpp", file_data={'binary_index': 3})
+    code_node2.filepath = "/path/code2.cpp"
     return [code_node1, code_node1]
 
 
 @pytest.fixture
-def sample_bin_data_array(self):
+def sample_bin_data_array():
     """Mock bin data for tests"""
     return [
-        b"Capybara textfile information.",
+        b"Capybara text file information.",
         b"Serious non-capybara information",
         b"def some_python_func():\n return [some_python_return,another_python_return]",
-        b"char** someCFunction(){\n char** response = {'data1','data2'};\n return responce;}"
+        b"char** someCppFunction(){\n char** response = {'data1','data2'};\n return responce;}"
     ]
 
+#test topic analysis pipeline
+#The worlds longest test signature lmao, if you have any ideas to concise it let me know
+@patch('analysis_pipeline.generate_topic_vectors')
+@patch('analysis_pipeline.remove_pii')
+@patch('analysis_pipeline.combined_preprocess')
+@patch('analysis_pipeline.BoWCache')
+def test_topic_pipeline(mock_cache_cls, mock_preprocess, mock_pii,mock_gen, #Patched Mocks
+    pipeline, mock_text_nodes, mock_code_nodes, sample_bin_data_array):#Fixtured Mocks
+        
+        pipeline.file_data_list = sample_bin_data_array
+         
+        #Mock Codepreprocessor data based on fixture's data
+        processed_docs = [
+            ['capybara','text','file','info'],
+            ['serious','no','capybara','info'],
+            ['some', 'python', 'function'],
+            ['some','function','response']
+        ]
+        mock_preprocess.return_value = processed_docs
+        
+        #Mock anonymization return
+        anonymized_docs = processed_docs #same as processed_docs for convenience, any issues with anonymization should be handled by test_pii_remover.py 
+        mock_pii.return_value = anonymized_docs
+        
+        # Setup topic generation
+        mock_lda = Mock()
+        mock_lda.show_topic.return_value = [('data', 0.3), ('process', 0.25)]
+        mock_gen.return_value = (mock_lda, Mock(), [[0.5, 0.3]], [[0.4, 0.3]])
+        
+        # Setup cache with miss for testing cache miss case
+        mock_cache = Mock()
+        mock_cache.has.return_value = False
+        mock_cache_cls.return_value = mock_cache
+        
+        #Actual function execution
+        pipeline.run_topic_analysis_pipeline(mock_text_nodes, mock_code_nodes)
+        
+        # Verify cache miss flow
+        mock_cache.has.assert_called()
+        mock_cache.set.assert_called_once()
+        
+        # Verify different steps were called with appropriate calls
+        mock_preprocess.assert_called_once()
+        mock_pii.assert_called_once_with(processed_docs)
+        mock_gen.assert_called_once_with(anonymized_docs)
+        
+def test_metadata_pipeline():
+    assert True
+def test_repo_pipeline():
+    assert True
 
 def test_reviews_proceed_immediately(pipeline):
     """Tests that if user chooses to proceed immediately, the pipeline continues"""
