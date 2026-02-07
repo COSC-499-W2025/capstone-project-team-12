@@ -10,27 +10,30 @@ def pipeline():
     #mock the dependencies
     return AnalysisPipeline(MagicMock(), MagicMock(), MagicMock())
 
-# Mock text nodes
+
 @pytest.fixture
 def mock_text_nodes(self):
+    """Mock text nodes"""
     text_node1 = Node("text1.txt", file_data={'binary_index': 0})
     text_node1.filepath = "/path/text1.txt"
     text_node2 = Node("text2.md", file_data={'binary_index': 1})
     text_node2.filepath = "/path/text2.md"
     return [text_node1,text_node2]
 
-# Mock code nodes
+
 @pytest.fixture
 def mock_code_nodes(self):
+    """Mock code nodes"""
     code_node1 = Node("code1.py", file_data={'binary_index': 2})
     code_node1.filepath = "/path/code1.py"
     code_node2 = Node("code2.c", file_data={'binary_index': 3})
     code_node2.filepath = "/path/code2.c"
     return [code_node1, code_node1]
 
-# Mock bin data for tests
+
 @pytest.fixture
 def sample_bin_data_array(self):
+    """Mock bin data for tests"""
     return [
         b"Capybara textfile information.",
         b"Serious non-capybara information",
