@@ -1,6 +1,7 @@
 import pytest
+from anytree import Node
 from analysis_pipeline import *
-from unittest.mock import Mock,MagicMock,patch
+from unittest.mock import Mock,MagicMock,patch,call
 
 
 #Series of fixtures for testing that follows
