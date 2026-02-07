@@ -41,7 +41,7 @@ def sample_bin_data_array():
         b"char** someCppFunction(){\n char** response = {'data1','data2'};\n return responce;}"
     ]
 
-#test topic analysis pipeline
+#test topic analysis pipeline for both cache miss and cache hit cases
 #The worlds longest test signature lmao, if you have any ideas to concise it let me know
 @patch('analysis_pipeline.generate_topic_vectors')
 @patch('analysis_pipeline.remove_pii')
@@ -50,6 +50,7 @@ def sample_bin_data_array():
 def test_topic_pipeline(mock_cache_cls, mock_preprocess, mock_pii,mock_gen, #Patched Mocks
     pipeline, mock_text_nodes, mock_code_nodes, sample_bin_data_array):#Fixtured Mocks
         
+        #====MOCKING VARIOUS SHARED RETURNS===#
         pipeline.file_data_list = sample_bin_data_array
          
         #Mock Codepreprocessor data based on fixture's data
@@ -67,16 +68,21 @@ def test_topic_pipeline(mock_cache_cls, mock_preprocess, mock_pii,mock_gen, #Pat
         
         # Setup topic generation
         mock_lda = Mock()
+        mock_dictionary = Mock()
+        doc_topic_vectors = [[0.5, 0.3]]
+        topic_term_vectors = [[0.4, 0.3]]
         mock_lda.show_topic.return_value = [('data', 0.3), ('process', 0.25)]
-        mock_gen.return_value = (mock_lda, Mock(), [[0.5, 0.3]], [[0.4, 0.3]])
-        
+        mock_gen.return_value = (mock_lda,mock_dictionary, [[0.5, 0.3]], [[0.4, 0.3]])
+        #====END OF SHARED MOCKS===#
+       
+        #====START OF CACHE MISS CASE====#    
         # Setup cache with miss for testing cache miss case
         mock_cache = Mock()
         mock_cache.has.return_value = False
         mock_cache_cls.return_value = mock_cache
         
         #Actual function execution
-        pipeline.run_topic_analysis_pipeline(mock_text_nodes, mock_code_nodes)
+        result = pipeline.run_topic_analysis_pipeline(mock_text_nodes, mock_code_nodes)
         
         # Verify cache miss flow
         mock_cache.has.assert_called()
@@ -85,7 +91,47 @@ def test_topic_pipeline(mock_cache_cls, mock_preprocess, mock_pii,mock_gen, #Pat
         # Verify different steps were called with appropriate calls
         mock_preprocess.assert_called_once()
         mock_pii.assert_called_once_with(processed_docs)
+        
+        #Verify topic generation was called
         mock_gen.assert_called_once_with(anonymized_docs)
+        
+        # Verify return values
+        lda_model, dictionary, doc_vecs, topic_vecs, bow = result
+        assert lda_model == mock_lda
+        assert dictionary == mock_dictionary
+        assert doc_vecs == doc_topic_vectors
+        assert topic_vecs == topic_term_vectors
+        assert bow == anonymized_docs
+        #====END OF CACHE MISS CASE====#        
+        
+        #====START OF CACHE HIT CASE====# 
+        #Setup cache with hit case
+        #another reuse for convenience
+        cached_bow = processed_docs
+        mock_cache = Mock()
+        mock_cache.has.return_value = True
+        mock_cache.get.return_value = cached_bow
+        mock_cache_cls.return_value = mock_cache
+        
+        #Actual function execution
+        result = pipeline.run_topic_analysis_pipeline(mock_text_nodes, mock_code_nodes)
+        
+        # Verify cache hit flow
+        mock_cache.has.assert_called_once()
+        mock_cache.get.assert_called_once()
+        mock_cache.set.assert_not_called() 
+        
+
+        # Verify topic generation was called 
+        mock_gen.assert_called_with(cached_bow)
+        
+        # Verify return values
+        lda_model, dictionary, doc_vecs, topic_vecs, bow = result
+        assert lda_model == mock_lda
+        assert dictionary == mock_dictionary
+        assert doc_vecs == doc_topic_vectors
+        assert topic_vecs == topic_term_vectors
+        assert bow == cached_bow
         
 def test_metadata_pipeline():
     assert True
