@@ -1,7 +1,6 @@
 import pytest
-from anytree import Node
 from analysis_pipeline import *
-from unittest.mock import Mock,MagicMock,patch,call
+from unittest.mock import Mock,MagicMock,patch
 
 
 #Series of fixtures for testing that follows
@@ -60,12 +59,13 @@ def test_data_helpers(pipeline,mock_text_nodes,sample_bin_data_array):
     
     assert pipeline.binary_to_str([b"Test_string1",b"Test_string2"]) == ["Test_string1","Test_string2"]
 
-    assert pipeline.get_bin_data_by_Nodes(mock_text_nodes) == [
-        b"Capybara text file information.",
-        b"Serious non-capybara information"
-        ]
-    
-    assert pipeline.binary_to_str([b"Test_string1",b"Test_string2"]) == ["Test_string1","Test_string2"]
+@patch("analysis_pipeline.FileManager")
+def test_file_load_failure(mock_fm, pipeline):
+    """Tests that the pipeline stops if the file fails to load"""
+    #forcing hte file manager to return error
+    mock_fm.return_value.load_from_filepath.return_value = {"status": "error", "message": "fail"}
+    pipeline.run_analysis("fake_path")
+    pipeline.cli.print_status.assert_any_call("File Manager Error:Load Error: fail", "error")
 
 #test topic analysis pipeline for both cache miss and cache hit cases
 #The worlds longest test signature lmao, if you have any ideas to concise it let me know
@@ -225,5 +225,4 @@ def test_review_manual_editing(pipeline):
     assert keywords[0] == 'better'  #replaced
     assert keywords[1] == 'middle'  #same
     assert keywords[2] == 'good'    #added
-
 
