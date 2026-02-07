@@ -42,6 +42,31 @@ def sample_bin_data_array():
         b"char** someCppFunction(){\n char** response = {'data1','data2'};\n return responce;}"
     ]
 
+def test_data_helpers(pipeline,mock_text_nodes,sample_bin_data_array):
+    """Tests if the pipeline can correctly fetch and convert binary data"""
+    pipeline.file_data_list = sample_bin_data_array
+    
+    assert pipeline.get_bin_data_by_Id(0) == b"Capybara text file information."
+    
+    assert pipeline.get_bin_data_by_IdList([1,2]) == [
+        b"Serious non-capybara information",
+        b"def some_python_func():\n return [some_python_return,another_python_return]"
+    ]
+    
+    assert pipeline.get_bin_data_by_Nodes(mock_text_nodes) == [
+        b"Capybara text file information.",
+        b"Serious non-capybara information"
+        ]
+    
+    assert pipeline.binary_to_str([b"Test_string1",b"Test_string2"]) == ["Test_string1","Test_string2"]
+
+    assert pipeline.get_bin_data_by_Nodes(mock_text_nodes) == [
+        b"Capybara text file information.",
+        b"Serious non-capybara information"
+        ]
+    
+    assert pipeline.binary_to_str([b"Test_string1",b"Test_string2"]) == ["Test_string1","Test_string2"]
+
 #test topic analysis pipeline for both cache miss and cache hit cases
 #The worlds longest test signature lmao, if you have any ideas to concise it let me know
 @patch('analysis_pipeline.generate_topic_vectors')
