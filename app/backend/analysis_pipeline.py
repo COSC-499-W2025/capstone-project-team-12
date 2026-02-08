@@ -1,6 +1,8 @@
 import hashlib
+import pickle
 from typing import List, BinaryIO, Dict, Any
 from anytree import Node
+from anytree.exporter import DictExporter
 from file_manager import FileManager
 from repo_detector import RepoDetector
 from file_classifier import FileClassifier
@@ -49,6 +51,7 @@ class AnalysisPipeline:
         self.data_bundle = self.data_bundle_cls()
         self.result_bundle = self.result_bundle_cls()
         self.repo_detector = RepoDetector()
+        self.dict_exporter = DictExporter()
 
     #helpers from amin
     def get_bin_data_by_Id(self, bin_Idx: int) -> BinaryIO | None:
@@ -220,20 +223,19 @@ class AnalysisPipeline:
         
         return fm_result
             
-    def save_results(self,data_bundle,results_bundle,return_id:bool = False)->str:
+    def save_results(self,data_bundle,results_bundle,analysis_id: str, return_id:bool = False)->str:
          # save tracked data and insights to database
         try:
-            result_id: str = self.database_manager.create_analyses() 
             # save tracked data
-            self.database_manager.save_tracked_data(result_id, data_bundle.metadata_results, data_bundle.final_bow, data_bundle.processed_git_repos)
+            self.database_manager.save_tracked_data(analysis_id, data_bundle.metadata_results, data_bundle.final_bow, data_bundle.processed_git_repos)
 
             # save insights
-            self.database_manager.save_metadata_analysis(result_id, results_bundle.metadata_analysis)
-            self.database_manager.save_text_analysis(result_id, results_bundle.doc_topic_vectors, results_bundle.topic_term_vectors)
-            self.database_manager.save_repository_analysis(result_id, results_bundle.project_analysis_data)
-            self.database_manager.save_resume_points(result_id, results_bundle.medium_summary)
+            self.database_manager.save_metadata_analysis(analysis_id, results_bundle.metadata_analysis)
+            self.database_manager.save_text_analysis(analysis_id, results_bundle.doc_topic_vectors, results_bundle.topic_term_vectors)
+            self.database_manager.save_repository_analysis(analysis_id, results_bundle.project_analysis_data)
+            self.database_manager.save_resume_points(analysis_id, results_bundle.medium_summary)
             if return_id:
-                return result_id
+                return analysis_id
         except Exception as e:
             self.cli.print_status(f"Error saving result to database: {e}", "error")
     
@@ -563,6 +565,23 @@ class AnalysisPipeline:
             self.cli.print_status("File Manager Error: Binary data not loaded. Aborting analysis.", " error") #changed because without any binary data cannot do any analysis
             binary_data = []
             return
+
+        # NEW: Create Analysis ID and Save Initial Fileset immediately for future updates
+        try:
+            analysis_id = self.database_manager.create_analyses(file_path=filepath)
+            
+            # Serialize binary data
+            binary_blob = pickle.dumps(binary_data)
+            
+            # Export tree
+            tree_dict = self.dict_exporter.export(filetree)
+            
+            # Save fileset
+            self.database_manager.save_fileset(analysis_id, binary_blob, tree_dict, filepath)
+            
+        except Exception as e:
+            self.cli.print_status(f"Database Initialization Error: {e}", "error")
+            return
        
         #classify loaded files in text or code and extract git repos
         try:
@@ -608,4 +627,7 @@ class AnalysisPipeline:
         self.result_bundle.medium_summary = self.run_AI_NLG(self.data_bundle,self.result_bundle,text_analysis_data)
         
         #Save All relevent input data and results to DB
-        self.save_results(self.data_bundle,self.result_bundle)
+        self.save_results(self.data_bundle,self.result_bundle,analysis_id,return_id)
+        
+        if return_id:
+            return analysis_id
