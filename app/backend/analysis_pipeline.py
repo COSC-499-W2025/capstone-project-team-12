@@ -366,85 +366,87 @@ class AnalysisPipeline:
     def run_repo_analysis_pipeline(self,git_repos,binary_data):
         processed_git_repos: List[Dict[str, Any]] = None
         analyzed_repos: List[Dict[str, Any]] = None
-
-        if git_repos:
-            self.cli.print_header("Repository Linking")
-            self.cli.print_status("Attempting to link local files with GitHub repositories...", "info")
-            
-            print(f"Detected {len(git_repos)} git repositories.")
-
-            github_username: str = self.cli.get_input("Enter GitHub username to link (Press Enter to skip): \n> ").strip().lower()
-            
-            if github_username:
-                user_email: str = self.cli.get_input("Enter GitHub email associated with the account: \n> ").strip().lower()
-
-                repo_processor = RepositoryProcessor(
-                    username=github_username,
-                    binary_data_array=binary_data,
-                    user_email=user_email if user_email else None
-                )
-                
-                try:
-                    processed_git_repos = repo_processor.process_repositories(git_repos)
-                    if not processed_git_repos:
-                        self.cli.print_status("No repositores to process.", "error")
-                    else:
-                        for repo in processed_git_repos:
-                            repo["name"] = (
-                                repo.get("repo_name")
-                                or repo.get("name")
-                                or repo.get("repo_url")
-                                or "Unnamed Repository"
-                            )
-
-                        # Allow user to choose which projects to analyze
-                        selected_repos = choose_projects_for_analysis(processed_git_repos)
-                        self.cli.print_status("Repositories processed successfully.", "success")
-                        
-                        analyzer = RepositoryAnalyzer(github_username, user_email)
-                        imports_extractor = ImportsExtractor()
-
-                        #Generate the insights for ALL selected projects (not just what is displayed to allow for storage in db)
-                        analyzed_repos = analyzer.generate_project_insights(selected_repos)
-                        imports_data = imports_extractor.get_all_repo_import_stats(selected_repos)
-
-                        # merge imports_data back into analyzed_repos
-                        for repo in analyzed_repos:
-                            repo_name = repo.get('repository_name')
-                            matching_import = next(
-                                (imp for imp in imports_data if imp.get('repository_name') == repo_name),
-                                None
-                            )
-                            if matching_import:
-                                repo['imports_summary'] = matching_import.get('imports_summary', {})
-                            else:
-                                repo['imports_summary'] = {}
-
-                        if not analyzed_repos:
-                            self.cli.print_status("No successful repository analyses.", "warning")
-                        else:
-                            self.cli.print_status(f"Analyzed {len(analyzed_repos)} repositories.", "success")
-                            # Allow user to rerank projects
-                            self.cli.print_status("Ready to rank/re-rank projects.\n", "info")
-                            analyzed_repos = rerank_projects(analyzed_repos)
-                            # Generate the project timeline
-                            timeline = analyzer.create_chronological_project_list(analyzed_repos)
-
-                            # when generate_project_insights is run, the returned values are sorted by importance already
-                            display_project_summary(analyzed_repos, top_n=3)
-
-                            # display the detailed insights only for top 3 projects
-                            display_project_insights(analyzed_repos, top_n=3)
-
-                            display_project_timeline(timeline)
-                            return git_repos,analyzed_repos,timeline,processed_git_repos
-                        
-                except Exception as e:
-                    raise RuntimeError(f"Repository processing failed: {e}")
-            else:
-                self.cli.print_status("Skipping Git linking.", "info")
-                return [],[],[],[]
         
+        self.cli.print_header("Repository Linking")
+        if not git_repos:
+            self.cli.print_status(f"No repositores to process. Make sure .git hidden folder exists!", "error")
+            return [],[],[],[]
+        self.cli.print_status("Attempting to link local files with GitHub repositories...", "info")
+        
+        print(f"Detected {len(git_repos)} git repositories.")
+
+        github_username: str = self.cli.get_input("Enter GitHub username to link (Press Enter to skip): \n> ").strip().lower()
+        
+        if github_username:
+            user_email: str = self.cli.get_input("Enter GitHub email associated with the account: \n> ").strip().lower()
+
+            repo_processor = RepositoryProcessor(
+                username=github_username,
+                binary_data_array=binary_data,
+                user_email=user_email if user_email else None
+            )
+            
+            try:
+                processed_git_repos = repo_processor.process_repositories(git_repos)
+                if not processed_git_repos:
+                    self.cli.print_status("No repositores to process.", "error")
+                else:
+                    for repo in processed_git_repos:
+                        repo["name"] = (
+                            repo.get("repo_name")
+                            or repo.get("name")
+                            or repo.get("repo_url")
+                            or "Unnamed Repository"
+                        )
+
+                    # Allow user to choose which projects to analyze
+                    selected_repos = choose_projects_for_analysis(processed_git_repos)
+                    self.cli.print_status("Repositories processed successfully.", "success")
+                    
+                    analyzer = RepositoryAnalyzer(github_username, user_email)
+                    imports_extractor = ImportsExtractor()
+
+                    #Generate the insights for ALL selected projects (not just what is displayed to allow for storage in db)
+                    analyzed_repos = analyzer.generate_project_insights(selected_repos)
+                    imports_data = imports_extractor.get_all_repo_import_stats(selected_repos)
+
+                    # merge imports_data back into analyzed_repos
+                    for repo in analyzed_repos:
+                        repo_name = repo.get('repository_name')
+                        matching_import = next(
+                            (imp for imp in imports_data if imp.get('repository_name') == repo_name),
+                            None
+                        )
+                        if matching_import:
+                            repo['imports_summary'] = matching_import.get('imports_summary', {})
+                        else:
+                            repo['imports_summary'] = {}
+
+                    if not analyzed_repos:
+                        self.cli.print_status("No successful repository analyses.", "warning")
+                    else:
+                        self.cli.print_status(f"Analyzed {len(analyzed_repos)} repositories.", "success")
+                        # Allow user to rerank projects
+                        self.cli.print_status("Ready to rank/re-rank projects.\n", "info")
+                        analyzed_repos = rerank_projects(analyzed_repos)
+                        # Generate the project timeline
+                        timeline = analyzer.create_chronological_project_list(analyzed_repos)
+
+                        # when generate_project_insights is run, the returned values are sorted by importance already
+                        display_project_summary(analyzed_repos, top_n=3)
+
+                        # display the detailed insights only for top 3 projects
+                        display_project_insights(analyzed_repos, top_n=3)
+
+                        display_project_timeline(timeline)
+                        return git_repos,analyzed_repos,timeline,processed_git_repos
+                    
+            except Exception as e:
+                raise RuntimeError(f"Repository processing failed: {e}")
+        else:
+            self.cli.print_status("Skipping Git linking.", "info")
+            return [],[],[],[]
+
     def run_AI_NLG(self,data_bundle,result_bundle,text_analysis_data):
         try:
             #"AI Summary Generation" header was here 
