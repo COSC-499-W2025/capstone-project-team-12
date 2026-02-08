@@ -295,7 +295,70 @@ class TestRunRepoAnalysisPipeline:
         )
 
     
-    
+    #Primary test for the entire repo analysis pipeline
+    @patch('analysis_pipeline.rerank_projects')
+    @patch('analysis_pipeline.choose_projects_for_analysis')
+    @patch('analysis_pipeline.RepositoryAnalyzer')
+    @patch('analysis_pipeline.ImportsExtractor')
+    @patch('analysis_pipeline.RepositoryProcessor')
+    def test_successful_pipeline_execution(
+        self, mock_repoprocessor, mock_importprocessor,
+        mock_repoanalyzer, mock_choose, 
+        mock_rerank, pipeline
+    ):
+        """Test successful execution of the entire pipeline"""
+        #fake data and fake user input
+        git_repos = [{"path": "/repo1"}]
+        pipeline.cli.get_input.side_effect = ["testuser", "test@email.com"]
+        
+        #setup arrays and data for test result
+        processed_repos = [{"repo_name": "test-repo"}]
+        selected_repos = [{"repo_name": "test-repo"}]
+        analyzed_repos = [{"repository_name": "test-repo", "score": 10}]
+        imports_data = [{"repository_name": "test-repo", "imports_summary": {"numpy": 5}}]
+        timeline = [{"repo": "test-repo", "date": "2024-01"}]
+        reranked_repos = [{"repository_name": "test-repo", "score": 15}]
+        
+        #mock repo_processor
+        mock_processor = MagicMock()
+        mock_processor.process_repositories.return_value = processed_repos
+        mock_repoprocessor.return_value = mock_processor
+        
+        #mock user choosing
+        mock_choose.return_value = selected_repos
+        
+        #Mock repo analyzer
+        mock_analyzer = MagicMock()
+        mock_analyzer.generate_project_insights.return_value = analyzed_repos
+        mock_analyzer.create_chronological_project_list.return_value = timeline
+        mock_repoanalyzer.return_value = mock_analyzer
+        
+        #Mock Imports handler
+        mock_imports = MagicMock()
+        mock_imports.get_all_repo_import_stats.return_value = imports_data
+        mock_importprocessor.return_value = mock_imports
+        
+        #Fake user reranking
+        mock_rerank.return_value = reranked_repos
+        
+        #Actual Execution
+        result = pipeline.run_repo_analysis_pipeline(git_repos, [])
+        
+        # Verify analyzer was initialized correctly
+        mock_repoanalyzer.assert_called_once_with("testuser", "test@email.com")
+        
+        # Verify insights and imports were generated
+        mock_analyzer.generate_project_insights.assert_called_once_with(selected_repos)
+        mock_imports.get_all_repo_import_stats.assert_called_once_with(selected_repos)
+        
+        # Verify reranking happened
+        mock_rerank.assert_called_once()
+        
+        # Verify timeline was created
+        mock_analyzer.create_chronological_project_list.assert_called_once_with(reranked_repos)
+        
+        # Verify return values
+        assert result == (git_repos, reranked_repos, timeline, processed_repos)
     
 def test_metadata_pipeline():
     assert True
