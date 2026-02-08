@@ -223,9 +223,11 @@ class AnalysisPipeline:
         
         return fm_result
             
-    def save_results(self,data_bundle,results_bundle,analysis_id: str, return_id:bool = False)->str:
+    def save_results(self, data_bundle, results_bundle, analysis_id: str, return_id:bool = False)->str:
          # save tracked data and insights to database
         try:
+            # Note: We now use the analysis_id created at the start of the pipeline
+            
             # save tracked data
             self.database_manager.save_tracked_data(analysis_id, data_bundle.metadata_results, data_bundle.final_bow, data_bundle.processed_git_repos)
 
@@ -626,8 +628,8 @@ class AnalysisPipeline:
         #Run AI based Natural language generation
         self.result_bundle.medium_summary = self.run_AI_NLG(self.data_bundle,self.result_bundle,text_analysis_data)
         
-        #Save All relevent input data and results to DB
-        self.save_results(self.data_bundle,self.result_bundle,analysis_id,return_id)
+        #Save All relevent input data and results to DB using the created analysis_id
+        self.save_results(self.data_bundle, self.result_bundle, analysis_id, return_id)
         
         if return_id:
             return analysis_id
