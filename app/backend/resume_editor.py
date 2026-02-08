@@ -124,7 +124,7 @@ class ResumeEditor:
                         self.cli.print_status("Project name updated.", "success")
                     case 'd':
                         print(f"\nCurrent Date Range: {project.get('date_range', 'N/A')}")
-                        print("\nFormat for date range: 'MMM YYYY - MMM YYYY' or 'MMM YYYY - Present'")
+                        print("\nFormat for date range: 'MMM YYYY - MMM YYYY' or 'MMM YYYY - Present'. Example: 'Jan 2020 - Dec 2021' or 'Jan 2020 - Present'")
                         while True:
                             new_date_range = self._edit_text_field("Date Range", project.get('date_range', ''), allow_multiline=False)
                             
@@ -139,7 +139,7 @@ class ResumeEditor:
                                 break
                             else:
                                 self.cli.print_status(
-                                    "Invalid format. Expected 'MMM YYYY - MMM YYYY' or 'MMM YYYY - Present'. Please try again or press Ctrl+C to cancel.", 
+                                    "Invalid format. Expected 'MMM YYYY - MMM YYYY' or 'MMM YYYY - Present'. For Example: 'Jan 2020 - Dec 2021' or 'Jan 2020 - Present'. Please try again or press Ctrl+C to cancel.", 
                                     "warning"
                                 )
                     case 'f':
