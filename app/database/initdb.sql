@@ -5,16 +5,18 @@ SELECT uuid_generate_v4();
 CREATE TABLE IF NOT EXISTS
 Analyses(
     analysis_id uuid DEFAULT uuid_generate_v4() PRIMARY KEY,
-    file_path text -- Added to track the original source path
+    original_file_path text,  -- Renamed from file_path to avoid confusion
+    creation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS
 Filesets(
     fileset_id SERIAL PRIMARY KEY,
     analysis_id uuid REFERENCES Analyses(analysis_id) NOT NULL UNIQUE,
-    file_data bytea, -- Stores the most recent binary blob (pickled list of bytes)
+    file_data bytea, 
     file_data_tree_id integer,
-    file_path text -- Added: Tracks the current path of this specific fileset version
+    latest_file_path text  -- Renamed from file_path 
 );
 
 CREATE TABLE IF NOT EXISTS
@@ -38,7 +40,7 @@ CREATE TABLE IF NOT EXISTS
 Results(
     result_id SERIAL PRIMARY KEY,
     analysis_id uuid REFERENCES Analyses(analysis_id) NOT NULL,
-    topic_vector JSON, --changed to JSON for more flexibility--
+    topic_vector JSON, 
     resume_points JSON,
     project_insights JSON,
     package_insights JSON,
