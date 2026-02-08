@@ -10,6 +10,7 @@ from main_utils import *
 from input_validation import *
 from resume_builder import ResumeBuilder
 from resume_editor import ResumeEditor
+from portfolio_builder import PortfolioBuilder
 
 
     
@@ -20,6 +21,7 @@ def main() -> None:
     config_manager = ConfigManager() # Initialize Config Manager
     database_manager = DatabaseManager()  # Initialize Database Manager
     resume_builder = ResumeBuilder()    # Initialize Resume Builder
+    portfolio_builder = PortfolioBuilder()  # Initialize Portfolio Builder
     
     cli.print_header("Artifact Mining App")
         
@@ -41,7 +43,7 @@ def main() -> None:
             -'N' to perform analysis on new filepath\n\t
             -'A' to view all past analysis.\n\t
             -'V' to view particular analysis.\n\t
-            -'G' to generate resume from past analysis.\n\t
+            -'G' to generate resume or portfolio from past analysis.\n\t
             -'T' to edit or update thumbnail for past analysis\n\t
             -'U' to update a past analysis.\n\t
             -'D' to delete particular analysis.\n\t
@@ -113,22 +115,34 @@ def main() -> None:
                 case 'g':
                     # Generate new resume
                     try:
-                        result_id = cli.get_input("Enter Analysis ID to generate resume from: ").strip()
+                        result_id = cli.get_input("Enter Analysis ID to generate Portfolio or Resume from: ").strip()
                         result_id = validate_uuid(result_id)
 
-                        resume = resume_builder.create_resume_from_result_id(database_manager, cli, result_id)
-                        if resume:
-                            resume_builder.display_resume(resume, cli)
-                            # Allow the user to edit the resume before saving
-                            edit_choice:str = cli.get_input("Would you like to edit the resume before saving? (y/n): ").strip().lower()
-                            if edit_choice in ('y', 'yes'):
-                                editor = ResumeEditor(cli)
-                                resume = editor.edit_resume(resume)
+                        generation_type = cli.get_input("Would you like to generate a Portfolio or a Resume? (P/R): ").strip().lower()
+
+                        if generation_type in ('r','resume'):
+                            resume = resume_builder.create_resume_from_result_id(database_manager, cli, result_id)
+                            if resume:
+                                resume_builder.display_resume(resume, cli)
+                                # Allow the user to edit the resume before saving
+                                edit_choice:str = cli.get_input("Would you like to edit the resume before saving? (y/n): ").strip().lower()
+                                if edit_choice in ('y', 'yes'):
+                                    editor = ResumeEditor(cli)
+                                    resume = editor.edit_resume(resume)
+
+                        elif generation_type in ('p','portfolio'):
+                            portfolio = portfolio_builder.create_portfolio_from_result_id(database_manager, cli, result_id)
+                            if portfolio:
+                                portfolio_builder.display_portfolio(portfolio, cli)
+
+                        else:
+                            cli.print_status("Invalid generation type input","error")
+                            
 
                     except ValueError as e:
                         cli.print_status(f"UUID Error:{e}", "error")
-                    except Exception as e:
-                        cli.print_status(f"Error generating resume: {e}", "error")
+                    except Exception as e:              
+                        cli.print_status(f"Error generating portfolio or resume: {e}", "error")
                 
                 case 't':
                     analysis_id:str = cli.get_input("Enter Analysis ID to add/edit the thumbnail of:")

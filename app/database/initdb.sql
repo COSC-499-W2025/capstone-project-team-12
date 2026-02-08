@@ -11,8 +11,9 @@ CREATE TABLE IF NOT EXISTS
 Filesets(
     fileset_id SERIAL PRIMARY KEY,
     analysis_id uuid REFERENCES Analyses(analysis_id) NOT NULL UNIQUE,
-    file_data bytea -- Only the most recent set of binary data for the files is maintained. 
+    file_data bytea, -- Only the most recent set of binary data for the files is maintained. 
                     --But multiple trees can be maintained for the same analysis in Filetrees table
+    file_data_tree_id integer
 );
 
 CREATE TABLE IF NOT EXISTS
@@ -64,6 +65,10 @@ Portfolios(
 
     
 );
+
+ALTER TABLE Filesets
+ADD CONSTRAINT latest_filetree_tracking
+FOREIGN KEY (file_data_tree_id) REFERENCES Filetrees(filetree_id);
 
 CREATE DATABASE test_db 
 WITH TEMPLATE "user";

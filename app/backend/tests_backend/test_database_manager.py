@@ -1,7 +1,7 @@
 import pytest
 import json
 import uuid
-from unittest.mock import Mock, patch, call
+from unittest.mock import Mock, patch, call, MagicMock
 from database_manager import DatabaseManager
 
 @pytest.fixture
@@ -75,33 +75,47 @@ class TestCreateAnalyses:
         with pytest.raises(Exception, match="Failed to generate analysis_id"):
             db_manager.create_analyses()
 
+def execute_update_sideeffect_func(query,params,returning=False):
+    """Helper function for conditional mocking execute update calls in database manager"""
+    if returning:
+        if 'INSERT INTO Filesets' in query:
+            return [{'fileset_id': 1}] #When Inserting into Fileset return fileset_id for later use
+        if 'UPDATE Filesets SET file_data =' in query:
+            return #return none as no value is used in case of existing fileset as fileset_id is retrieved prior to update in query
+        if 'INSERT INTO Filetrees' in query:
+            return[{'filetree_id' : 125}] # When Inserting into Filetrees return filetree_id so file_set can be updated with appropriate filetree_id
+                                        # Value is a large integer as anynumber of filetrees may exist prior to fileset creation/update
+        
+        #Last case included for completeness not checked therefore returns None!
+        if 'UPDATE Filesets SET file_data_tree_id' in query:
+            return 
+    else:
+        return 1 #if returning param is not set to zero just return one as only one row should be affected in all cases!
+
 class TestSaveFileset:
     """Tests for new save_fileset method."""
-    
     def test_save_fileset_insert_new(self, db_manager, mock_db_connector, sample_analysis_id):
         """Test inserting a new fileset."""
         # Mock check_query returning empty (no existing fileset)
         # Then insert returns ID
         mock_db_connector.execute_query.return_value = [] 
-        mock_db_connector.execute_update.side_effect = [
-            {'fileset_id': 1}, # Insert Fileset
-            None               # Insert Filetree
-        ]
-        
+        mock_db_connector.execute_update = MagicMock(side_effect=execute_update_sideeffect_func)
         tree = {"name": "root"}
         binary = b"fake_zip_content"
         
         result = db_manager.save_fileset(sample_analysis_id, binary, tree)
-        
+        mock_db_connector.execute_query.return_value = []
         assert result is True
+        
         assert 'INSERT INTO Filesets' in mock_db_connector.execute_update.call_args_list[0][0][0]
         assert 'INSERT INTO Filetrees' in mock_db_connector.execute_update.call_args_list[1][0][0]
+        assert 'UPDATE Filesets' in mock_db_connector.execute_update.call_args_list[2][0][0] #Test for filetree, fileset association
 
     def test_save_fileset_update_existing(self, db_manager, mock_db_connector, sample_analysis_id):
         """Test updating an existing fileset."""
         # Mock check_query returning existing fileset_id
         mock_db_connector.execute_query.return_value = [{'fileset_id': 55}]
-        
+        mock_db_connector.execute_update = MagicMock(side_effect=execute_update_sideeffect_func)
         tree = {"name": "root"}
         binary = b"new_zip_content"
         
@@ -113,6 +127,7 @@ class TestSaveFileset:
         # Should be UPDATE Filesets, then INSERT Filetrees
         assert 'UPDATE Filesets' in calls[0][0][0]
         assert 'INSERT INTO Filetrees' in calls[1][0][0]
+        assert 'UPDATE Filesets' in calls[2][0][0] #Test for filetree, fileset association
 
 class TestSaveMetadataAnalysis:
     def test_save_metadata_analysis_success(self, db_manager, mock_db_connector, sample_analysis_id, sample_metadata_insights):
