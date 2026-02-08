@@ -11,6 +11,7 @@ from input_validation import *
 from resume_builder import ResumeBuilder
 from resume_editor import ResumeEditor
 from portfolio_builder import PortfolioBuilder
+from portfolio_editor import PortfolioEditor
 
 
     
@@ -138,10 +139,14 @@ def main() -> None:
                             if portfolio:
                                 portfolio_builder.display_portfolio(portfolio, cli)
 
+                                edit_choice:str = cli.get_input("Would you like to edit the portfolio before saving? (y/n): ").strip().lower()
+                                if edit_choice in ('y', 'yes'):
+                                    portfolio_editor = PortfolioEditor(cli)
+                                    portfolio = portfolio_editor.edit_portfolio(portfolio)                     
+
                         else:
                             cli.print_status("Invalid generation type input","error")
                             
-
                     except ValueError as e:
                         cli.print_status(f"UUID Error:{e}", "error")
                     except Exception as e:              
