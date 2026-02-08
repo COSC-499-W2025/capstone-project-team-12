@@ -4,16 +4,17 @@ SELECT uuid_generate_v4();
 
 CREATE TABLE IF NOT EXISTS
 Analyses(
-    analysis_id uuid DEFAULT uuid_generate_v4() PRIMARY KEY  
+    analysis_id uuid DEFAULT uuid_generate_v4() PRIMARY KEY,
+    file_path text -- Added to track the original source path
 );
 
 CREATE TABLE IF NOT EXISTS
 Filesets(
     fileset_id SERIAL PRIMARY KEY,
     analysis_id uuid REFERENCES Analyses(analysis_id) NOT NULL UNIQUE,
-    file_data bytea, -- Only the most recent set of binary data for the files is maintained. 
-                    --But multiple trees can be maintained for the same analysis in Filetrees table
-    file_data_tree_id integer
+    file_data bytea, -- Stores the most recent binary blob (pickled list of bytes)
+    file_data_tree_id integer,
+    file_path text -- Added: Tracks the current path of this specific fileset version
 );
 
 CREATE TABLE IF NOT EXISTS
@@ -45,8 +46,6 @@ Results(
     thumbnail_image bytea DEFAULT NULL
 );
 
-
-
 CREATE TABLE IF NOT EXISTS
 Resumes(
  resume_id SERIAL PRIMARY KEY,
@@ -57,13 +56,11 @@ Resumes(
  languages JSON,
  full_resume JSON
 );
+
 CREATE TABLE IF NOT EXISTS
 Portfolios(
     portfolio_id SERIAL PRIMARY KEY,
     analysis_id uuid REFERENCES Analyses(analysis_id)
-    --TODO determine portfolio output columns
-
-    
 );
 
 ALTER TABLE Filesets
