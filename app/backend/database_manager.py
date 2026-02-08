@@ -142,7 +142,7 @@ class DatabaseManager:
             #just append new row here
             tree_query = "INSERT INTO Filetrees (fileset_id, filetree) VALUES (%s, %s) RETURNING filetree_id;"
             tree_res = self.db.execute_update(tree_query, (fileset_id, json.dumps(file_tree)),returning=True)
-            print(f"Saved fileset and tree for analysis_id: {analysis_id}")
+            print(f"Saved fileset (path: {file_path}) and tree for analysis_id: {analysis_id}")
             
             try:
                 if not fileset_id:
@@ -150,8 +150,11 @@ class DatabaseManager:
                     raise ValueError
                 
                 new_tree_id = tree_res[0]['filetree_id']
+                
+                #Set returning=False because this UPDATE statement does not return anything
                 fileset_tree_query = "UPDATE Filesets SET file_data_tree_id = %s WHERE fileset_id = %s;"
-                res = self.db.execute_update(fileset_tree_query, (new_tree_id, fileset_id), returning=True)
+                self.db.execute_update(fileset_tree_query, (new_tree_id, fileset_id), returning=False)
+                
             except Exception as e:
                 print (f"Error associating new tree to updated fileset, defaulted to NULL: Failed Query execution:{e}") # Add custom raised error to identify association failure instead of fileset failure
                 raise e
@@ -388,6 +391,7 @@ class DatabaseManager:
     def get_all_results_summary(self) -> List[Dict[str, Any]]:
         """Retrieve a summary of all results from the database."""
         try:
+            # Join Filesets to get the most up-to-date file path
             query = """
                 SELECT r.analysis_id, r.metadata_insights, COALESCE(f.file_path, a.file_path) as file_path
                 FROM Results r 
