@@ -273,8 +273,22 @@ def main() -> None:
                     merged_binary_blob = pickle.dumps(merged_binary_list)
                     
                     if database_manager.save_fileset(analysis_id, merged_binary_blob, merged_tree_dict, new_path):
-                        cli.print_status("Update successful!", "success")
-                        # Optional: Trigger re-analysis here if desired
+                        cli.print_status("Update successful! Re-running analysis on updated files...", "success")
+                        
+                        # 8. Re-run analysis pipeline on the MERGED data
+                        try:
+                            pipeline = AnalysisPipeline(cli, config_manager, database_manager)
+                            # Call the updated run_analysis with the merged data
+                            pipeline.run_analysis(
+                                filepath=new_path, 
+                                return_id=False,
+                                existing_analysis_id=analysis_id,
+                                preloaded_tree=merged_tree,
+                                preloaded_binary=merged_binary_list
+                            )
+                            cli.print_status("Analysis update complete.", "success")
+                        except Exception as e:
+                            cli.print_status(f"Error re-running analysis pipeline: {e}", "error")
                     else:
                         cli.print_status("Failed to save updates to database.", "error")
 
