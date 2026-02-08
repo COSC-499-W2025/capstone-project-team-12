@@ -301,7 +301,9 @@ class AnalysisPipeline:
                 cache = BoWCache()
                 final_bow: List[List[str]] = []
 
-                if cache.has(key):
+                hasKey = cache.has(key)
+                cached = None
+                if cache.hasKey:
                     cached = cache.get(key)
                     if cached is not None:
                         final_bow = cached
@@ -309,7 +311,7 @@ class AnalysisPipeline:
                     else: 
                         self.cli.print_status("Cache corrupted - regenerating...", "warning")
 
-                if not cache.has(key) or cached is None:
+                if not cache.hasKey or cached is None:
                     self.cli.print_status("Cache miss - processing text...", "info")
                     text_binary_data = self.get_bin_data_by_Nodes(text_nodes) if text_nodes else []
                     code_binary_data = self.get_bin_data_by_Nodes(code_nodes) if code_nodes else []
