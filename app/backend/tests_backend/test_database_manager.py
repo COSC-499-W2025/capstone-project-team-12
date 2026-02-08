@@ -84,7 +84,6 @@ def execute_update_sideeffect_func(query,params,returning=False):
             return #return none as no value is used in case of existing fileset as fileset_id is retrieved prior to update in query
         if 'INSERT INTO Filetrees' in query:
             return[{'filetree_id' : 125}] # When Inserting into Filetrees return filetree_id so file_set can be updated with appropriate filetree_id
-                                        # Value is a large integer as anynumber of filetrees may exist prior to fileset creation/update
         
         #Last case included for completeness not checked therefore returns None!
         if 'UPDATE Filesets SET file_data_tree_id' in query:
@@ -103,7 +102,8 @@ class TestSaveFileset:
         tree = {"name": "root"}
         binary = b"fake_zip_content"
         
-        result = db_manager.save_fileset(sample_analysis_id, binary, tree)
+        # FIX: Pass dummy file_path
+        result = db_manager.save_fileset(sample_analysis_id, binary, tree, "/tmp/dummy")
         mock_db_connector.execute_query.return_value = []
         assert result is True
         
@@ -119,7 +119,8 @@ class TestSaveFileset:
         tree = {"name": "root"}
         binary = b"new_zip_content"
         
-        result = db_manager.save_fileset(sample_analysis_id, binary, tree)
+        # FIX: Pass dummy file_path
+        result = db_manager.save_fileset(sample_analysis_id, binary, tree, "/tmp/dummy")
         
         assert result is True
         
