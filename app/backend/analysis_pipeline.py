@@ -1,6 +1,6 @@
 import hashlib
 import pickle
-from typing import List, BinaryIO, Dict, Any
+from typing import List, BinaryIO, Dict, Any, Optional
 from anytree import Node
 from anytree.exporter import DictExporter
 from file_manager import FileManager
@@ -226,7 +226,7 @@ class AnalysisPipeline:
     def save_results(self, data_bundle, results_bundle, analysis_id: str, return_id:bool = False)->str:
          # save tracked data and insights to database
         try:
-            # Note: We now use the analysis_id created at the start of the pipeline
+            # Note: We now use the analysis_id created/passed at the start of the pipeline
             
             # save tracked data
             self.database_manager.save_tracked_data(analysis_id, data_bundle.metadata_results, data_bundle.final_bow, data_bundle.processed_git_repos)
@@ -545,41 +545,65 @@ class AnalysisPipeline:
             raise RuntimeError(f"Error collecting statistics: {e}")
     
     #main execution func
-    def run_analysis(self, filepath: str,return_id = False) -> None|str:
+    def run_analysis(
+        self, 
+        filepath: str, 
+        return_id: bool = False, 
+        existing_analysis_id: Optional[str] = None,
+        preloaded_tree: Optional[Node] = None,
+        preloaded_binary: Optional[List[bytes]] = None
+    ) -> None|str:
         """
         Runs the various analysis pipelines in sequence. 
         Important Note: 
             - Early steps common to all pipelines return from function when error is encountered
             - When Pipelines encounter error, error is printed to console and next pipeline is executed.
         """
-        #Load Files using Filemanager
-        try:
-            fm_result = self.load_files(filepath) #File loading logic in helper function
-        except Exception as e:
-            self.cli.print_status(f"File Manager Error:{e}","error")
-            return
         
-        #Load various parts of fm_result as vars for downstream use
-        filetree:Node = fm_result["tree"] #Extract Filetree from fm_result
-        
-        binary_data: List[bytes] = fm_result.get("binary_data")
-        if not isinstance(binary_data, list):
-            self.cli.print_status("File Manager Error: Binary data not loaded. Aborting analysis.", " error") #changed because without any binary data cannot do any analysis
-            binary_data = []
-            return
+        filetree: Node = None
+        binary_data: List[bytes] = []
 
-        # NEW: Create Analysis ID and Save Initial Fileset immediately for future updates
+        # Logic to handle preloaded data vs loading from disk
+        if preloaded_tree and preloaded_binary:
+            self.cli.print_status("Using preloaded/merged file data for analysis.", "info")
+            filetree = preloaded_tree
+            binary_data = preloaded_binary
+            self.file_data_list = binary_data # Update internal state for helpers
+        else:
+            #Load Files using Filemanager
+            try:
+                fm_result = self.load_files(filepath) #File loading logic in helper function
+            except Exception as e:
+                self.cli.print_status(f"File Manager Error:{e}","error")
+                return
+            
+            #Load various parts of fm_result as vars for downstream use
+            filetree = fm_result["tree"] #Extract Filetree from fm_result
+            binary_data = fm_result.get("binary_data")
+            
+            if not isinstance(binary_data, list):
+                self.cli.print_status("File Manager Error: Binary data not loaded. Aborting analysis.", " error")
+                return
+
+        # Handle Analysis ID creation/updating
         try:
-            analysis_id = self.database_manager.create_analyses(file_path=filepath)
-            
-            # Serialize binary data
-            binary_blob = pickle.dumps(binary_data)
-            
-            # Export tree
-            tree_dict = self.dict_exporter.export(filetree)
-            
-            # Save fileset
-            self.database_manager.save_fileset(analysis_id, binary_blob, tree_dict, filepath)
+            if existing_analysis_id:
+                analysis_id = existing_analysis_id
+                self.cli.print_status(f"Updating existing analysis ID: {analysis_id}", "info")
+                # Note: We assume the fileset has already been saved/updated by the caller (main.py 'U' loop)
+                # if preloaded data is provided.
+                if not (preloaded_tree and preloaded_binary):
+                     pass
+            else:
+                #Create analysis ID and save initial fileset immediately for future updates
+                analysis_id = self.database_manager.create_analyses(file_path=filepath)
+                
+                # Serialize binary data
+                binary_blob = pickle.dumps(binary_data)
+                # Export tree
+                tree_dict = self.dict_exporter.export(filetree)
+                # Save fileset
+                self.database_manager.save_fileset(analysis_id, binary_blob, tree_dict, filepath)
             
         except Exception as e:
             self.cli.print_status(f"Database Initialization Error: {e}", "error")
