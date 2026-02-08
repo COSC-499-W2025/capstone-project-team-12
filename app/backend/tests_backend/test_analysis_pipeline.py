@@ -221,7 +221,27 @@ class test_topic_vector_editing:
         assert keywords[0] == 'better'  #replaced
         assert keywords[1] == 'middle'  #same
         assert keywords[2] == 'good'    #added
+
+class TestRunRepoAnalysisPipeline:
+    """Tests for run_repo_analysis_pipeline method"""
+
+    def test_empty_input(self, pipeline):
+        """Test that empty git_repos input returns empty lists"""
+        result = pipeline.run_repo_analysis_pipeline([], [])
         
+        assert result == ([], [], [], [])
+
+    def test_userskipping(self, pipeline):
+        """Test that skipping GitHub username returns empty lists"""
+        git_repos = [{"path": "/repo1"}, {"path": "/repo2"}]
+        
+        pipeline.cli.get_input.return_value = ""  # Empty username
+        
+        result = pipeline.run_repo_analysis_pipeline(git_repos, [])
+        
+        pipeline.cli.print_status.assert_called_with("Skipping Git linking.", "info")
+        assert result == ([], [], [], [])
+
 def test_metadata_pipeline():
     assert True
 
