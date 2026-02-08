@@ -1,4 +1,5 @@
 import sys
+import os
 import pickle
 from typing import List, Dict, Any
 from pathlib import Path
@@ -189,6 +190,7 @@ def main() -> None:
                         continue   
                 
                 case 'u':
+                    # TODO functionality to update past analysis (incremental requirment)
                     print("\n--- Update Existing Analysis ---")
                     analysis_id = cli.get_input("Enter Analysis ID to update: ").strip()
                     
@@ -200,25 +202,42 @@ def main() -> None:
                         
                     print(f"Current file path for this analysis: {old_path}")
                     
-                    # 2. Get new path
-                    new_path = cli.get_input(f"Enter updated file path (Press Enter to use '{old_path}'): ").strip()
-                    if not new_path:
-                        new_path = old_path
+                    new_path = None
+                    # Loop until a valid, confirmed path is chosen or user explicitly backs out
+                    while True:
+                        path_input = cli.get_input(f"Enter updated file path (Press Enter to use '{old_path}' or 'b' to go back to main menu): ").strip()
                         
-                    if not os.path.exists(new_path):
-                        cli.print_status("Error: The specified path does not exist.", "error")
-                        continue
+                        if path_input.lower() == 'b':
+                            new_path = None # Signal to abort
+                            break
+                        
+                        if not path_input:
+                            current_candidate = old_path
+                        else:
+                            current_candidate = path_input
+                            
+                        if not os.path.exists(current_candidate):
+                            cli.print_status("Error: The specified path does not exist.", "error")
+                            continue # Ask again
 
-                    # 3. Logical Similarity Check (Basic)
-                    old_name = Path(old_path).name
-                    new_name = Path(new_path).name
-                    
-                    if old_name != new_name:
-                        print(f"\n[WARNING] The new path '{new_name}' looks different from the old path '{old_name}'.")
-                        confirm = cli.get_input("Are you sure this is the correct update? (y/n): ").lower()
-                        if confirm != 'y':
-                            cli.print_status("Update cancelled.", "warning")
-                            continue
+                        # 3. Logical Similarity Check (Basic)
+                        old_name = Path(old_path).name
+                        new_name = Path(current_candidate).name
+                        
+                        if old_name != new_name:
+                            print(f"\n[WARNING] The new path '{new_name}' looks different from the old path '{old_name}'.")
+                            confirm = cli.get_input("Are you sure this is the correct update? (y/n): ").lower()
+                            if confirm != 'y':
+                                cli.print_status("Update cancelled. Please re-enter path.", "warning")
+                                continue # Loop back to ask for path again
+                        
+                        # Valid path selected
+                        new_path = current_candidate
+                        break
+
+                    # If user aborted with 'b'
+                    if new_path is None:
+                        continue
 
                     print("\nLoading new files...")
                     # 4. Load NEW files
