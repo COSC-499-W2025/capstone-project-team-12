@@ -2,6 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 import sys
 import os
+from unittest.mock import ANY
 
 # path to import backend code
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -52,6 +53,10 @@ def mock_backend(mocker):
     # 5. Configure Config Defaults (Default to Local)
     config_instance.preferences = {"online_llm_consent": False}
 
+    # 6. Configure Pipeline Return Value
+    # The API now expects run_analysis to return a UUID string.
+    pipeline_instance.run_analysis.return_value = "generated-uuid-123"
+
     return {
         "db": db_instance,
         "pipeline": pipeline_instance,
@@ -70,12 +75,19 @@ def test_health_check():
 def test_upload_project_success(mock_backend):
     """Test successful upload."""
     files = {'file': ('test.zip', b'content', 'application/zip')}
+    
+    # We no longer pass 'result_id' in the form data
     res = client.post("/projects/upload", files=files)
     
     assert res.status_code == 200
-    assert res.json()["status"] == "success"
-    # Check if the pipeline instance was called
-    mock_backend["pipeline"].run_analysis.assert_called_once()
+    json_data = res.json()
+    assert json_data["status"] == "success"
+    # Verify the backend generated ID is returned
+    assert json_data["result_id"] == "generated-uuid-123"
+
+    # Check if the pipeline instance was called correctly
+    # We use ANY for the path since it's a random temp file
+    mock_backend["pipeline"].run_analysis.assert_called_once_with(ANY, return_id=True)
 
 def test_get_projects_success(mock_backend):
     """Test fetching project list."""
