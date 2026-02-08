@@ -58,8 +58,8 @@ class DB_connector:
     def test_connection(self) -> bool:
         """Test if connection is working"""
         try:
-            result = self.fetch_one("SELECT 1 as test")
-            return result is not None and result.get('test') == 1
+            result = self.execute_query("SELECT 1 as test")
+            return result is not None and len(result) > 0 and result[0].get('test') == 1
         except Exception as e:
             print(f"Connection test failed: {e}")
             return False
@@ -96,7 +96,7 @@ class DB_connector:
             returning: If True, return the fetched result instead of rowcount
             
         Returns:
-            Number of affected rows, or returned data if returning=True
+            Number of affected rows, or returned data (LIST of rows) if returning=True
         """
         try:
             with self.get_connection() as conn:
@@ -105,7 +105,8 @@ class DB_connector:
                     conn.commit()
                     
                     if returning:
-                        return cur.fetchone()
+                        # CHANGED: Now returns a list of rows (fetchall) to treat results as lists
+                        return cur.fetchall()
                     else:
                         affected = cur.rowcount
                         print(f"Query affected {affected} rows")
