@@ -23,7 +23,7 @@ class DatabaseManager:
             #central record
             # Updated to include file_path
             query = """
-                INSERT INTO Analyses (file_path) 
+                INSERT INTO Analyses (file_path)
                 VALUES (%s)
                 RETURNING analysis_id;
             """
@@ -32,7 +32,7 @@ class DatabaseManager:
             if not res_analysis:
                 raise Exception("Failed to generate analysis_id")
 
-            analysis_id = str(res_analysis['analysis_id'])
+            analysis_id = str(res_analysis[0]['analysis_id'])
             a_uuid = uuid.UUID(analysis_id)
 
             #start child tables so that later on we can just update instead of inserting
@@ -123,7 +123,7 @@ class DatabaseManager:
             if existing:
                 #update existing binary
                 fileset_id = existing[0]['fileset_id']
-                # Updated to set file_path
+                # Updated to update file_path
                 update_query = "UPDATE Filesets SET file_data = %s, file_path = %s WHERE fileset_id = %s;"
                 self.db.execute_update(update_query, (file_binary, file_path, fileset_id))
             else:
@@ -135,6 +135,7 @@ class DatabaseManager:
                     RETURNING fileset_id;
                 """
                 res = self.db.execute_update(insert_query, (uid, file_binary, file_path), returning=True)
+                # Correctly using [0] here as db_utils now returns list
                 fileset_id = res[0]['fileset_id']
 
             #add to filetree
@@ -147,8 +148,10 @@ class DatabaseManager:
                 if not fileset_id:
                     print (f"Error associating new tree to updated fileset, defaulted to NULL: Invalid or Null fileset_id")
                     raise ValueError
+                
+                new_tree_id = tree_res[0]['filetree_id']
                 fileset_tree_query = "UPDATE Filesets SET file_data_tree_id = %s WHERE fileset_id = %s;"
-                res = self.db.execute_update(fileset_tree_query,(tree_res[0]['filetree_id'],fileset_id),returning=True)
+                res = self.db.execute_update(fileset_tree_query, (new_tree_id, fileset_id), returning=True)
             except Exception as e:
                 print (f"Error associating new tree to updated fileset, defaulted to NULL: Failed Query execution:{e}") # Add custom raised error to identify association failure instead of fileset failure
                 raise e
@@ -385,7 +388,6 @@ class DatabaseManager:
     def get_all_results_summary(self) -> List[Dict[str, Any]]:
         """Retrieve a summary of all results from the database."""
         try:
-            # Join Filesets to get the most up-to-date file path
             query = """
                 SELECT r.analysis_id, r.metadata_insights, COALESCE(f.file_path, a.file_path) as file_path
                 FROM Results r 
