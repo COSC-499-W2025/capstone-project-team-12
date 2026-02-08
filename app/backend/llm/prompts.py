@@ -10,6 +10,7 @@ SKILL_HIGHLIGHT_TEMPLATE: str = (
 )
 
 #prompt dictionary organized by summary type
+#now only online 
 PROMPTS: Dict[str, Dict[str, str]] = {
     "short": {
         "description": "Generate a concise 2-3 bullet point summary",
@@ -44,10 +45,25 @@ Maintain an active, confident, growth-oriented tone, tailor for LinkedIn, avoid 
 }
 
 
-def get_prompt(summary_type: str = "standard") -> str:
+LOCAL_PROMPT: str = (
+    "Write a resume-style summary using the provided keywords. Output 4-5 bullet points.\n"
+    "Rules:\n"
+    "- Start each bullet with an action verb.\n"
+    "- Make each bullet an achievement or impact.\n"
+    "- Keep bullets short and professional.\n"
+    "- Do not describe the keywords; turn them into accomplishments.\n"
+    "- Do not invent numbers ; only use what is implied by the keywords."
+)
+
+
+def get_prompt(summary_type: str = "standard", llm_type: str = "online") -> str:
     """
-    Retrieve a prompt template by summary type.
+    Retrieve a prompt template by summary type and LLM type.
     """
+    #local LLM uses a single prompt regardless of summary type
+    if llm_type == "local":
+        return LOCAL_PROMPT
+    
     if summary_type not in PROMPTS:
         valid_types = list(PROMPTS.keys())
         raise KeyError(f"Unknown summary type '{summary_type}'. Valid types: {valid_types}")

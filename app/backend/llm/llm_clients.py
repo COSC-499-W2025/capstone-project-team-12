@@ -12,6 +12,8 @@ class LocalLLMClient(BaseLLMClient):
     Phi-3 Mini model running locally via Ollama.
     """
     
+    LLM_TYPE = "local"
+    
     #default configuration
     DEFAULT_MODEL = "phi3:mini"
     DEFAULT_BASE_URL = "http://local_llm:11434"

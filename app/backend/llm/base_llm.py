@@ -14,6 +14,9 @@ from .prompts import get_prompt, format_skill_highlight
 class BaseLLMClient(ABC):
     """Abstract base for LLM clients with shared retry logic and sanitization."""
     
+    #subclasses set this to 'local' or 'online' for promtp changes
+    LLM_TYPE: str = "online"
+    
     def __init__(
         self, 
         model: str, 
@@ -118,8 +121,8 @@ class BaseLLMClient(ABC):
         summary_type: str = "standard"
     ) -> str:
         """Generate project summary with skill highlighting if specified."""
-        #get the base prompt for the requested summary type
-        prompt = get_prompt(summary_type)
+        #get the base prompt for the requested summary type and LLM type
+        prompt = get_prompt(summary_type, llm_type=self.LLM_TYPE)
         
         #check for user-selected skill highlights
         highlights = topic_vector_bundle.get('user_highlights', [])
