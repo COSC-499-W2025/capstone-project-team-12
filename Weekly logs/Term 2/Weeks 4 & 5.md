@@ -39,11 +39,10 @@
 
 
 ### Burnup chart & Task Table
-![T2 Weeks 4 & 5 Burn Up]()
+![T2 Weeks 4 & 5 Burn Up](/imgs/T2%20Week%204%20&%205%20Burnup.png)
 
 
-![T2 Weeks 4 & 5 Tasks Table]() 
-Filtered to only show Tasks with changes this week. We had to use this format due to issues not linking to dates in "Completed Tasks".
+![T2 Weeks 4 & 5 Tasks Table](/imgs/T2%20Week%204%20&%205%20Task%20Table.png) 
 
 ### Test Report
 ![Term 2 Weeks 4 & 5 Test Report](/imgs/T2%20Week%204%20&%205%20Test%20Report.png)
