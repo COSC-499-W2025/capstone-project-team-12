@@ -1,1 +1,6 @@
 app/
+app/repos
+app/database
+app/database/pgdata
+app/.env
+app/*

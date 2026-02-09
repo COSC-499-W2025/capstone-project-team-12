@@ -1,5 +1,24 @@
 # Madelyn DeGruchy Personal Log (85064962 - maddydeg)
 
+## Term 2 Weeks 4 & 5 (01/26/2026 - 02/08/2026)
+- Changed how contributors in a GitHub project are counted
+  -  The way that git logs (which the library PyDriller is built on) extracts the information about a given author varies from project to project and person to person. For example, I have one project where the author name is stored under my GitHub username for some of my commits, and under the full name attached to my GitHub account for others. The email attached to a commit also varies, and sometimes is my account email and sometimes is a privatized version that contains my GitHub username. Which version of both the username and email varies, and was also not consistent from project to project. While we were able to count the actual user accurately since they provide both their username and GitHub email, we needed better logic to count other contributors to the project without needing to explicitly tell the system the name, username, and emails of everyone the user ever collaborated with. We now map every instance to whichever username the system encounters first, and check for similar usernames or emails between all other commits.
+  -  Also privatized the PII for these contributors to ensure no data is being stored unnecessarily
+- Updated the logic for editing resumes to allow the user to edit the text that was previously generated instead of forcing them to always completley replace the section they want to edit
+  - Also utilized helper methods to ensure that editing is consistent across all parts of the resume
+  - Made date validation more robust
+  - Added testing for this implementation and updated previous versions to support the new implementation
+ 
+## Next Week
+- Finalizing requirements for Milestone 2
+- Complete the implementation of storage of the resume to the database
+  - Slight refactor of how the user will access and edit this functionality, we want to generate a resume as soon as a new analysis is completed and allow a user to view all versions of a resume attached to an analysis
+ 
+## Reflection
+- Had some confusion on how we wanted to implement the storage of the resumes, will need to confirm with everyone the overall priorities of everything left to ensure that we are ready for Milestone 2
+
+![Peer Evaluation Term 2 Weeks 4 & 5](imgs/Madelyn%20DeGruchy%20T2%20Week%204.png)
+
 ## Term 2 Week 3 (01/19/2026 - 01/25/2026)
 - Implemented logic to allow the user to edit a resume that was generated
   - Given the ongoing database rework, this currently takes place immediately after the resume is generated given it could not be stored to be retreived later

@@ -1,5 +1,25 @@
 # Lexi Loudiadis (93546844) Personal Log
 
+## Term 2 - Week 4 + 5 (01/26/2026 - 02/08/2026)
+
+- Implemented the portfolio feature. The portfolio generated showcases in-depth project information and compares projects with metrics like skills progression, collaboration evolution, and role progression. (PR #361)
+- Implemented the portfolio editing feature - after the user generates the portfolio, they are asked if they want to edit before saving (note the saving functionality is still a work in progress). Portfolio sections available for editing include project details and skills & technologies (PR #368)
+- Wrote extensive tests for my features (PR #369) (PR# 361)
+- Team meetings
+- Testing teammates' code
+
+### In Progress
+- Getting the resume and portfolio to be saved to the database.
+
+### What's Next
+- Once resume and portfolio saving is implemented, we will likely try to finalize our API endpoints and get our documentation for them started. 
+
+### Reflection
+- All tasks that were planned for these two weeks was completed. I implemented portfolio saving and editing as was self-assigned at our teem meetings and team discussions over the past couple weeks. Initially, I thought I would be working on requirement 25 last week, but another teammate had started on that, so it became her task. However, this teammate has not been in contact with us for the past week and a half - if we don't hear from her by next week, requirement 25 would likely need to be done by someone else.
+
+![Type of tasks I worked on](imgs/Week%2018%20Lexi.png)
+
+
 ## Term 2 - Week 3 (01/19/2026 - 01/25/2026)
 
 - Refactoring our imports/framework extractor as the original regex pattern matching ability was limited and failed to correctly parse imports in a lot of cases. Expanded capability for pattern matching to include Kotlin, C#, Go, Rust, Ruby, PHP, Swift, in addition to Python, Java, TypeScript, JavaScript, C, C++ (PR #333)

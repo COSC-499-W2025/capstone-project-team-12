@@ -1,5 +1,36 @@
 # Sara Srinivasan Personal Log (10801751)
 
+## Term 2 Week 4 and Week 5
+
+### Work Done
+
+- Completed Analysis extractions and resolved merge diffs from last 2 weeks
+- Edit dockerization to live mount codebase to enable faster dev time
+- Edit PII remover to not have spacy-model-lg as dependency and use predownloaded spacy-sm model instead
+- Integration Testing of primary analysis pipeline
+  - Topic Analysisa
+  - Repo Analysis
+  - TODO: Metadata analysis, Database Saving/ retrievals
+- Project management, updated dates, priorities and size information for ~200 Team items (recent and old) that lacked this tracking
+- Finished and wrapped up all new DB schema rework related changes
+- Reviewed ~5Prs
+- Helped sithara with a tricky local bug regarding database creation during docker build
+- Explained and clarified resume rework goals to Maddy over discord vc
+- Peer Testing
+  - Compiled Peer testing feedback from all team members
+  - Provide feed back to other teams
+  - Run station for 2 teams
+- Planning, Assigning and prioritization of tasks (Meetings)
+
+### Quiz Response
+
+![Term 2 Week 4,5 Quiz Response](imgs/Sara%20Srinivasan%20T2%20Week%204%20and%205.png)
+
+### Review and Plans
+
+A very productive last 2 weeks, at this point we have a mostly complete app with almost all of the requirements for milestone 2 met. The large feature left is a full implementation of the api. There are some backend cli prompting and testing things to wrap up and a few improvements for file tracking but it should work out. I will likely be finishing up the integration/analysis pipeline testing and helping with the API implementation.
+
+
 ## Term 2 Week 3
 
 ### Work Done
