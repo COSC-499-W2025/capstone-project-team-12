@@ -13,8 +13,7 @@ from pii_remover import remove_pii
 from topic_vectors import generate_topic_vectors
 from stats_cache import collect_stats
 from cache.bow_cache import BoWCache, BoWCacheKey
-from llm_online import OnlineLLMClient
-from llm_local import LocalLLMClient
+from llm.llm_clients import OnlineLLMClient, LocalLLMClient
 from display_helpers import display_project_insights, display_project_summary, display_project_timeline
 from project_selection import choose_projects_for_analysis
 from project_reranking import rerank_projects
