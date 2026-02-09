@@ -1,5 +1,6 @@
 ## Devin Huang Personal Log (86828886)
 
+[Term 2 Week 4](#t2-week-4)  
 [Term 2 Week 3](#t2-week-3)  
 [Term 2 Week 2](#t2-week-2)  
 [Term 2 Week 1](#t2-week-1)  
@@ -14,6 +15,21 @@
 [Week 5](#week-5)  
 [Week 4](#week-4)  
 [Week 3](#week-3)
+
+### T2 Week 4
+- Refactored LLM clients
+  - created a new simplified an unified client to get rid of code duplication
+  - Separated prompt from LLm file for easier manitainability and accessibility
+  - Updated all LLM related tests
+
+#### Next week
+- Work towards completing milestone 2 requirements
+
+#### Reflection
+- I had an insane amount of work this week, resulting in less time for me to work on Capstone.
+- I will try to be more active in the coming weeks.
+
+<img width="954" height="488" alt="image" src="https://github.com/user-attachments/assets/33daa7ac-a6ca-4b2c-bddd-998df81e7b12" />
 
 
 ### T2 Week 3
