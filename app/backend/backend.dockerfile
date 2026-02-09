@@ -11,8 +11,6 @@ RUN pip install -U pip
 COPY requirements.txt /app/
 RUN pip install -r requirements.txt
 
-COPY . .
-
 # ... copy other needed files/directories#download used ML models and preproc dictionaries.
 RUN python -m spacy download en_core_web_sm
 RUN python -m nltk.downloader punkt punkt_tab stopwords wordnet averaged_perceptron_tagger averaged_perceptron_tagger_eng

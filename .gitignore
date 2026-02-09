@@ -10,5 +10,7 @@ __pycache__/
 .DS_Store
 
 .env
+#ignore various caches and stuff because of live mount and nested dir
+/app/backend/backend
 #ignore the preferences to fix the "you have previously agreed/disagreed" prompt
-app/backend/configs/user_prefs.json
+/app/backend/configs/user_prefs.json
