@@ -29,7 +29,13 @@
   - Added testing for this implementation and updated previous versions to support the new implementation
 - Refactor API setup that was done in week 2 to be in accordance with SRP
 - Started working on milestone requirements for incremental file analysis, starting with reworking certain things in our file manager, and creating modules to handle tree from different points in time of the same file path.
-
+- Completed Analysis extractions and resolved merge diffs from last 2 weeks
+- Edit dockerization to live mount codebase to enable faster dev time
+- Edit PII remover to not have spacy-model-lg as dependency and use predownloaded spacy-sm model instead
+- Integration Testing of primary analysis pipeline
+- Project management, updated dates, priorities and size information for ~200 Team items (recent and old) that lacked this tracking
+- Finished and wrapped up all new DB schema rework related changes
+- Participated in and ran stations for peer testing
 
 
 ### Burnup chart & Task Table
@@ -40,11 +46,12 @@
 Filtered to only show Tasks with changes this week. We had to use this format due to issues not linking to dates in "Completed Tasks".
 
 ### Test Report
-![Term 2 Weeks 4 & 5 Test Report](/imgs/T2%20Week%203%20&%204%20Test%20Report.png)
+![Term 2 Weeks 4 & 5 Test Report](/imgs/T2%20Week%204%20&%205%20Test%20Report.png)
 
 ### In Progress
-- Getting the resume and portfolio to be saved to the database.
-- Incorporate evidence of success 
+- Getting portfolio to be saved to the database.
+- Incorporate evidence of success
+- Completing the integration testing of the primary analysis pipeline for metadata analysis and database saving/retrievals
 
 ### Upcoming plans
 - Change the way we compare and validate file paths when updating a previous analysis
