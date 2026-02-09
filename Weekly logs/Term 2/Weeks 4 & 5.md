@@ -25,7 +25,7 @@
 Filtered to only show Tasks with changes this week. We had to use this format due to issues not linking to dates in "Completed Tasks".
 
 ### Test Report
-![Term 2 Weeks 4 & 5 Test Report]()
+![Term 2 Weeks 4 & 5 Test Report](/imgs/T2%20Week%203%20&%204%20Test%20Report.png)
 
 ### In Progress
 
