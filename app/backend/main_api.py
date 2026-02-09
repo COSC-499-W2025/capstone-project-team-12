@@ -14,8 +14,7 @@ from analysis_pipeline import AnalysisPipeline
 from cli_interface import CLI
 from config_manager import ConfigManager
 from database_manager import DatabaseManager
-from llm_local import LocalLLMClient
-from llm_online import OnlineLLMClient
+from llm.llm_clients import LocalLLMClient, OnlineLLMClient
 
 app = FastAPI(title="Artifact Mining API")
 

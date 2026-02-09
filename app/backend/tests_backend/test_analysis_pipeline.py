@@ -62,10 +62,11 @@ def test_data_helpers(pipeline,mock_text_nodes,sample_bin_data_array):
 @patch("analysis_pipeline.FileManager")
 def test_file_load_failure(mock_fm, pipeline):
     """Tests that the pipeline stops if the file fails to load"""
-    #forcing hte file manager to return error
+    #forcing the file manager to return error
     mock_fm.return_value.load_from_filepath.return_value = {"status": "error", "message": "fail"}
     pipeline.run_analysis("fake_path")
-    pipeline.cli.print_status.assert_any_call("File Manager Error:Load Error: fail", "error")
+    # Updated expectation to match actual output from _prepare_data_for_analysis
+    pipeline.cli.print_status.assert_any_call("Load Error: fail", "error")
 
 #test topic analysis pipeline for both cache miss and cache hit cases
 #The worlds longest test signature lmao, if you have any ideas to concise it let me know

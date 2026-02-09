@@ -2,7 +2,7 @@ import os
 import requests
 import pytest
 
-from llm_online import OnlineLLMClient
+from llm.llm_clients import OnlineLLMClient
 
 #mock replacement for requests
 class MockResponse:
@@ -45,8 +45,8 @@ def test_raises_error_when_no_api_key(monkeypatch):
         OnlineLLMClient()
 
 
-def test_send_request_builds_and_posts_payload(monkeypatch):
-    """send_request should construct the correct URL, headers, timeout and JSON body."""
+def test_generate_summary_builds_and_posts_payload(monkeypatch):
+    """generate_summary should construct the correct URL, headers, timeout and JSON body."""
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
     client = OnlineLLMClient()
     captured = {}
@@ -65,7 +65,7 @@ def test_send_request_builds_and_posts_payload(monkeypatch):
         "doc_topic_vectors": [[0.5, 0.5]],
         "topic_term_vectors": [[0.3, 0.7]]
     }
-    resp = client.send_request(prompt="Hello", topic_vector_bundle=topic_vector_bundle)
+    result = client.generate_summary(topic_vector_bundle, summary_type="standard")
 
     #check headers and payload
     assert captured["url"].endswith("/chat/completions")
@@ -74,7 +74,7 @@ def test_send_request_builds_and_posts_payload(monkeypatch):
     assert isinstance(captured["json"], dict)
     assert captured["json"]["model"] == client.model
     assert "messages" in captured["json"]
-    assert resp["choices"][0]["message"]["content"] == "ok"
+    assert result == "ok"
 
 
 def test_data_bundle_is_appended_to_message(monkeypatch):
@@ -93,7 +93,7 @@ def test_data_bundle_is_appended_to_message(monkeypatch):
         "doc_topic_vectors": [[0.5, 0.5]],
         "topic_term_vectors": [[0.3, 0.7]]
     }
-    client.send_request(prompt="Summarize", topic_vector_bundle=topic_vector_bundle)
+    client.generate_summary(topic_vector_bundle, summary_type="standard")
 
 
 def test_generate_short_summary_returns_response(monkeypatch):
@@ -101,10 +101,10 @@ def test_generate_short_summary_returns_response(monkeypatch):
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
     client = OnlineLLMClient()
 
-    def fake_send(self, prompt, topic_vector_bundle):
-        return {"choices": [{"message": {"content": "• Short bullet 1\n• Short bullet 2"}}]}
+    def fake_post(url, headers=None, json=None, timeout=None):
+        return MockResponse({"choices": [{"message": {"content": "• Short bullet 1\n• Short bullet 2"}}]})
 
-    monkeypatch.setattr(OnlineLLMClient, "send_request", fake_send)
+    monkeypatch.setattr(requests, "post", fake_post)
 
     topic_vector_bundle = {
         "doc_topic_vectors": [[0.5, 0.5]],
@@ -115,15 +115,17 @@ def test_generate_short_summary_returns_response(monkeypatch):
     assert out.count("•") >= 1
 
 
-def test_send_request_throws_on_http_error(monkeypatch):
-    """send_request should raise requests.HTTPError when response.raise_for_status() signals an error."""
+def test_generate_summary_throws_on_http_error(monkeypatch):
+    """generate_summary should raise Exception after retrying on server errors."""
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
-    client = OnlineLLMClient()
+    client = OnlineLLMClient(max_retries=1)  #reduce retries for faster test
 
     def fake_post_error(url, headers=None, json=None, timeout=None):
         return MockResponse({"error": "bad"}, status_code=500, raise_on_status=True)
 
     monkeypatch.setattr(requests, "post", fake_post_error)
 
-    with pytest.raises(requests.HTTPError):
-        client.send_request("prompt", topic_vector_bundle={})
+    with pytest.raises(Exception) as exc_info:
+        client.generate_summary({}, summary_type="standard")
+    
+    assert "failed after" in str(exc_info.value).lower()
