@@ -56,4 +56,5 @@ Filtered to only show Tasks with changes this week. We had to use this format du
 - Ensure we have completed all tasks to satisfy the Milestone 2 requirements
 
 ### Reflections
-- 
+- Following the peer testing, we were able to find some changes to be made to the system to improve the overall usability. The most eye-opening part was how people responded to the amount of information that is provided during the analysis. We have added a lot of options for users to customize this analysis, but we also were printing everything that was being extracted and compiled for users to view and it led to some people being overwhelmed by the amount of information provided. Going forward we are looking to remove some of this additional clutter from the analysis steps so that it is easier for the user to determine what is happening in the analysis, and what their changes actually mean.
+- Overall, we are making strong progress toward completing the requirements for Milestone 2. We continue to meet regularly and although some of our tasks are tightly coupled with each other, we have been able to ensure the overall functionality of our system is continuing to improve. 
