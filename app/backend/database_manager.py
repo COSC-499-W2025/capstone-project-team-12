@@ -21,9 +21,9 @@ class DatabaseManager:
         """
         try:
             #central record
-            # Updated to include file_path
+            # Updated to include original_file_path
             query = """
-                INSERT INTO Analyses (file_path)
+                INSERT INTO Analyses (original_file_path)
                 VALUES (%s)
                 RETURNING analysis_id;
             """
@@ -66,7 +66,7 @@ class DatabaseManager:
         """
         try:
             query = """
-                SELECT f.file_path as current_path, a.file_path as original_path
+                SELECT f.latest_file_path as current_path, a.original_file_path as original_path
                 FROM Analyses a
                 LEFT JOIN Filesets f ON a.analysis_id = f.analysis_id
                 WHERE a.analysis_id = %s;
@@ -123,14 +123,14 @@ class DatabaseManager:
             if existing:
                 #update existing binary
                 fileset_id = existing[0]['fileset_id']
-                # Updated to update file_path
-                update_query = "UPDATE Filesets SET file_data = %s, file_path = %s WHERE fileset_id = %s;"
+                # Updated to update latest_file_path
+                update_query = "UPDATE Filesets SET file_data = %s, latest_file_path = %s WHERE fileset_id = %s;"
                 self.db.execute_update(update_query, (file_binary, file_path, fileset_id))
             else:
                 #insert new fileset
-                # Updated to insert file_path
+                # Updated to insert latest_file_path
                 insert_query = """
-                    INSERT INTO Filesets (analysis_id, file_data, file_path) 
+                    INSERT INTO Filesets (analysis_id, file_data, latest_file_path) 
                     VALUES (%s, %s, %s) 
                     RETURNING fileset_id;
                 """
@@ -391,9 +391,9 @@ class DatabaseManager:
     def get_all_results_summary(self) -> List[Dict[str, Any]]:
         """Retrieve a summary of all results from the database."""
         try:
-            # Join Filesets to get the most up-to-date file path
+            # Updated to use latest_file_path and original_file_path
             query = """
-                SELECT r.analysis_id, r.metadata_insights, COALESCE(f.file_path, a.file_path) as file_path
+                SELECT r.analysis_id, r.metadata_insights, COALESCE(f.latest_file_path, a.original_file_path) as file_path
                 FROM Results r 
                 JOIN Analyses a ON r.analysis_id = a.analysis_id 
                 LEFT JOIN Filesets f ON r.analysis_id = f.analysis_id

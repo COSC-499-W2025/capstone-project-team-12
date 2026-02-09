@@ -211,25 +211,16 @@ def main() -> None:
                             new_path = None # Signal to abort
                             break
                         
-                        if not path_input:
-                            current_candidate = old_path
-                        else:
-                            current_candidate = path_input
+                        current_candidate = path_input if path_input else old_path
                             
                         if not os.path.exists(current_candidate):
                             cli.print_status("Error: The specified path does not exist.", "error")
                             continue # Ask again
 
-                        # 3. Logical Similarity Check (Basic)
-                        old_name = Path(old_path).name
-                        new_name = Path(current_candidate).name
-                        
-                        if old_name != new_name:
-                            print(f"\n[WARNING] The new path '{new_name}' looks different from the old path '{old_name}'.")
-                            confirm = cli.get_input("Are you sure this is the correct update? (y/n): ").lower()
-                            if confirm != 'y':
-                                cli.print_status("Update cancelled. Please re-enter path.", "warning")
-                                continue # Loop back to ask for path again
+                        # USE EXTRACTED HELPER from main_utils
+                        if not compare_path(old_path, current_candidate):
+                            cli.print_status("Update cancelled. Please re-enter path.", "warning")
+                            continue # Loop back to ask for path again
                         
                         # Valid path selected
                         new_path = current_candidate
@@ -249,23 +240,14 @@ def main() -> None:
                     new_tree = load_result['tree']
                     new_binary_list = load_result['binary_data']
 
-                    # 5. Fetch OLD data from DB
-                    print("Fetching previous analysis state...")
-                    old_binary_blob, old_tree_dict = database_manager.get_fileset_data(analysis_id)
+                    # USE EXTRACTED HELPER for merging/db logic
+                    merged_tree, merged_binary_list = perform_update_merge(
+                        analysis_id, new_tree, new_binary_list, database_manager, tree_manager, importer, exporter
+                    )
                     
-                    if not old_binary_blob or not old_tree_dict:
+                    if not merged_tree:
                         cli.print_status("Error: Could not retrieve previous file data from database.", "error")
                         continue
-
-                    # Deserialize
-                    old_binary_list = pickle.loads(old_binary_blob)
-                    old_tree = importer.import_(old_tree_dict)
-
-                    # 6. Merge
-                    print("Comparing and merging updates...")
-                    merged_tree, merged_binary_list = tree_manager.merge_trees(
-                        old_tree, old_binary_list, new_tree, new_binary_list
-                    )
 
                     # 7. Save merged result
                     print("Saving updated state to database...")

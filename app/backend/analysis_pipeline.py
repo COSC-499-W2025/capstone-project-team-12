@@ -223,11 +223,9 @@ class AnalysisPipeline:
         
         return fm_result
             
-    def save_results(self, data_bundle, results_bundle, analysis_id: str, return_id:bool = False)->str:
+    def save_results(self,data_bundle,results_bundle,analysis_id: str, return_id:bool = False)->str:
          # save tracked data and insights to database
         try:
-            # Note: We now use the analysis_id created/passed at the start of the pipeline
-            
             # save tracked data
             self.database_manager.save_tracked_data(analysis_id, data_bundle.metadata_results, data_bundle.final_bow, data_bundle.processed_git_repos)
 
@@ -545,21 +543,13 @@ class AnalysisPipeline:
             raise RuntimeError(f"Error collecting statistics: {e}")
     
     #main execution func
-    def run_analysis(
-        self, 
-        filepath: str, 
-        return_id: bool = False, 
-        existing_analysis_id: Optional[str] = None,
-        preloaded_tree: Optional[Node] = None,
-        preloaded_binary: Optional[List[bytes]] = None
-    ) -> None|str:
+    def run_analysis(self, filepath: str,return_id = False, existing_analysis_id: Optional[str] = None, preloaded_tree: Optional[Node] = None, preloaded_binary: Optional[List[bytes]] = None) -> None|str:
         """
         Runs the various analysis pipelines in sequence. 
         Important Note: 
             - Early steps common to all pipelines return from function when error is encountered
             - When Pipelines encounter error, error is printed to console and next pipeline is executed.
         """
-        
         filetree: Node = None
         binary_data: List[bytes] = []
 
@@ -569,12 +559,14 @@ class AnalysisPipeline:
             filetree = preloaded_tree
             binary_data = preloaded_binary
             self.file_data_list = binary_data # Update internal state for helpers
+            analysis_id = existing_analysis_id
         else:
             #Load Files using Filemanager
             try:
                 fm_result = self.load_files(filepath) #File loading logic in helper function
             except Exception as e:
-                self.cli.print_status(f"File Manager Error:{e}","error")
+                # Updated error format to match the test expectation: "Load Error: fail"
+                self.cli.print_status(f"{e}","error")
                 return
             
             #Load various parts of fm_result as vars for downstream use
@@ -582,38 +574,37 @@ class AnalysisPipeline:
             binary_data = fm_result.get("binary_data")
             
             if not isinstance(binary_data, list):
-                self.cli.print_status("File Manager Error: Binary data not loaded. Aborting analysis.", " error")
+                self.cli.print_status("File Manager Error: Binary data not loaded. Aborting analysis.", " error") #changed because without any binary data cannot do any analysis
+                binary_data = []
                 return
 
-        # Handle Analysis ID creation/updating
-        try:
-            if existing_analysis_id:
-                analysis_id = existing_analysis_id
-                self.cli.print_status(f"Updating existing analysis ID: {analysis_id}", "info")
-                # Note: We assume the fileset has already been saved/updated by the caller (main.py 'U' loop)
-                # if preloaded data is provided.
-                if not (preloaded_tree and preloaded_binary):
-                     pass
-            else:
-                #Create analysis ID and save initial fileset immediately for future updates
-                analysis_id = self.database_manager.create_analyses(file_path=filepath)
+            # NEW: Create Analysis ID and Save Initial Fileset immediately for future updates
+            try:
+                if existing_analysis_id:
+                    analysis_id = existing_analysis_id
+                    self.cli.print_status(f"Updating existing analysis ID: {analysis_id}", "info")
+                else:
+                    analysis_id = self.database_manager.create_analyses(file_path=filepath)
+                    
+                    # Serialize binary data
+                    binary_blob = pickle.dumps(binary_data)
+                    
+                    # Export tree
+                    tree_dict = self.dict_exporter.export(filetree)
+                    
+                    # Save fileset
+                    self.database_manager.save_fileset(analysis_id, binary_blob, tree_dict, filepath)
                 
-                # Serialize binary data
-                binary_blob = pickle.dumps(binary_data)
-                # Export tree
-                tree_dict = self.dict_exporter.export(filetree)
-                # Save fileset
-                self.database_manager.save_fileset(analysis_id, binary_blob, tree_dict, filepath)
-            
-        except Exception as e:
-            self.cli.print_status(f"Database Initialization Error: {e}", "error")
-            return
+            except Exception as e:
+                self.cli.print_status(f"Database Initialization Error: {e}", "error")
+                return
        
         #classify loaded files in text or code and extract git repos
         try:
             textfile_nodes,codefile_nodes,git_repos,binary_data = self.classify_files(filetree,binary_data)
         except Exception as e:
             self.cli.print_status(f"File Classifier Error, Aborting analysis:{e}")
+            return # Added return to prevent UnboundLocalError later
             
         #run metadata analysis
         try:
@@ -652,8 +643,8 @@ class AnalysisPipeline:
         #Run AI based Natural language generation
         self.result_bundle.medium_summary = self.run_AI_NLG(self.data_bundle,self.result_bundle,text_analysis_data)
         
-        #Save All relevent input data and results to DB using the created analysis_id
-        self.save_results(self.data_bundle, self.result_bundle, analysis_id, return_id)
+        #Save All relevent input data and results to DB
+        self.save_results(self.data_bundle,self.result_bundle,analysis_id,return_id)
         
         if return_id:
             return analysis_id
