@@ -1,6 +1,10 @@
 import sys
+import os
+import pickle
 from typing import List, Dict, Any
 from pathlib import Path
+from anytree.importer import DictImporter
+from anytree.exporter import DictExporter
 from config_manager import ConfigManager
 from database_manager import DatabaseManager
 
@@ -12,6 +16,8 @@ from resume_builder import ResumeBuilder
 from resume_editor import ResumeEditor
 from portfolio_builder import PortfolioBuilder
 from portfolio_editor import PortfolioEditor
+from file_manager import FileManager
+from tree_manager import TreeManager
 
 
     
@@ -23,6 +29,10 @@ def main() -> None:
     database_manager = DatabaseManager()  # Initialize Database Manager
     resume_builder = ResumeBuilder()    # Initialize Resume Builder
     portfolio_builder = PortfolioBuilder()  # Initialize Portfolio Builder
+    file_manager = FileManager()
+    tree_manager = TreeManager()
+    importer = DictImporter()
+    exporter = DictExporter()
     
     cli.print_header("Artifact Mining App")
         
@@ -181,7 +191,89 @@ def main() -> None:
                 
                 case 'u':
                     # TODO functionality to update past analysis (incremental requirment)
-                    print() #Place holder to satisfy match-case syntax
+                    print("\n--- Update Existing Analysis ---")
+                    analysis_id = cli.get_input("Enter Analysis ID to update: ").strip()
+                    
+                    # 1. Fetch info
+                    old_path = database_manager.get_analysis_filepath(analysis_id)
+                    if not old_path:
+                        cli.print_status("Analysis ID not found or has no associated file path.", "error")
+                        continue
+                        
+                    print(f"Current file path for this analysis: {old_path}")
+                    
+                    new_path = None
+                    # Loop until a valid, confirmed path is chosen or user explicitly backs out
+                    while True:
+                        path_input = cli.get_input(f"Enter updated file path (Press Enter to use '{old_path}' or 'b' to go back to main menu): ").strip()
+                        
+                        if path_input.lower() == 'b':
+                            new_path = None # Signal to abort
+                            break
+                        
+                        current_candidate = path_input if path_input else old_path
+                            
+                        if not os.path.exists(current_candidate):
+                            cli.print_status("Error: The specified path does not exist.", "error")
+                            continue # Ask again
+
+                        # USE EXTRACTED HELPER from main_utils
+                        if not compare_path(old_path, current_candidate):
+                            cli.print_status("Update cancelled. Please re-enter path.", "warning")
+                            continue # Loop back to ask for path again
+                        
+                        # Valid path selected
+                        new_path = current_candidate
+                        break
+
+                    # If user aborted with 'b'
+                    if new_path is None:
+                        continue
+
+                    print("\nLoading new files...")
+                    # 4. Load NEW files
+                    load_result = file_manager.load_from_filepath(new_path)
+                    if load_result['status'] == 'error':
+                        cli.print_status(f"Error loading files: {load_result['message']}", "error")
+                        continue
+                    
+                    new_tree = load_result['tree']
+                    new_binary_list = load_result['binary_data']
+
+                    # USE EXTRACTED HELPER for merging/db logic
+                    merged_tree, merged_binary_list = perform_update_merge(
+                        analysis_id, new_tree, new_binary_list, database_manager, tree_manager, importer, exporter
+                    )
+                    
+                    if not merged_tree:
+                        cli.print_status("Error: Could not retrieve previous file data from database.", "error")
+                        continue
+
+                    # 7. Save merged result
+                    print("Saving updated state to database...")
+                    merged_tree_dict = exporter.export(merged_tree)
+                    merged_binary_blob = pickle.dumps(merged_binary_list)
+                    
+                    if database_manager.save_fileset(analysis_id, merged_binary_blob, merged_tree_dict, new_path):
+                        cli.print_status("Update successful! Re-running analysis on updated files...", "success")
+                        
+                        # 8. Re-run analysis pipeline on the MERGED data
+                        try:
+                            pipeline = AnalysisPipeline(cli, config_manager, database_manager)
+                            # Call the updated run_analysis with the merged data
+                            pipeline.run_analysis(
+                                filepath=new_path, 
+                                return_id=False,
+                                existing_analysis_id=analysis_id,
+                                preloaded_tree=merged_tree,
+                                preloaded_binary=merged_binary_list
+                            )
+                            cli.print_status("Analysis update complete.", "success")
+                        except Exception as e:
+                            cli.print_status(f"Error re-running analysis pipeline: {e}", "error")
+                    else:
+                        cli.print_status("Failed to save updates to database.", "error")
+
                 case 'd':
                     # Delete specific analysis from database
                     delete_result = cli.get_input("\nDelete a stored analysis? (y/n): ").lower()
