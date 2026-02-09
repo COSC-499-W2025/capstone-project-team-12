@@ -4,15 +4,19 @@ SELECT uuid_generate_v4();
 
 CREATE TABLE IF NOT EXISTS
 Analyses(
-    analysis_id uuid DEFAULT uuid_generate_v4() PRIMARY KEY  
+    analysis_id uuid DEFAULT uuid_generate_v4() PRIMARY KEY,
+    original_file_path text,  -- Renamed from file_path to avoid confusion
+    creation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS
 Filesets(
     fileset_id SERIAL PRIMARY KEY,
     analysis_id uuid REFERENCES Analyses(analysis_id) NOT NULL UNIQUE,
-    file_data bytea -- Only the most recent set of binary data for the files is maintained. 
-                    --But multiple trees can be maintained for the same analysis in Filetrees table
+    file_data bytea, 
+    file_data_tree_id integer,
+    latest_file_path text  -- Renamed from file_path 
 );
 
 CREATE TABLE IF NOT EXISTS
@@ -36,15 +40,13 @@ CREATE TABLE IF NOT EXISTS
 Results(
     result_id SERIAL PRIMARY KEY,
     analysis_id uuid REFERENCES Analyses(analysis_id) NOT NULL,
-    topic_vector JSON, --changed to JSON for more flexibility--
+    topic_vector JSON, 
     resume_points JSON,
     project_insights JSON,
     package_insights JSON,
     metadata_insights JSON,
     thumbnail_image bytea DEFAULT NULL
 );
-
-
 
 CREATE TABLE IF NOT EXISTS
 Resumes(
@@ -56,14 +58,16 @@ Resumes(
  languages JSON,
  full_resume JSON
 );
+
 CREATE TABLE IF NOT EXISTS
 Portfolios(
     portfolio_id SERIAL PRIMARY KEY,
     analysis_id uuid REFERENCES Analyses(analysis_id)
-    --TODO determine portfolio output columns
-
-    
 );
+
+ALTER TABLE Filesets
+ADD CONSTRAINT latest_filetree_tracking
+FOREIGN KEY (file_data_tree_id) REFERENCES Filetrees(filetree_id);
 
 CREATE DATABASE test_db 
 WITH TEMPLATE "user";

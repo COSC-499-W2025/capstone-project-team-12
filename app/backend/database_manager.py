@@ -14,23 +14,25 @@ class DatabaseManager:
 
     # old funct name: create_new_result(self) -> str:
 
-    def create_analyses(self) -> str:
+    def create_analyses(self, file_path: str = None) -> str:
         """
         Create a new Analysis entry and initialize associated 1:1 records.
         Returns the analysis_id UUID (str).
         """
         try:
             #central record
+            # Updated to include original_file_path
             query = """
-                INSERT INTO Analyses DEFAULT VALUES
+                INSERT INTO Analyses (original_file_path)
+                VALUES (%s)
                 RETURNING analysis_id;
             """
-            res_analysis = self.db.execute_update(query, returning=True)
+            res_analysis = self.db.execute_update(query, (file_path,), returning=True)
             
             if not res_analysis:
                 raise Exception("Failed to generate analysis_id")
 
-            analysis_id = str(res_analysis['analysis_id'])
+            analysis_id = str(res_analysis[0]['analysis_id'])
             a_uuid = uuid.UUID(analysis_id)
 
             #start child tables so that later on we can just update instead of inserting
@@ -57,8 +59,55 @@ class DatabaseManager:
             print(f"Error creating new analyses: {e}")
             raise
 
+    def get_analysis_filepath(self, analysis_id: str) -> Optional[str]:
+        """
+        Retrieve the current file path associated with an analysis ID.
+        Prioritizes the path in Filesets (current) over Analyses (original).
+        """
+        try:
+            query = """
+                SELECT f.latest_file_path as current_path, a.original_file_path as original_path
+                FROM Analyses a
+                LEFT JOIN Filesets f ON a.analysis_id = f.analysis_id
+                WHERE a.analysis_id = %s;
+            """
+            result = self.db.execute_query(query, (uuid.UUID(analysis_id),))
+            if result:
+                return result[0]['current_path'] or result[0]['original_path']
+            return None
+        except Exception as e:
+            print(f"Error fetching file path: {e}")
+            return None
 
-    def save_fileset(self, analysis_id: str, file_binary: bytes, file_tree: Dict) -> bool:
+    def get_fileset_data(self, analysis_id: str) -> Tuple[Optional[bytes], Optional[Dict]]:
+        """
+        Retrieves the binary file_data and the latest filetree for an analysis.
+        """
+        try:
+            uid = uuid.UUID(analysis_id)
+            
+            query = """
+                SELECT fs.file_data, ft.filetree
+                FROM Filesets fs
+                LEFT JOIN Filetrees ft ON fs.file_data_tree_id = ft.filetree_id
+                WHERE fs.analysis_id = %s;
+            """
+            results = self.db.execute_query(query, (uid,))
+            
+            if not results:
+                return None, None
+            
+            row = results[0]
+            binary_data = bytes(row['file_data']) if row['file_data'] else None
+            tree_data = row['filetree']
+            
+            return binary_data, tree_data
+
+        except Exception as e:
+            print(f"Error fetching fileset data: {e}")
+            return None, None
+
+    def save_fileset(self, analysis_id: str, file_binary: bytes, file_tree: Dict, file_path: str) -> bool:
         """
         Updates the Fileset (binary) for the analysis and appends the new filetree.
         Logic: 
@@ -71,28 +120,44 @@ class DatabaseManager:
             #check if fileset exists to determine INSERT or UPDATE
             check_query = "SELECT fileset_id FROM Filesets WHERE analysis_id = %s;"
             existing = self.db.execute_query(check_query, (uid,))
-            
             if existing:
                 #update existing binary
                 fileset_id = existing[0]['fileset_id']
-                update_query = "UPDATE Filesets SET file_data = %s WHERE fileset_id = %s;"
-                self.db.execute_update(update_query, (file_binary, fileset_id))
+                # Updated to update latest_file_path
+                update_query = "UPDATE Filesets SET file_data = %s, latest_file_path = %s WHERE fileset_id = %s;"
+                self.db.execute_update(update_query, (file_binary, file_path, fileset_id))
             else:
                 #insert new fileset
+                # Updated to insert latest_file_path
                 insert_query = """
-                    INSERT INTO Filesets (analysis_id, file_data) 
-                    VALUES (%s, %s) 
+                    INSERT INTO Filesets (analysis_id, file_data, latest_file_path) 
+                    VALUES (%s, %s, %s) 
                     RETURNING fileset_id;
                 """
-                res = self.db.execute_update(insert_query, (uid, file_binary), returning=True)
-                fileset_id = res['fileset_id']
+                res = self.db.execute_update(insert_query, (uid, file_binary, file_path), returning=True)
+                # Correctly using [0] here as db_utils now returns list
+                fileset_id = res[0]['fileset_id']
 
             #add to filetree
             #just append new row here
-            tree_query = "INSERT INTO Filetrees (fileset_id, filetree) VALUES (%s, %s);"
-            self.db.execute_update(tree_query, (fileset_id, json.dumps(file_tree)))
+            tree_query = "INSERT INTO Filetrees (fileset_id, filetree) VALUES (%s, %s) RETURNING filetree_id;"
+            tree_res = self.db.execute_update(tree_query, (fileset_id, json.dumps(file_tree)),returning=True)
+            print(f"Saved fileset (path: {file_path}) and tree for analysis_id: {analysis_id}")
             
-            print(f"Saved fileset and tree for analysis_id: {analysis_id}")
+            try:
+                if not fileset_id:
+                    print (f"Error associating new tree to updated fileset, defaulted to NULL: Invalid or Null fileset_id")
+                    raise ValueError
+                
+                new_tree_id = tree_res[0]['filetree_id']
+                
+                #Set returning=False because this UPDATE statement does not return anything
+                fileset_tree_query = "UPDATE Filesets SET file_data_tree_id = %s WHERE fileset_id = %s;"
+                self.db.execute_update(fileset_tree_query, (new_tree_id, fileset_id), returning=False)
+                
+            except Exception as e:
+                print (f"Error associating new tree to updated fileset, defaulted to NULL: Failed Query execution:{e}") # Add custom raised error to identify association failure instead of fileset failure
+                raise e
             return True
             
         except Exception as e:
@@ -326,10 +391,12 @@ class DatabaseManager:
     def get_all_results_summary(self) -> List[Dict[str, Any]]:
         """Retrieve a summary of all results from the database."""
         try:
+            # Updated to use latest_file_path and original_file_path
             query = """
-                SELECT r.analysis_id, r.metadata_insights 
+                SELECT r.analysis_id, r.metadata_insights, COALESCE(f.latest_file_path, a.original_file_path) as file_path
                 FROM Results r 
                 JOIN Analyses a ON r.analysis_id = a.analysis_id 
+                LEFT JOIN Filesets f ON r.analysis_id = f.analysis_id
                 ORDER BY a.analysis_id;
             """
             results = self.db.execute_query(query)

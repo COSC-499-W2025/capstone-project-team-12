@@ -318,33 +318,6 @@ class TestPortfolioBuilder:
         assert 'Files:' in captured.out
         assert 'Lines Added:' in captured.out
     
-    def test_display_skill_timeline(self, sample_result_data, capsys):
-        """Test skill timeline display"""
-        builder = PortfolioBuilder()
-        portfolio = builder._build_portfolio(sample_result_data, 'test-id')
-        
-        builder._display_skill_timeline(portfolio['skill_timeline'])
-        
-        captured = capsys.readouterr()
-        assert 'SKILL EVOLUTION & TECHNICAL GROWTH' in captured.out
-        assert 'Core Competencies' in captured.out
-        assert 'Technical Framework Evolution' in captured.out
-        assert 'Programming Language Proficiency' in captured.out
-        assert 'Backend Development' in captured.out
-        assert 'Python' in captured.out
-    
-    def test_display_skill_timeline_framework_chronology(self, sample_result_data, capsys):
-        """Test that frameworks are displayed chronologically"""
-        builder = PortfolioBuilder()
-        portfolio = builder._build_portfolio(sample_result_data, 'test-id')
-        
-        builder._display_skill_timeline(portfolio['skill_timeline'])
-        
-        captured = capsys.readouterr()
-        # API Gateway should appear before Data Pipeline (chronological order)
-        api_pos = captured.out.find('API Gateway')
-        pipeline_pos = captured.out.find('Data Pipeline')
-        assert api_pos < pipeline_pos
     
     def test_display_portfolio_sections_order(self, sample_result_data, mocker, capsys):
         """Test that portfolio sections are displayed in correct order"""

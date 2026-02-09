@@ -1,7 +1,7 @@
 import requests
 import pytest
 
-from llm_local import LocalLLMClient
+from llm.llm_clients import LocalLLMClient
 
 class MockResponse:
     """Mock of requests.Response for Ollama API"""
@@ -27,12 +27,12 @@ def test_local_client_initialization():
     assert client.max_retries == 3
 
 
-def test_send_request_uses_ollama_format(monkeypatch):
-    """send_request should use Ollama's /api/generate endpoint with correct format"""
+def test_generate_summary_uses_ollama_format(monkeypatch):
+    """generate_summary should use Ollama's /api/generate endpoint with correct format"""
     client = LocalLLMClient()
     captured = {}
 
-    def fake_post(url, json=None, timeout=None):
+    def fake_post(url, json=None, timeout=None, headers=None):
         captured["url"] = url
         captured["json"] = json
         captured["timeout"] = timeout
@@ -45,26 +45,24 @@ def test_send_request_uses_ollama_format(monkeypatch):
         "topic_term_vectors": [[0.3, 0.7]]
     }
     
-    resp = client.send_request(prompt="Hello", topic_vector_bundle=topic_vector_bundle)
+    result = client.generate_summary(topic_vector_bundle, summary_type="standard")
 
     assert captured["url"].endswith("/api/generate")
     assert captured["timeout"] == 300  #we want longer timout for local
     assert captured["json"]["model"] == "phi3:mini"
     assert captured["json"]["stream"] == False
     assert "prompt" in captured["json"]
-    
-    assert "choices" in resp
-    assert resp["choices"][0]["message"]["content"] == "Local LLM response"
+    assert result == "Local LLM response"
 
 
 def test_generate_short_summary_returns_response(monkeypatch):
     """generate_short_summary should work with local LLM"""
     client = LocalLLMClient()
 
-    def fake_send(self, prompt, topic_vector_bundle):
-        return {"choices": [{"message": {"content": "• Local bullet 1\n• Local bullet 2"}}]}
+    def fake_post(url, json=None, timeout=None, headers=None):
+        return MockResponse({"response": "• Local bullet 1\n• Local bullet 2"})
 
-    monkeypatch.setattr(LocalLLMClient, "send_request", fake_send)
+    monkeypatch.setattr(requests, "post", fake_post)
 
     topic_vector_bundle = {
         "doc_topic_vectors": [[0.5, 0.5]],
@@ -75,16 +73,16 @@ def test_generate_short_summary_returns_response(monkeypatch):
     assert "Local bullet" in out
 
 
-def test_send_request_throws_on_connection_error(monkeypatch):
-    """send_request should raise exception when local LLM is unreachable"""
+def test_generate_summary_throws_on_connection_error(monkeypatch):
+    """generate_summary should raise exception when local LLM is unreachable"""
     client = LocalLLMClient(max_retries=1)  #we reduce the amount of retries for speed
 
-    def fake_post_error(url, json=None, timeout=None):
+    def fake_post_error(url, json=None, timeout=None, headers=None):
         raise requests.ConnectionError("Cannot connect to local_llm")
 
     monkeypatch.setattr(requests, "post", fake_post_error)
 
     with pytest.raises(Exception) as exc_info:
-        client.send_request("prompt", topic_vector_bundle={})
+        client.generate_summary({}, summary_type="standard")
     
     assert "failed after" in str(exc_info.value).lower()
