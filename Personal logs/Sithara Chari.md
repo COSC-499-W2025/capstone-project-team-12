@@ -1,5 +1,32 @@
 # Sithara Chari Personal Log (22066401)
 
+## Term 2 Week 4 and 5 (01/26/2026 - 02/08/2026)
+### TODOs:
+- Refactor API setup that was done in week 2 to be in accordance with SRP 
+    - issue 363 https://github.com/COSC-499-W2025/capstone-project-team-12/issues/363
+- Start working on milestone requirements for incremental file analysis along with Sara and Devin, starting with reworking certain things in our file manager, and creating modules to handle tree from different points in time of the same file path. 
+    - issue 326 https://github.com/COSC-499-W2025/capstone-project-team-12/issues/326 
+    - issue 349 https://github.com/COSC-499-W2025/capstone-project-team-12/issues/349 
+    - issue 353 https://github.com/COSC-499-W2025/capstone-project-team-12/issues/353 
+### Work Done
+- finished all the TODOs that I had
+- coordinated with Sara to figure out how to implement incremental file handling
+- Wrote code and tests for my tasks 
+- Made PRs, made requested changes and reviewed and requested changes on teammates PRs
+
+### What's next
+- Change the way we compare and validate file paths when updating a previous analysis (incremental file thing) as was pointed out in Sara's review of my PR 
+- work on handling duplicates of files (milestone req #22)
+- work on issues brought up during peer testing 
+
+### Relfection
+- I was very unsure of how to implement the incremental feature, even though I had discussed it with my teammates, mainly Sara, many times, so I kept procrastinating implementing it, which ended up in me putting up a PR only Saturday night, which goes against our groups agreement of having PRs up by thursday so we can have time to review and make changes. This PR was also more than 500 lines, which in a recent announcement our TA said that larger PRs will be penalized, however for this particular feature, it affected so many other modules as it changed the way file_manager.py did certain things, which is the base of our entire project, so it had many waterfall effects which I feel justifies a large line count. 
+
+![alt text](<imgs/Sithara Chari T2Week4.png>)
+
+## Term 2 Week 3 (1/19/2026 - 1/25/2026)
+- No work done this week due to personal issues
+
 ## Term 2 - Week 2 (01/12/2026 - 01/18/2026)
 
 ### TODOs
