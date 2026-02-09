@@ -242,7 +242,7 @@ class TestRunRepoAnalysisPipeline:
         pipeline.cli.print_status.assert_called_with("Skipping Git linking.", "info")
         assert result == ([], [], [], [])
 
-    @patch('pipeline.RepositoryProcessor')
+    @patch('analysis_pipeline.RepositoryProcessor')
     def test_repo_process(self, mock_repo_processor,pipeline, sample_bin_data_array):
         """Test RepositoryProcessor is initialized with correct parameters"""
         git_repos = [{"path": "/repo1"}]
@@ -260,7 +260,7 @@ class TestRunRepoAnalysisPipeline:
             user_email="test@email.com"
         )
 
-    @patch('pipeline.RepositoryProcessor')
+    @patch('analysis_pipeline.RepositoryProcessor')
     def test_repo_process_noemail(self, mock_repoprocessor, pipeline, sample_bin_data_array):
         """Test that None is passed for email when user doesn't provide one"""
         git_repos = [{"path": "/repo1"}]
@@ -278,7 +278,7 @@ class TestRunRepoAnalysisPipeline:
             user_email=None
         )
 
-    @patch('pipeline.RepositoryProcessor')
+    @patch('analysis_pipeline.RepositoryProcessor')
     def test_repo_process_failure(self, mock_repoprocessor, pipeline):
         """Test error message when no repositories are processed"""
         git_repos = [{"path": "/repo1"}]
