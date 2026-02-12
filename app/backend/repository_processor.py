@@ -55,6 +55,7 @@ class RepositoryProcessor:
                 'statistics': commits_result['user_statistics'],
                 'repository_context': commits_result['repository_context'],
                 'dates': date_range,
+                'all_files': commits_result['all_files']
             }
         except Exception as e:
             return {
@@ -113,6 +114,9 @@ class RepositoryProcessor:
             commit_lines_deleted: int = 0
             commit_files: int = 0
 
+            # get all files in the project
+            all_files = set()
+
             for mod in (commit.modified_files or []):
                 commit_files += 1
                 commit_lines_added += mod.added_lines if mod.added_lines is not None else 0
@@ -131,6 +135,10 @@ class RepositoryProcessor:
             canonical_stats[canonical_id]['lines_added'] += commit_lines_added
             canonical_stats[canonical_id]['lines_deleted'] += commit_lines_deleted
             canonical_stats[canonical_id]['files_modified'] += commit_files
+
+            # We want to extract filenames so we can see if deployment files are present in the project 
+            if mod.filename:
+                all_files.add(mod.filename.lower())
 
             # Only consider the commits of the user for detailed data
             if is_user_commit: 
@@ -183,7 +191,8 @@ class RepositoryProcessor:
                 'repo_total_files_modified': repo_total_files_modified,
                 'all_authors_stats': anonymized_stats,
                 'is_collaborative': is_collaborative
-            }
+            },
+            'all_files': all_files
         }
 
 
