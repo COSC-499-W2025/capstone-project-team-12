@@ -55,7 +55,7 @@ class RepositoryProcessor:
                 'statistics': commits_result['user_statistics'],
                 'repository_context': commits_result['repository_context'],
                 'dates': date_range,
-                'repository_dates': commits_result['repository_date_range'],
+                # 'repository_dates': commits_result['repository_date_range'],
                 'all_files': commits_result['all_files']
             }
         except Exception as e:

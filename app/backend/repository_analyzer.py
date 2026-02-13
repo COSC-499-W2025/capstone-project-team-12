@@ -38,7 +38,6 @@ class RepositoryAnalyzer:
                 'collaboration_insights': self._generate_collaboration_insights(project),
                 'testing_insights': self._generate_testing_insights(project),
                 'user_role': self.infer_user_role(project),
-                ### add success indicators here
             }
             projects_insights.append(project_insight)
 

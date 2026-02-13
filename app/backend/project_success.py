@@ -3,9 +3,9 @@ from datetime import datetime
 
 class ProjectSuccess:
     def __init__(self, project_data: Dict[str, Any]) -> None:
-        self.project_data = project_data;
+        self.project_data = project_data
 
-    def detect_deployment(self, project_data: Dict[str, Any]):
+    def detect_deployment(self):
         """
         Detects if the project has deployment configuration using file ext
         """
@@ -49,7 +49,7 @@ class ProjectSuccess:
         detected_containers = set()
         detected_platforms = set()
 
-        all_files = project_data.get('all_files', set())
+        all_files = self.project_data.get('all_files', set())
 
         for file in all_files:
             for pattern, platform in cicd_files.items():
@@ -72,23 +72,32 @@ class ProjectSuccess:
         }
 
 
-    def version_control_success_indicators(self, project_data: Dict[str, Any]):
+    def version_control_success_indicators(self):
         """
         Analyzes version control activity such as commit consistency over project
         timeline, lines added/deleted per commit, total commits by lines added/deleted     
         """
 
         # Get all project info and dates
-        repo_context = project_data.get('repository_context', {})
+        repo_context = self.project_data.get('repository_context', {})
         total_commits = repo_context.get('total_commits_all_authors', 0)
         total_lines_added = repo_context.get('repo_total_lines_added', 0)
         total_lines_deleted = repo_context.get('repo_total_lines_deleted', 0)
+        
         commit_dates = repo_context.get('all_commits_dates', [])
-        commit_date_range = repo_context.get('repository_date_range', {})
-        start_date = commit_date_range.get('start_date')
-        end_date = commit_date_range.get('end_date')
+        commit_date_range = repo_context.get('repository_date_range', {})     
+        start_date_str = commit_date_range.get('start_date')
+        end_date_str = commit_date_range.get('end_date')
         duration_days = commit_date_range.get('duration_days', 1)
-        duration_seconds = commit_date_range.get('duration_seconds', 1)
+
+        if start_date_str and end_date_str:
+            start_date = datetime.fromisoformat(start_date_str)
+            end_date = datetime.fromisoformat(end_date_str)
+        else:
+            return {
+                'avg_lines_per_commit': 0,
+                'commit_consistency': 'No date information available'
+            }
 
         commit_dates.sort()
 
@@ -113,17 +122,17 @@ class ProjectSuccess:
 
 
         return {
-            'avg_lines_per_commit': lines_per_commit,
+            'avg_lines_per_commit': round(lines_per_commit, 2),
             'commit_consistency': activity_blurb,
         }
 
 
 
-    def all_success_indicators(self, project_data: Dict[str, Any]) -> Dict[str, Any]:
+    def all_success_indicators(self) -> Dict[str, Any]:
         """
         Combines all success indicators into a single dictionary
         """
         return {
-            'deployment': self.detect_deployment(project_data),
-            'version_control': self.version_control_success_indicators(project_data)
+            'deployment': self.detect_deployment(),
+            'version_control': self.version_control_success_indicators()
         }
