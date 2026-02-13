@@ -1,6 +1,6 @@
 import pytest
 from datetime import datetime
-from project_success import ProjectSuccess
+from project_success import ProjectSuccessAnalyzer
 
 
 class TestProjectSuccess:
@@ -98,7 +98,7 @@ class TestProjectSuccess:
     
     def test_detect_deployment_no_files(self, minimal_project_data):
         """Test with no deployment files"""
-        ps = ProjectSuccess(minimal_project_data)
+        ps = ProjectSuccessAnalyzer(minimal_project_data)
         result = ps.detect_deployment()
         
         assert result['has_cicd'] is False
@@ -113,7 +113,7 @@ class TestProjectSuccess:
         data = {
             'all_files': {'.github/workflows/deploy.yml'}
         }
-        ps = ProjectSuccess(data)
+        ps = ProjectSuccessAnalyzer(data)
         result = ps.detect_deployment()
         
         assert result['has_cicd'] is True
@@ -124,7 +124,7 @@ class TestProjectSuccess:
         data = {
             'all_files': {'dockerfile', 'docker-compose.yml'}
         }
-        ps = ProjectSuccess(data)
+        ps = ProjectSuccessAnalyzer(data)
         result = ps.detect_deployment()
         
         assert result['has_containerization'] is True
@@ -136,7 +136,7 @@ class TestProjectSuccess:
         data = {
             'all_files': {'vercel.json', 'netlify.toml', 'heroku.yml'}
         }
-        ps = ProjectSuccess(data)
+        ps = ProjectSuccessAnalyzer(data)
         result = ps.detect_deployment()
         
         assert result['has_hosting_platform'] is True
@@ -146,7 +146,7 @@ class TestProjectSuccess:
     
     def test_detect_deployment_all_types(self, project_with_deployment):
         """Test detection of all deployment types"""
-        ps = ProjectSuccess(project_with_deployment)
+        ps = ProjectSuccessAnalyzer(project_with_deployment)
         result = ps.detect_deployment()
         
         assert result['has_cicd'] is True
@@ -158,7 +158,7 @@ class TestProjectSuccess:
         data = {
             'all_files': {'Dockerfile', 'DOCKERFILE'}  # stored as lowercase
         }
-        ps = ProjectSuccess(data)
+        ps = ProjectSuccessAnalyzer(data)
         result = ps.detect_deployment()
         
         # Should not detect because files should already be lowercased
@@ -170,7 +170,7 @@ class TestProjectSuccess:
         data = {
             'all_files': {'dockerfile'}  # properly lowercased
         }
-        ps = ProjectSuccess(data)
+        ps = ProjectSuccessAnalyzer(data)
         result = ps.detect_deployment()
         
         assert result['has_containerization'] is True
@@ -179,7 +179,7 @@ class TestProjectSuccess:
     
     def test_version_control_no_commits(self, minimal_project_data):
         """Test with no commits"""
-        ps = ProjectSuccess(minimal_project_data)
+        ps = ProjectSuccessAnalyzer(minimal_project_data)
         result = ps.version_control_success_indicators()
         
         assert result['avg_lines_per_commit'] == 0
@@ -187,7 +187,7 @@ class TestProjectSuccess:
     
     def test_version_control_lines_per_commit(self, project_with_commits):
         """Test average lines per commit calculation"""
-        ps = ProjectSuccess(project_with_commits)
+        ps = ProjectSuccessAnalyzer(project_with_commits)
         result = ps.version_control_success_indicators()
         
         # (400 + 100) / 4 = 125
@@ -195,7 +195,7 @@ class TestProjectSuccess:
     
     def test_version_control_well_distributed(self, project_with_commits):
         """Test well-distributed commits"""
-        ps = ProjectSuccess(project_with_commits)
+        ps = ProjectSuccessAnalyzer(project_with_commits)
         result = ps.version_control_success_indicators()
         
         # 1 out of 4 commits in last quarter = 25%
@@ -203,7 +203,7 @@ class TestProjectSuccess:
     
     def test_version_control_crammed_at_end(self, project_crammed_at_end):
         """Test commits crammed at end"""
-        ps = ProjectSuccess(project_crammed_at_end)
+        ps = ProjectSuccessAnalyzer(project_crammed_at_end)
         result = ps.version_control_success_indicators()
         
         # 4 out of 5 commits in last quarter = 80%
@@ -232,7 +232,7 @@ class TestProjectSuccess:
                 }
             }
         }
-        ps = ProjectSuccess(data)
+        ps = ProjectSuccessAnalyzer(data)
         result = ps.version_control_success_indicators()
         
         # 3 out of 5 = 60%, should be "end-heavy"
@@ -254,7 +254,7 @@ class TestProjectSuccess:
                 }
             }
         }
-        ps = ProjectSuccess(data)
+        ps = ProjectSuccessAnalyzer(data)
         result = ps.version_control_success_indicators()
         
         assert 'No date information available' in result['commit_consistency']
@@ -262,7 +262,7 @@ class TestProjectSuccess:
     
     def test_all_success_indicators(self, project_with_deployment):
         """Test combined success indicators"""
-        ps = ProjectSuccess(project_with_deployment)
+        ps = ProjectSuccessAnalyzer(project_with_deployment)
         result = ps.all_success_indicators()
         
         assert 'deployment' in result
@@ -272,7 +272,7 @@ class TestProjectSuccess:
     
     def test_all_success_indicators_structure(self, minimal_project_data):
         """Test that all_success_indicators returns correct structure"""
-        ps = ProjectSuccess(minimal_project_data)
+        ps = ProjectSuccessAnalyzer(minimal_project_data)
         result = ps.all_success_indicators()
         
         # Check deployment keys

@@ -407,15 +407,13 @@ class AnalysisPipeline:
                     
                     analyzer = RepositoryAnalyzer(github_username, user_email)
                     imports_extractor = ImportsExtractor()
-                    project_success = ProjectSuccessAnalyzer(selected_repos)
 
                     #Generate the insights for ALL selected projects (not just what is displayed to allow for storage in db)
                     analyzed_repos = analyzer.generate_project_insights(selected_repos)
                     imports_data = imports_extractor.get_all_repo_import_stats(selected_repos)
-                    project_success_indicators = project_success.all_success_indicators()
-
+                    
                     # merge imports_data back into analyzed_repos
-                    for repo in analyzed_repos:
+                    for i, repo in enumerate(analyzed_repos):
                         repo_name = repo.get('repository_name')
                         matching_import = next(
                             (imp for imp in imports_data if imp.get('repository_name') == repo_name),
@@ -426,15 +424,15 @@ class AnalysisPipeline:
                         else:
                             repo['imports_summary'] = {}
 
-                        matching_success = next(
-                            (s for s in project_success_indicators if s.get('repository_name') == repo_name),
-                            None
-                        )
-                        if matching_success:
-                            repo['success_indicators'] = matching_success.get('success_indicators', {})
+                        if i < len(selected_repos):                            
+                            repo_context = selected_repos[i].get('repository_context', {})
+                            date_range = repo_context.get('repository_date_range', {})
+                            project_success = ProjectSuccessAnalyzer(selected_repos[i])
+                            repo['success_indicators'] = project_success.all_success_indicators()
+                            
                         else:
                             repo['success_indicators'] = {}
-
+       
                     if not analyzed_repos:
                         self.cli.print_status("No successful repository analyses.", "warning")
                     else:

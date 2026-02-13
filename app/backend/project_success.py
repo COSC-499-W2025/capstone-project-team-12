@@ -110,16 +110,24 @@ class ProjectSuccessAnalyzer:
         
         # Map percentage to a blurb
         if last_quarter_percentage >= 75:
-            activity_blurb = f"Commits were crammed at the end. {last_quarter_percentage:.1f}% of commits were made in the last quarter."
+            activity_blurb = (
+                f"Commits were crammed at the end. {last_quarter_percentage:.1f}% of commits were made in the last quarter."
+                "This indicates a last-minute rush to complete features or fixes."
+            )
         elif last_quarter_percentage > 45:
-            activity_blurb = f"Commits were end-heavy. {last_quarter_percentage:.1f}% of commits were made in the last quarter."
+            activity_blurb = (
+                f"Commits were end-heavy. {last_quarter_percentage:.1f}% of commits were made in the last quarter."
+                "This suggests the more effort was focused towards the final stages of the project."
+            )
         else:
-            activity_blurb = f"Commits were well-distributed. {last_quarter_percentage:.1f}% of commits were made in the last quarter."
+            activity_blurb = (
+                f"Commits were well-distributed. {last_quarter_percentage:.1f}% of commits were made in the last quarter."
+                "This indicates consistent work throughout the project timeline."
+            )
 
         # Calculate average lines modified per commit
         all_line_modifications = total_lines_added + total_lines_deleted
         lines_per_commit = all_line_modifications / total_commits if total_commits > 0 else 0
-
 
         return {
             'avg_lines_per_commit': round(lines_per_commit, 2),
@@ -133,8 +141,6 @@ class ProjectSuccessAnalyzer:
         Combines all success indicators into a single dictionary
         """
         return {
-            'success_indicators': {
-                'deployment': self.detect_deployment(),
-                'version_control': self.version_control_success_indicators()
-            }
+            'deployment': self.detect_deployment(),
+            'version_control': self.version_control_success_indicators()
         }
