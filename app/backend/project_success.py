@@ -1,7 +1,7 @@
 from typing import Dict, Any
 from datetime import datetime
 
-class ProjectSuccess:
+class ProjectSuccessAnalyzer:
     def __init__(self, project_data: Dict[str, Any]) -> None:
         self.project_data = project_data
 
@@ -133,6 +133,8 @@ class ProjectSuccess:
         Combines all success indicators into a single dictionary
         """
         return {
-            'deployment': self.detect_deployment(),
-            'version_control': self.version_control_success_indicators()
+            'success_indicators': {
+                'deployment': self.detect_deployment(),
+                'version_control': self.version_control_success_indicators()
+            }
         }
