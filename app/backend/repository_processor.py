@@ -200,10 +200,10 @@ class RepositoryProcessor:
                 'repo_total_files_modified': repo_total_files_modified,
                 'all_authors_stats': anonymized_stats,
                 'is_collaborative': is_collaborative,
-                'all_commits_dates': all_commit_dates
+                'all_commits_dates': all_commit_dates,
+                'repository_date_range': all_commits_date_range
             },
             'all_files': all_files,
-            'repository_date_range': all_commits_date_range
         }
 
 

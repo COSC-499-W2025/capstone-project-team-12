@@ -83,15 +83,29 @@ class ProjectSuccess:
         total_commits = repo_context.get('total_commits_all_authors', 0)
         total_lines_added = repo_context.get('repo_total_lines_added', 0)
         total_lines_deleted = repo_context.get('repo_total_lines_deleted', 0)
-        dates_info = project_data.get('dates', {})
-        start_date_str = dates_info.get('start_date')
-        end_date_str = dates_info.get('end_date')
-        duration_days = dates_info.get('duration_days', 0)
-        duration_seconds = dates_info.get('duration_seconds', 0)
-        commit_dates = project_data.get('all_commits_dates', [])
-        commit_date_range = project_data.get('repository_date_range', {})
+        commit_dates = repo_context.get('all_commits_dates', [])
+        commit_date_range = repo_context.get('repository_date_range', {})
+        start_date = commit_date_range.get('start_date')
+        end_date = commit_date_range.get('end_date')
+        duration_days = commit_date_range.get('duration_days', 1)
+        duration_seconds = commit_date_range.get('duration_seconds', 1)
 
         commit_dates.sort()
+
+        # Count the commits in the last quarter of the project timeline
+        last_quarter_start = start_date + (end_date - start_date) * 0.75
+        last_quarter_commits = sum(1 for date in commit_dates if date >= last_quarter_start)
+        
+        # Find the percentage of commits made in the last 
+        last_quarter_percentage = (last_quarter_commits / total_commits) * 100 if total_commits > 0 else 0
+        
+        # Map percentage to a blurb
+        if last_quarter_percentage >= 75:
+            activity_blurb = f"Commits were crammed at the end. {last_quarter_percentage:.1f}% of commits were made in the last quarter."
+        elif last_quarter_percentage > 45:
+            activity_blurb = f"Commits were end-heavy. {last_quarter_percentage:.1f}% of commits were made in the last quarter."
+        else:
+            activity_blurb = f"Commits were well-distributed. {last_quarter_percentage:.1f}% of commits were made in the last quarter."
 
         # Calculate average lines modified per commit
         all_line_modifications = total_lines_added + total_lines_deleted
@@ -99,7 +113,8 @@ class ProjectSuccess:
 
 
         return {
-            avg_lines_per_commit': lines_per_commit,
+            'avg_lines_per_commit': lines_per_commit,
+            'commit_consistency': activity_blurb,
         }
 
 
@@ -109,7 +124,6 @@ class ProjectSuccess:
         Combines all success indicators into a single dictionary
         """
         return {
-            'deployment': {
-                'cicd_tools': self.detect_deployment(project_data)
-            }
+            'deployment': self.detect_deployment(project_data),
+            'version_control': self.version_control_success_indicators(project_data)
         }
