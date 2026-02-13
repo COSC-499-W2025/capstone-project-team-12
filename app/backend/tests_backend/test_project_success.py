@@ -210,7 +210,7 @@ class TestProjectSuccess:
         assert 'crammed at the end' in result['commit_consistency'].lower()
     
     def test_version_control_end_heavy(self):
-        """Test end-heavy commits (50-75%)"""
+        """Test end-heavy commits (45-75%)"""
         dates = [
             datetime(2024, 1, 1),
             datetime(2024, 1, 2),
