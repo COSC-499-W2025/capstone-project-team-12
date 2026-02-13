@@ -1,5 +1,5 @@
 from typing import Dict, Any
-import os
+from datetime import datetime
 
 class ProjectSuccess:
     def __init__(self, project_data: Dict[str, Any]) -> None:
@@ -70,6 +70,38 @@ class ProjectSuccess:
             'has_hosting_platform': len(detected_platforms) > 0,
             'hosting_platforms': list(detected_platforms)
         }
+
+
+    def version_control_success_indicators(self, project_data: Dict[str, Any]):
+        """
+        Analyzes version control activity such as commit consistency over project
+        timeline, lines added/deleted per commit, total commits by lines added/deleted     
+        """
+
+        # Get all project info and dates
+        repo_context = project_data.get('repository_context', {})
+        total_commits = repo_context.get('total_commits_all_authors', 0)
+        total_lines_added = repo_context.get('repo_total_lines_added', 0)
+        total_lines_deleted = repo_context.get('repo_total_lines_deleted', 0)
+        dates_info = project_data.get('dates', {})
+        start_date_str = dates_info.get('start_date')
+        end_date_str = dates_info.get('end_date')
+        duration_days = dates_info.get('duration_days', 0)
+        duration_seconds = dates_info.get('duration_seconds', 0)
+        commit_dates = project_data.get('all_commits_dates', [])
+        commit_date_range = project_data.get('repository_date_range', {})
+
+        commit_dates.sort()
+
+        # Calculate average lines modified per commit
+        all_line_modifications = total_lines_added + total_lines_deleted
+        lines_per_commit = all_line_modifications / total_commits if total_commits > 0 else 0
+
+
+        return {
+            avg_lines_per_commit': lines_per_commit,
+        }
+
 
 
     def all_success_indicators(self, project_data: Dict[str, Any]) -> Dict[str, Any]:

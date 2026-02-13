@@ -55,6 +55,7 @@ class RepositoryProcessor:
                 'statistics': commits_result['user_statistics'],
                 'repository_context': commits_result['repository_context'],
                 'dates': date_range,
+                'repository_dates': commits_result['repository_date_range'],
                 'all_files': commits_result['all_files']
             }
         except Exception as e:
@@ -73,6 +74,7 @@ class RepositoryProcessor:
         user_dates: List[datetime] = []
         canonical_stats: Dict[str, Dict[str, int]] = {}
         target_user_canonical_id: Optional[str] = None
+        all_commit_dates: List[datetime] = []
 
         # User statistics
         user_files_modified: int = 0
@@ -85,10 +87,17 @@ class RepositoryProcessor:
         repo_total_lines_added: int = 0
         repo_total_lines_deleted: int = 0
         repo_total_files_modified: int = 0
+
+        # get all files in the project
+        all_files = set()
         
         # Single pass through all commits
         for commit in repo.traverse_commits():
             repo_total_commits += 1
+
+            if commit.author_date:
+                all_commit_dates.append(commit.author_date)
+
 
             author_name: str = commit.author.name if commit.author and commit.author.name else ""
             author_email: str = commit.author.email.lower() if commit.author and commit.author.email else ""
@@ -113,9 +122,6 @@ class RepositoryProcessor:
             commit_lines_added: int = 0
             commit_lines_deleted: int = 0
             commit_files: int = 0
-
-            # get all files in the project
-            all_files = set()
 
             for mod in (commit.modified_files or []):
                 commit_files += 1
@@ -174,6 +180,9 @@ class RepositoryProcessor:
 
         is_collaborative: bool = len(canonical_stats) > 1 if canonical_stats else len(commits_data) < repo_total_commits
 
+        all_commits_date_range: Dict[str, Any] = self._calculate_date_range(all_commit_dates)
+
+
         return {
             'user_commits_data': commits_data,
             'user_dates': user_dates,
@@ -190,9 +199,11 @@ class RepositoryProcessor:
                 'repo_total_lines_deleted': repo_total_lines_deleted,
                 'repo_total_files_modified': repo_total_files_modified,
                 'all_authors_stats': anonymized_stats,
-                'is_collaborative': is_collaborative
+                'is_collaborative': is_collaborative,
+                'all_commits_dates': all_commit_dates
             },
-            'all_files': all_files
+            'all_files': all_files,
+            'repository_date_range': all_commits_date_range
         }
 
 
