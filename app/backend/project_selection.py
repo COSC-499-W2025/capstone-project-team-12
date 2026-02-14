@@ -7,7 +7,7 @@ def ask_confirm_all(projects):
         "\nDo you want to proceed with analysis for all of these? (Y/n): "
     ).strip().lower()
 
-    return response in ("", "y", "yes")
+    return response not in ("n", "no")
 
 
 def ask_project_selection(projects):

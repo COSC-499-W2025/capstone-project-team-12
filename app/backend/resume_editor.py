@@ -307,6 +307,7 @@ class ResumeEditor:
                     f"Remove '{actual_item}'? (y/n): \n> "
                 ).strip().lower()
                 
+                # To keep this safe for the user, this default consent will always be NO, since we dont want them to accidentally remove skills/languages without confirmation. If they just press Enter it will be treated as a NO and keep the item.
                 if confirm == 'y':
                     current_items.remove(actual_item)
                     items_lower.remove(choice.lower())
