@@ -15,6 +15,7 @@ from cli_interface import CLI
 from config_manager import ConfigManager
 from database_manager import DatabaseManager
 from llm.llm_clients import LocalLLMClient, OnlineLLMClient
+from portfolio_builder import PortfolioBuilder
 
 app = FastAPI(title="Artifact Mining API")
 
@@ -134,9 +135,26 @@ async def get_project_detail(result_id: str, db: DatabaseManager = Depends(get_d
 
 @app.get("/skills")
 async def get_skills(db: DatabaseManager = Depends(get_db)):
-    """Aggregate skills (Placeholder cause we don't have a separate skills thing yet)."""
+    """Aggregate skills across all analysed projects."""
     results = db.get_all_results_summary()
-    return {"count": len(results), "message": "Skill aggregation logic pending."}
+    skill_counts: Dict[str, int] = {}
+    for row in results:
+        insights = row.get("metadata_insights")
+        if insights is None:
+            continue
+        if isinstance(insights, str):
+            try:
+                insights = json.loads(insights)
+            except (json.JSONDecodeError, TypeError):
+                continue
+        if not isinstance(insights, dict):
+            continue
+        for key in ("languages", "frameworks"):
+            for item in insights.get(key, []):
+                if isinstance(item, str) and item:
+                    skill_counts[item] = skill_counts.get(item, 0) + 1
+    sorted_skills = dict(sorted(skill_counts.items(), key=lambda x: x[1], reverse=True))
+    return {"skills": sorted_skills}
 
 @app.get("/resume/{result_id}")
 async def get_resume(result_id: str, db: DatabaseManager = Depends(get_db)):
@@ -193,8 +211,13 @@ async def edit_resume(result_id: str, new: ResumeEditRequest, db: DatabaseManage
 
 @app.get("/portfolio/{result_id}")
 async def get_portfolio(result_id: str, db: DatabaseManager = Depends(get_db)):
-    """Placeholder for potential future standalone generation"""
-    return {"status": "ignored", "message": "Portfolio generation happens in upload"}
+    """Generate and return a portfolio for the given result."""
+    builder = PortfolioBuilder()
+    cli = CLI()
+    portfolio = builder.create_portfolio_from_result_id(db, cli, result_id)
+    if portfolio is None:
+        raise HTTPException(status_code=404, detail="Portfolio not found")
+    return portfolio
 
 @app.post("/portfolio/generate")
 async def generate_portfolio(result_id: str = Form(...)):
