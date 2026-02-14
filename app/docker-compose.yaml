@@ -17,6 +17,7 @@ services:
     depends_on: 
       - backend_db
       - local_llm  
+    command: uvicorn main_api:app --host 0.0.0.0 --port 8080 --reload
     volumes:
 
       # CHANGED: Use explicit bind mount syntax
