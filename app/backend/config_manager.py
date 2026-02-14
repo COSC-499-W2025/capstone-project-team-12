@@ -30,16 +30,27 @@ class ConfigManager:
         except IOError as e:
             print(f"Warning: Could not save preferences: {e}")
 
-    def get_consent(self, key: str, prompt_text: str, component: str = "this feature") -> bool:
+    def get_consent(self, key: str, prompt_text: str, component: str = "this feature", default: bool = True) -> bool:
         #Asks for consent, acknowledging previous choices with specific component context.
         
         previous_val = self.preferences.get(key)
         
         #SCENARIO 1: No History (First Run) 
         if previous_val is None:
+
+            # checks if default is True, and informs user of the default consent status
+            if default:
+                prompt_display = f"{prompt_text} (Will default to YES) \n> "
+            else:
+                prompt_display = f"{prompt_text} (Will default to NO) \n> "
+
             while True:
-                user_input = input(f"{prompt_text} (y/n) \n> ").strip().lower()
-                if user_input in ("y", "yes"):
+                user_input = input(prompt_display).strip().lower()
+
+                if user_input == "" and default is not None:
+                    self.save_prefs({key: default})
+                    return default
+                elif user_input in ("y", "yes"):
                     self.save_prefs({key: True})
                     return True
                 elif user_input in ("n", "no"):
@@ -50,21 +61,56 @@ class ConfigManager:
         #SCENARIO 2: Previously Consented 
         elif previous_val is True:
             print(f"\n[!] HISTORY: You previously provided consent for {component}.")
-            confirm = input(f"Do you STILL consent? [Y/n] > ").strip().lower()
             
-            if confirm in ("n", "no"):
+            if default:
+                confirm_prompt = f"Do you STILL consent to {component}? (Will default to YES) \n> ".strip().lower()
+            else:
+                confirm_prompt = f"Do you STILL consent to {component}? (Will default to NO) \n> ".strip().lower()
+
+            confirm = input(confirm_prompt).strip().lower()
+
+            if confirm == "" and default is not None:
+                if not default:
+                    print("[-] Consent revoked.")
+                    self.save_prefs({key: False})
+                return default
+            elif confirm in ("n", "no"):
                 print("[-] Consent revoked.")
                 self.save_prefs({key: False})
                 return False
-            return True
+            elif confirm in ("y", "yes"):
+                return True
+            else:
+                print("Invalid input. Defaulting to previous consent value.")
+                return previous_val
 
         # SCENARIO 3: Previously Denied 
         elif previous_val is False:
             print(f"\n[*] HISTORY: You previously denied consent for {component}.")
-            change = input(f"Do you want to change your mind and consent now? [y/N] > ").strip().lower()
             
+            if default:
+                confirm_prompt = f"Do you want to change your mind and consent to {component}? (Will default to YES) \n> ".strip().lower()
+            else:
+                confirm_prompt = f"Do you want to change your mind and consent to {component}? (Will default to NO) \n> ".strip().lower()
+            
+            change = input(confirm_prompt).strip().lower()
+
             if change in ("y", "yes"):
                 print("[+] Consent granted.")
                 self.save_prefs({key: True})
                 return True
-            return False
+            elif change == "" and default is not None:
+                if default:
+                    print("[+] Consent granted.")
+                    self.save_prefs({key: True})
+                    return True
+                else:
+                    print("[-] Consent remains revoked.")
+                    return False
+                return default
+            elif change in ("n", "no"):
+                print("[-] Consent remains revoked.")
+                return False
+            else:
+                print("Invalid input. Defaulting to previous consent value.")
+                return previous_val

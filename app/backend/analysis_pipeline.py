@@ -517,7 +517,8 @@ class AnalysisPipeline:
             online_consent = self.config_manager.get_consent(
                 key="online_llm_consent",
                 prompt_text="Do you consent to using the ONLINE LLM?",
-                component="sending data to the Online LLM"
+                component="sending data to the Online LLM",
+                default=False # We default to NO for privacy reasons
             )
 
             if online_consent:
