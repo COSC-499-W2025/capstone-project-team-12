@@ -136,15 +136,16 @@ class RepositoryProcessor:
                 # Track change types for the user
                 if is_user_commit and mod.change_type:
                     change_types.add(mod.change_type.name)
+
+                
+                # We want to extract filenames so we can see if deployment files are present in the project 
+                if mod.filename:
+                    all_files.add(mod.filename.lower())
             
             canonical_stats[canonical_id]['commits'] += 1
             canonical_stats[canonical_id]['lines_added'] += commit_lines_added
             canonical_stats[canonical_id]['lines_deleted'] += commit_lines_deleted
             canonical_stats[canonical_id]['files_modified'] += commit_files
-
-            # We want to extract filenames so we can see if deployment files are present in the project 
-            if mod.filename:
-                all_files.add(mod.filename.lower())
 
             # Only consider the commits of the user for detailed data
             if is_user_commit: 
