@@ -80,6 +80,29 @@ def display_project_insights(analyzed_repos: List[Dict[str, Any]], top_n: int = 
             print("  No external libraries detected.")
 
 
+         # Success Indicators
+        success = project.get("success_indicators", {})
+        if success:
+            # Deployment
+            deployment = success.get("deployment", {})
+            print("\n> Deployment & Infrastructure:")
+            print(f"  - Has CI/CD: {deployment.get('has_cicd', False)}")
+            if deployment.get('cicd_tools'):
+                print(f"    • Tools: {', '.join(deployment.get('cicd_tools', []))}")
+            print(f"  - Has Containerization: {deployment.get('has_containerization', False)}")
+            if deployment.get('containerization_tools'):
+                print(f"    • Tools: {', '.join(deployment.get('containerization_tools', []))}")
+            print(f"  - Has Hosting Platform: {deployment.get('has_hosting_platform', False)}")
+            if deployment.get('hosting_platforms'):
+                print(f"    • Platforms: {', '.join(deployment.get('hosting_platforms', []))}")
+            
+            # Version Control
+            version_control = success.get("version_control", {})
+            print("\n> Version Control Quality:")
+            print(f"  - Avg Lines per Commit: {version_control.get('avg_lines_per_commit', 0)}")
+            print(f"  - Commit Consistency: {version_control.get('commit_consistency', 'Unknown')}")
+
+
 def display_project_summary(ranked_projects: List[Dict[str, Any]], top_n: int = 3) -> None:
     """
     Display a summary table of the most important projects.
