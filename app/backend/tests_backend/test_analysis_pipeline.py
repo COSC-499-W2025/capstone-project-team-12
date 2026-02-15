@@ -360,7 +360,31 @@ class TestRunRepoAnalysisPipeline:
         
         # Verify return values
         assert result == (git_repos, reranked_repos, timeline, processed_repos)
+
+@patch('analysis_pipeline.MetadataAnalyzer')
+@patch('analysis_pipeline.MetadataExtractor')
+def test_metadata_pipeline_empty_data(mock_extractor_cls, mock_analyzer_cls,         #Pipeline classes
+                                         pipeline, mock_text_nodes, mock_code_nodes):   #Mock data fixtures
+    """Test metadata pipeline with no files passed"""
     
-def test_metadata_pipeline():
-    assert True
+    # Setup mock with empty results
+    mock_extractor = Mock()
+    mock_extractor.extract_all_metadata.return_value = {}
+    mock_extractor_cls.return_value = mock_extractor
+    
+    mock_analyzer = Mock()
+    mock_analyzer.analyze_all.return_value = {'total_files': 0}
+    mock_analyzer_cls.return_value = mock_analyzer
+    
+    # Execute function
+    result = pipeline.run_metadata_analysis_pipeline(mock_text_nodes, mock_code_nodes, []) #Empty file_data array
+    
+    #Verify Implementation and results
+    pipeline.cli.print_status.assert_not_called()
+    mock_analyzer_cls.assert_called_once_with({})
+    mock_analyzer.analyze_all.assert_called_once()
+    assert result == {'total_files': 0}
+
+ 
+
 
