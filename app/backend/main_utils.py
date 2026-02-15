@@ -1,5 +1,6 @@
 import os
 import pickle
+import difflib
 from typing import List, Dict, Any, BinaryIO
 from pathlib import Path
 from database_manager import DatabaseManager
@@ -13,39 +14,53 @@ from input_validation import validate_analysis_path, validate_thumbnail_path, va
 def compare_path(old_path: str, new_path: str) -> bool:
     """
     Compares the old path with the new path to determine if they are similar.
-    Checks for differences in:
-    1. Drive/Mount point
-    2. Parent directory structure
-    3. folder name
     
-    Returns true if paths are deemed similar enough or if the user confirms the difference.
-    Returns False if they are different and user rejects the confirmation.
+    Checks:
+    1. Drive/Mount point
+    2. Parent directory
+    3. Folder name similarity
+       - Uses SequenceMatcher to detect versioning (e.g. 'Project_v1' vs 'Project_v2').
+       - If similarity > 0.6, we assume it's a version update and allow it.
+       - If similarity < 0.6, we warn the user.
+    
+    Returns True if paths are deemed similar enough or if the user confirms the difference.
     """
     try:
-        # Resolve paths to handle relative paths, symlinks, and uniform separators
         old = Path(old_path).resolve()
         new = Path(new_path).resolve()
     except Exception as e:
-        # Fallback for invalid paths that can't be resolved (e.g. deleted drives)
         print(f"Warning: Could not resolve paths for comparison: {e}")
         old = Path(old_path)
         new = Path(new_path)
 
     warnings = []
-
-    # 1. check drive/mount point (e.g. C:\ vs D:\ or / vs /mnt)
-    if old.anchor != new.anchor:
-        warnings.append(f"- Different Drive/Root: '{old.anchor}' vs '{new.anchor}'")
-
-    # 2. check parent directory (e.g. .../desktop/project vs .../downloads/project)
-    if old.parent != new.parent:
-        warnings.append(f"- Different Parent Directory:\n  Old: {old.parent}\n  New: {new.parent}")
-
-    # 3. check folder name (e.g. .../v1 vs .../v2)
-    if old.name != new.name:
-        warnings.append(f"- Different Folder Name: '{old.name}' vs '{new.name}'")
     
-    #if any warnings were collected, prompt the user
+    # 1. Check Drive/Mount Point
+    if old.anchor != new.anchor:
+        warnings.append(f"- DIFFERENT DRIVE: '{old.anchor}' vs '{new.anchor}'")
+
+    # 2. Check Parent Directory
+    if old.parent != new.parent:
+        warnings.append(f"- MOVED LOCATION:\n  Old: {old.parent}\n  New: {new.parent}")
+
+    # 3. Check Folder Name with Similarity Ratio
+    if old.name != new.name:
+        # Calculate similarity (0.0 to 1.0)
+        matcher = difflib.SequenceMatcher(None, old.name.lower(), new.name.lower())
+        similarity = matcher.ratio()
+        
+        # Check if one is a complete substring of the other (e.g. 'Project' in 'Project_Backup')
+        is_substring = (old.name.lower() in new.name.lower()) or (new.name.lower() in old.name.lower())
+
+        if similarity < 0.6 and not is_substring:
+            # Low similarity implies a completely different project
+            warnings.append(f"- DIFFERENT FOLDER NAME (Similarity: {int(similarity*100)}%): '{old.name}' vs '{new.name}'")
+        else:
+            # High similarity implies a version bump/rename. 
+            # We print a gentle info message but do not add to warnings list (so it doesn't trigger the confirmation prompt)
+            print(f"\n[Info] Detected folder rename (Similarity: {int(similarity*100)}%): '{old.name}' -> '{new.name}'")
+
+    # If any CRITICAL warnings were collected, prompt the user
     if warnings:
         print("\n[WARNING] The new path seems significantly different from the old path:")
         for w in warnings:
