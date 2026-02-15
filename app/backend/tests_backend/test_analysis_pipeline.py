@@ -429,4 +429,27 @@ def test_metadata_pipeline(mock_extractor_cls, mock_analyzer_cls,               
     mock_analyzer.analyze_all.assert_called_once()
     assert result == metadata_analysis
 
+class TestSaveResults:
+    """Tests for save_results method"""
 
+    @pytest.fixture
+    def mock_data_bundle(self):
+        """Mock data bundle with required attributes"""
+        bundle = Mock()
+        bundle.metadata_results = {'file1.txt': {'size': 1024}}
+        bundle.final_bow = [['word1', 'word2'], ['word3', 'word4']]
+        bundle.processed_git_repos = [{'repo': 'test-repo'}]
+        return bundle
+
+    @pytest.fixture
+    def mock_results_bundle(self):
+        """Mock results bundle with required attributes"""
+        bundle = Mock()
+        bundle.metadata_analysis = {'total_files': 10}
+        bundle.doc_topic_vectors = [[0.5, 0.3], [0.7, 0.2]]
+        bundle.topic_term_vectors = [[0.4, 0.6], [0.3, 0.7]]
+        bundle.project_analysis_data = [{'project': 'test', 'score': 10}]
+        bundle.medium_summary = ['Point 1', 'Point 2', 'Point 3']
+        return bundle
+
+    
