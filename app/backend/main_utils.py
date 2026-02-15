@@ -26,12 +26,17 @@ def compare_path(old_path: str, new_path: str) -> bool:
     Returns True if paths are deemed similar enough or if the user confirms the difference.
     """
     try:
-        old = Path(old_path).resolve()
-        new = Path(new_path).resolve()
+            old = Path(old_path).resolve()
+            new = Path(new_path).resolve()
     except Exception as e:
         print(f"Warning: Could not resolve paths for comparison: {e}")
         old = Path(old_path)
         new = Path(new_path)
+
+    # --- NEW: Calculate and print similarity immediately ---
+    matcher = difflib.SequenceMatcher(None, old.name.lower(), new.name.lower())
+    similarity = matcher.ratio()
+    print(f"Folder name similarity: {int(similarity * 100)}%")
 
     warnings = []
     
@@ -45,10 +50,6 @@ def compare_path(old_path: str, new_path: str) -> bool:
 
     # 3. Check Folder Name with Similarity Ratio
     if old.name != new.name:
-        # Calculate similarity (0.0 to 1.0)
-        matcher = difflib.SequenceMatcher(None, old.name.lower(), new.name.lower())
-        similarity = matcher.ratio()
-        
         # Check if one is a complete substring of the other (e.g. 'Project' in 'Project_Backup')
         is_substring = (old.name.lower() in new.name.lower()) or (new.name.lower() in old.name.lower())
 
@@ -57,19 +58,19 @@ def compare_path(old_path: str, new_path: str) -> bool:
             warnings.append(f"- DIFFERENT FOLDER NAME (Similarity: {int(similarity*100)}%): '{old.name}' vs '{new.name}'")
         else:
             # High similarity implies a version bump/rename. 
-            # We print a gentle info message but do not add to warnings list (so it doesn't trigger the confirmation prompt)
-            print(f"\n[Info] Detected folder rename (Similarity: {int(similarity*100)}%): '{old.name}' -> '{new.name}'")
+            print(f"\n[Info] Detected folder rename (Safe to proceed): '{old.name}' -> '{new.name}'")
 
-    # If any CRITICAL warnings were collected, prompt the user
+    # If any warnings were collected, print them
     if warnings:
         print("\n[WARNING] The new path seems significantly different from the old path:")
         for w in warnings:
             print(w)
-            
-        cli = CLI()
-        confirm = cli.get_input("\nAre you sure this is the correct update? (y/n): ").lower()
-        if confirm != 'y':
-            return False
+    
+    # ALWAYS prompt the user for confirmation
+    cli = CLI()
+    confirm = cli.get_input("\nAre you sure this is the correct update? (y/n): ").lower()
+    if confirm != 'y':
+        return False
             
     return True
 
