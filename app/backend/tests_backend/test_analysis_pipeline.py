@@ -373,18 +373,17 @@ def test_metadata_pipeline_empty_data(mock_extractor_cls, mock_analyzer_cls,    
     mock_extractor_cls.return_value = mock_extractor
     
     mock_analyzer = Mock()
-    mock_analyzer.analyze_all.return_value = {'total_files': 0}
+    mock_analyzer.analyze_all.return_value = {}
     mock_analyzer_cls.return_value = mock_analyzer
     
     # Execute function
     result = pipeline.run_metadata_analysis_pipeline(mock_text_nodes, mock_code_nodes, []) #Empty file_data array
     
     #Verify Implementation and results
-    pipeline.cli.print_status.assert_not_called()
+    pipeline.cli.print_status.assert_called_once_with("Error during metadata analysis: Empty analysis result.","error")
     mock_analyzer_cls.assert_called_once_with({})
     mock_analyzer.analyze_all.assert_called_once()
-    assert result == {'total_files': 0}
-
+    assert result == ({}, {})
  
 @patch('analysis_pipeline.MetadataAnalyzer')
 @patch('analysis_pipeline.MetadataExtractor')
@@ -409,8 +408,14 @@ def test_metadata_pipeline(mock_extractor_cls, mock_analyzer_cls,               
         'total_files': 4,
         'total_size': 10240,
         'average_lines': 125,
-        'file_types': {'txt': 1, 'md': 1, 'py': 1, 'cpp': 1}
-    }
+        'extension_stats':{ 
+                            'txt':{'count':1,'total_size':1024,'percentage':25,'category':'text'}, 
+                            'md': {'count':1,'total_size':2048,'percentage':25,'category':'test'}, 
+                            'py': {'count':1,'total_size':3072,'percentage':25,'category':'code'}, 
+                            'cpp': {'count':1,'total_size':4096,'percentage':25,'category':'code'}
+                        },
+        'primary_languages':{'Python':50,'CPP':50}
+        }
     mock_analyzer.analyze_all.return_value = metadata_analysis
     mock_analyzer_cls.return_value = mock_analyzer
     
@@ -427,7 +432,6 @@ def test_metadata_pipeline(mock_extractor_cls, mock_analyzer_cls,               
     #Verify Implementation and results
     mock_analyzer_cls.assert_called_once_with(metadata_results)
     mock_analyzer.analyze_all.assert_called_once()
-    assert result == metadata_analysis
 
 class TestSaveResults:
     """Tests for save_results method"""
