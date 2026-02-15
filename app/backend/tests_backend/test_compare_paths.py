@@ -3,7 +3,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 from main_utils import compare_path
 
-# Root path for string comparison (does not need to exist physically)
+# Root path for string comparison
 TEST_ROOT = Path("/app/repos/test_scenarios/path_comparison")
 
 class TestPathComparison:
@@ -30,7 +30,7 @@ class TestPathComparison:
             mock_old = MagicMock()
             mock_new = MagicMock()
 
-            # Mock behavior to simulate Windows paths
+            # Mock behavior to simulate windows paths
             mock_old.resolve.return_value = mock_old
             mock_old.anchor = "C:\\"
             mock_old.parent = "C:\\app\\repos"

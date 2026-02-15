@@ -33,7 +33,7 @@ def compare_path(old_path: str, new_path: str) -> bool:
         old = Path(old_path)
         new = Path(new_path)
 
-    # --- NEW: Calculate and print similarity immediately ---
+    #cCalculate and print similarity immediately ---
     matcher = difflib.SequenceMatcher(None, old.name.lower(), new.name.lower())
     similarity = matcher.ratio()
     print(f"Folder name similarity: {int(similarity * 100)}%")
@@ -57,7 +57,7 @@ def compare_path(old_path: str, new_path: str) -> bool:
             # Low similarity implies a completely different project
             warnings.append(f"- DIFFERENT FOLDER NAME (Similarity: {int(similarity*100)}%): '{old.name}' vs '{new.name}'")
         else:
-            # High similarity implies a version bump/rename. 
+            # High similarity implies a version update/rename. 
             print(f"\n[Info] Detected folder rename (Safe to proceed): '{old.name}' -> '{new.name}'")
 
     # If any warnings were collected, print them
@@ -66,7 +66,7 @@ def compare_path(old_path: str, new_path: str) -> bool:
         for w in warnings:
             print(w)
     
-    # ALWAYS prompt the user for confirmation
+    # always prompt the user for confirmation
     cli = CLI()
     confirm = cli.get_input("\nAre you sure this is the correct update? (y/n): ").lower()
     if confirm != 'y':
