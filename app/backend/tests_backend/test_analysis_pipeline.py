@@ -386,5 +386,47 @@ def test_metadata_pipeline_empty_data(mock_extractor_cls, mock_analyzer_cls,    
     assert result == {'total_files': 0}
 
  
+@patch('analysis_pipeline.MetadataAnalyzer')
+@patch('analysis_pipeline.MetadataExtractor')
+def test_metadata_pipeline(mock_extractor_cls, mock_analyzer_cls,                                   #Pipeline classes
+                          pipeline, mock_text_nodes, mock_code_nodes, sample_bin_data_array):       #Mock data fixtures
+    """Test successful execution of metadata analysis pipeline"""
+    
+    # Setup mock metadata extractor
+    mock_extractor = Mock()
+    metadata_results = {
+        'text1.txt': {'size': 1024, 'lines': 50, 'encoding': 'utf-8'},
+        'text2.md': {'size': 2048, 'lines': 100, 'encoding': 'utf-8'},
+        'code1.py': {'size': 3072, 'lines': 150, 'encoding': 'utf-8'},
+        'code2.cpp': {'size': 4096, 'lines': 200, 'encoding': 'utf-8'}
+    }
+    mock_extractor.extract_all_metadata.return_value = metadata_results
+    mock_extractor_cls.return_value = mock_extractor
+    
+    # Setup mock metadata analyzer
+    mock_analyzer = Mock()
+    metadata_analysis = {
+        'total_files': 4,
+        'total_size': 10240,
+        'average_lines': 125,
+        'file_types': {'txt': 1, 'md': 1, 'py': 1, 'cpp': 1}
+    }
+    mock_analyzer.analyze_all.return_value = metadata_analysis
+    mock_analyzer_cls.return_value = mock_analyzer
+    
+    # Execute function
+    result = pipeline.run_metadata_analysis_pipeline(mock_text_nodes, mock_code_nodes, sample_bin_data_array)
+    
+    # Verify MetadataExtractor was instantiated
+    mock_extractor_cls.assert_called_once()
+    
+    # Verify extract_all_metadata was called with combined nodes
+    all_nodes = mock_text_nodes + mock_code_nodes
+    mock_extractor.extract_all_metadata.assert_called_once_with(all_nodes, sample_bin_data_array)
+
+    #Verify Implementation and results
+    mock_analyzer_cls.assert_called_once_with(metadata_results)
+    mock_analyzer.analyze_all.assert_called_once()
+    assert result == metadata_analysis
 
 
