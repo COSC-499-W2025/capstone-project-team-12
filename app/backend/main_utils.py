@@ -13,21 +13,46 @@ from input_validation import validate_analysis_path, validate_thumbnail_path, va
 def compare_path(old_path: str, new_path: str) -> bool:
     """
     Compares the old path with the new path to determine if they are similar.
-    Returns True if paths are deemed 'similar enough' or if the user confirms the difference.
+    Checks for differences in:
+    1. Drive/Mount point
+    2. Parent directory structure
+    3. folder name
+    
+    Returns true if paths are deemed similar enough or if the user confirms the difference.
     Returns False if they are different and user rejects the confirmation.
     """
-    old_name = Path(old_path).name
-    new_name = Path(new_path).name
+    try:
+        # Resolve paths to handle relative paths, symlinks, and uniform separators
+        old = Path(old_path).resolve()
+        new = Path(new_path).resolve()
+    except Exception as e:
+        # Fallback for invalid paths that can't be resolved (e.g. deleted drives)
+        print(f"Warning: Could not resolve paths for comparison: {e}")
+        old = Path(old_path)
+        new = Path(new_path)
+
+    warnings = []
+
+    # 1. check drive/mount point (e.g. C:\ vs D:\ or / vs /mnt)
+    if old.anchor != new.anchor:
+        warnings.append(f"- Different Drive/Root: '{old.anchor}' vs '{new.anchor}'")
+
+    # 2. check parent directory (e.g. .../desktop/project vs .../downloads/project)
+    if old.parent != new.parent:
+        warnings.append(f"- Different Parent Directory:\n  Old: {old.parent}\n  New: {new.parent}")
+
+    # 3. check folder name (e.g. .../v1 vs .../v2)
+    if old.name != new.name:
+        warnings.append(f"- Different Folder Name: '{old.name}' vs '{new.name}'")
     
-    # Check if folder names match
-    if old_name != new_name:
-        # TODO: Implement robust path comparison (check drive/mount points) 
-        # We primarily want to make sure it isn't majorly different like different drive/ different system folder
-        # (Desktop/Documents/etc)
-        
-        print(f"\n[WARNING] The new path '{new_name}' looks different from the old path '{old_name}'.")
+    #if any warnings were collected, prompt the user
+    if warnings:
+        print("\n[WARNING] The new path seems significantly different from the old path:")
+        for w in warnings:
+            print(w)
+            
         cli = CLI()
-        confirm = cli.get_input("Are you sure this is the correct update? (y/n): ").lower()
+        confirm = cli.get_input("\nAre you sure this is the correct update? (y/n): ").lower()
         if confirm != 'y':
             return False
             
