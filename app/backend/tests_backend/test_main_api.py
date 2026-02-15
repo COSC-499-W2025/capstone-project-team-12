@@ -34,11 +34,11 @@ def mock_backend(mocker):
     db_instance.db.execute_update.return_value = True
     
     def simple_query_side_effect(query, params=None):
-        if "WHERE result_id" in query:
+        if "WHERE analysis_id" in query:
             if params and str(params[0]) == "00000000-0000-0000-0000-000000000000":
                 return [] 
             return [{"project_data": {"name": "Test Project", "info": "Details"}}]
-        return [{"result_id": "fake-uuid-123", "project_data": {"name": "Test Project"}}]
+        return [{"analysis_id": "fake-uuid-123", "project_data": {"name": "Test Project"}}]
         
     db_instance.db.execute_query.side_effect = simple_query_side_effect
     db_instance.get_analysis_data.side_effect = lambda rid: None if rid == "missing-id" else {"topic_vector": {}, "resume_points": "Old Summary"}
@@ -227,20 +227,51 @@ def test_get_portfolio_implementation_not_found(mock_backend, mocker):
 
 def test_get_skills_interface_success(mock_backend):
     """Interface test: GET /skills aggregates languages/frameworks correctly."""
-    import json
     mock_backend["db"].get_all_results_summary.return_value = [
-        {"metadata_insights": json.dumps({"languages": ["Python", "JavaScript"], "frameworks": ["FastAPI"]})},
-        {"metadata_insights": json.dumps({"languages": ["Python"], "frameworks": ["React"]})},
+        {
+            "metadata_insights": {
+                "language_stats": {
+                    "Python": {"file_count": 3},
+                    "JavaScript": {"file_count": 1}
+                },
+                "skill_stats": {
+                    "Backend Development": {"file_count": 2}
+                }
+            },
+            "project_insights": {
+                "analyzed_insights": [{
+                    "imports_summary": {
+                        "FastAPI": {"frequency": 1}
+                    }
+                }]
+            }
+        },
+        {
+            "metadata_insights": {
+                "language_stats": {
+                    "Python": {"file_count": 2}
+                },
+                "skill_stats": {}
+            },
+            "project_insights": {
+                "analyzed_insights": [{
+                    "imports_summary": {
+                        "React": {"frequency": 1}
+                    }
+                }]
+            }
+        },
     ]
 
     res = client.get("/skills")
 
     assert res.status_code == 200
     skills = res.json()["skills"]
-    assert skills["Python"] == 2
+    assert skills["Python"] == 5
     assert skills["JavaScript"] == 1
     assert skills["FastAPI"] == 1
     assert skills["React"] == 1
+    assert skills["Backend Development"] == 2
 
 def test_get_skills_implementation_empty_db(mock_backend):
     """Implementation test: GET /skills returns empty skills on empty database."""
