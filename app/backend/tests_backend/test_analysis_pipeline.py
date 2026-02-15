@@ -452,4 +452,49 @@ class TestSaveResults:
         bundle.medium_summary = ['Point 1', 'Point 2', 'Point 3']
         return bundle
 
-    
+    def test_successful_save(self, pipeline, mock_data_bundle, mock_results_bundle):
+        """Test successful saving of all results to database"""
+        
+        analysis_id = "00000000-0000-0000-0000-000000000000" #Testing uuid
+        
+        # Execute
+        result = pipeline.save_results(mock_data_bundle, mock_results_bundle, analysis_id,True)
+        
+        # Verify save_tracked_data was called correctly
+        pipeline.database_manager.save_tracked_data.assert_called_once_with(
+            analysis_id,
+            mock_data_bundle.metadata_results,
+            mock_data_bundle.final_bow,
+            mock_data_bundle.processed_git_repos
+        )
+        
+        # Verify save_metadata_analysis was called
+        pipeline.database_manager.save_metadata_analysis.assert_called_once_with(
+            analysis_id,
+            mock_results_bundle.metadata_analysis
+        )
+        
+        # Verify save_text_analysis was called
+        pipeline.database_manager.save_text_analysis.assert_called_once_with(
+            analysis_id,
+            mock_results_bundle.doc_topic_vectors,
+            mock_results_bundle.topic_term_vectors
+        )
+        
+        # Verify save_repository_analysis was called
+        pipeline.database_manager.save_repository_analysis.assert_called_once_with(
+            analysis_id,
+            mock_results_bundle.project_analysis_data
+        )
+        
+        # Verify save_resume_points was called
+        pipeline.database_manager.save_resume_points.assert_called_once_with(
+            analysis_id,
+            mock_results_bundle.medium_summary
+        )
+        
+        # Verify no error message was printed
+        pipeline.cli.print_status.assert_not_called()
+        
+        # Verify return value is not None since return_id is true
+        assert result is not None

@@ -581,7 +581,7 @@ class AnalysisPipeline:
                 binary_data = []
                 return
 
-            # NEW: Create Analysis ID and Save Initial Fileset immediately for future updates
+            #Create Analysis ID and Save Initial Fileset immediately for future updates
             try:
                 if existing_analysis_id:
                     analysis_id = existing_analysis_id
