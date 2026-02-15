@@ -13,6 +13,7 @@ class TestPathComparison:
         old_path = str(TEST_ROOT / "loc_1" / "MyProject")
         new_path = str(TEST_ROOT / "loc_2" / "MyProject")
         
+        # Mock CLI to auto-reject ('n')
         with patch("main_utils.CLI") as MockCLI:
             MockCLI.return_value.get_input.return_value = 'n'
             
@@ -49,45 +50,56 @@ class TestPathComparison:
                 result = compare_path(old_path_str, new_path_str)
                 
                 assert result is False
+                MockCLI.return_value.get_input.assert_called_once()
 
     def test_similar_paths_pass(self):
         """Happy path: The path is exactly the same."""
         path = str(TEST_ROOT / "loc_1" / "MyProject")
         
         with patch("main_utils.CLI") as MockCLI:
+            #we expect a prompt even for success, so we mock 'y'
+            MockCLI.return_value.get_input.return_value = 'y'
+            
             result = compare_path(path, path)
             
             assert result is True
-            MockCLI.return_value.get_input.assert_not_called()
+            #assert we did prompt the user
+            MockCLI.return_value.get_input.assert_called_once()
 
     def test_detect_version_update_passes(self):
         """
-        Test that 'MyProject' -> 'MyProject_v2' is considered similar enough (High Similarity)
-        and DOES NOT trigger a warning prompt.
+        Test that 'MyProject' -> 'MyProject_v2' is considered similar enough.
+        It should print an Info message and prompt for confirmation.
         """
         old_path = "/app/repos/MyProject"
         new_path = "/app/repos/MyProject_v2" # High similarity
 
         with patch("main_utils.CLI") as MockCLI:
+            #mock 'y' to confirm
+            MockCLI.return_value.get_input.return_value = 'y'
+            
             result = compare_path(old_path, new_path)
             
             assert result is True
-            MockCLI.return_value.get_input.assert_not_called()
+            #assert we did prompt the user
+            MockCLI.return_value.get_input.assert_called_once()
 
     def test_detect_substring_rename_passes(self):
         """
         Test that 'MyProject' -> 'MyProject_Backup_Archive' passes.
-        This tests the specific 'is_substring' logic in main_utils.py.
-        Even if similarity ratio is low due to length difference, it should pass if one is a substring of the other.
         """
         old_path = str(TEST_ROOT / "loc_1" / "MyProject")
         new_path = str(TEST_ROOT / "loc_1" / "MyProject_Backup_Archive_2025")
         
         with patch("main_utils.CLI") as MockCLI:
+            #mock 'y' to confirm
+            MockCLI.return_value.get_input.return_value = 'y'
+            
             result = compare_path(old_path, new_path)
             
             assert result is True
-            MockCLI.return_value.get_input.assert_not_called()
+            #assert we DID prompt the user
+            MockCLI.return_value.get_input.assert_called_once()
 
     def test_detect_completely_different_name_fails(self):
         """
