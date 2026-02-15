@@ -212,6 +212,11 @@ async def edit_resume(result_id: str, new: ResumeEditRequest, db: DatabaseManage
 @app.get("/portfolio/{result_id}")
 async def get_portfolio(result_id: str, db: DatabaseManager = Depends(get_db)):
     """Generate and return a portfolio for the given result."""
+    #check if result id exists
+    result_data = db.get_analysis_data(result_id)
+    if not result_data:
+        raise HTTPException(status_code=404, detail="Result ID not found in database")
+    
     builder = PortfolioBuilder()
     cli = CLI()
     portfolio = builder.create_portfolio_from_result_id(db, cli, result_id)
