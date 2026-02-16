@@ -39,7 +39,8 @@ def main() -> None:
     has_file_access = config_manager.get_consent(
         key="file_access_consent", 
         prompt_text="Do you provide permission to access your file system?",
-        component="accessing your local files"  
+        component="accessing your local files" ,
+        default=True  # We default to YES to allow for basic app functionality, but users can easily revoke if they want 
     )
 
     if not has_file_access:
@@ -82,11 +83,16 @@ def main() -> None:
                     
                     #Prompt to add thumbnail
                     img_response = cli.get_input("Would you like to add a thumbnail to represent this analysis? (y/N) \n")            
-                    if img_response.lower() in ('y','yes'):
+                    if img_response.lower() not in ('n','no'):
                         try:    
                             #Receive image filepath
-                            img_path:str = cli.get_input(f"Accepted formats are: {accepted_formats} of maximum size 10MB.\n Please enter a filepath to a valid image:\n")
+                            img_path:str = cli.get_input(f"Accepted formats are: {accepted_formats} of maximum size 10MB.\n Please enter a filepath to a valid image (or press Enter to skip):\n")
                             
+                            # If user opts to skip thumbnail addition, continue to main menu
+                            if not img_path.strip():
+                                cli.print_status("No thumbnail will be added for this analysis.", "info")
+                                continue
+
                             #Validate image filepath 
                             try:
                                 img_valid_path:Path = validate_thumbnail_path(img_path)
@@ -140,7 +146,7 @@ def main() -> None:
                                 resume_builder.display_resume(resume, cli)
                                 # Allow the user to edit the resume before saving
                                 edit_choice:str = cli.get_input("Would you like to edit the resume before saving? (y/n): ").strip().lower()
-                                if edit_choice in ('y', 'yes'):
+                                if edit_choice not in ('n', 'no'):
                                     editor = ResumeEditor(cli)
                                     resume = editor.edit_resume(resume)
 
@@ -150,7 +156,7 @@ def main() -> None:
                                 portfolio_builder.display_portfolio(portfolio, cli)
 
                                 edit_choice:str = cli.get_input("Would you like to edit the portfolio before saving? (y/n): ").strip().lower()
-                                if edit_choice in ('y', 'yes'):
+                                if edit_choice not in ('n', 'no'):
                                     portfolio_editor = PortfolioEditor(cli)
                                     portfolio = portfolio_editor.edit_portfolio(portfolio)                     
 
@@ -277,9 +283,12 @@ def main() -> None:
                 case 'd':
                     # Delete specific analysis from database
                     delete_result = cli.get_input("\nDelete a stored analysis? (y/n): ").lower()
-                    if delete_result in ('y', 'yes'):
+                    if delete_result not in ('n', 'no'):
                         try:
-                            result_id = cli.get_input("Enter Result ID to delete: ").strip()
+                            result_id = cli.get_input("Enter Result ID to delete: (or press Enter to cancel)").strip()
+                            if not result_id.strip():
+                                cli.print_status("Deletion cancelled.", "info")
+                                continue
                             result_id = validate_uuid(result_id)
                             delete_result_by_id(database_manager,cli,result_id)
                         except ValueError as e:

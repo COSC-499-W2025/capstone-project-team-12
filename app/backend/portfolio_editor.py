@@ -261,6 +261,8 @@ class PortfolioEditor:
                 idx = framework_names_lower.index(fw_choice.lower())
                 actual_name = framework_names[idx]
                 confirm = self.cli.get_input(f"Remove '{actual_name}'? (y/n): \n> ").strip().lower()
+
+                # For safety, we default to NO here to prevent accidental removals. If they just press Enter it will be treated as a NO and keep the framework.
                 if confirm == 'y':
                     frameworks.pop(idx)
                     framework_names.pop(idx)
@@ -375,6 +377,8 @@ class PortfolioEditor:
                 idx = skills_lower.index(skill_input.lower())
                 actual_skill = current_skills[idx]
                 confirm = self.cli.get_input(f"Remove '{actual_skill}'? (y/n): \n> ").strip().lower()
+
+                # For safety, we default to NO here to prevent accidental removals. If they just press Enter it will be treated as a NO and keep the skill.
                 if confirm == 'y':
                     current_skills.pop(idx)
                     skills_lower.pop(idx)
@@ -407,6 +411,8 @@ class PortfolioEditor:
                 idx = lang_names_lower.index(lang_input.lower())
                 actual_name = lang_names[idx]
                 confirm = self.cli.get_input(f"Remove '{actual_name}'? (y/n): \n> ").strip().lower()
+
+                # For safety, we default to NO here to prevent accidental removals. If they just press Enter it will be treated as a NO and keep the language.
                 if confirm == 'y':
                     current_languages.pop(idx)
                     lang_names.pop(idx)
