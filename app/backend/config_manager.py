@@ -63,9 +63,9 @@ class ConfigManager:
             print(f"\n[!] HISTORY: You previously provided consent for {component}.")
             
             if default:
-                confirm_prompt = f"Do you STILL consent to {component}? (Will default to YES) \n> ".strip().lower()
+                confirm_prompt = f"Do you STILL consent to {component}? (Y/n) \n> "
             else:
-                confirm_prompt = f"Do you STILL consent to {component}? (Will default to NO) \n> ".strip().lower()
+                confirm_prompt = f"Do you STILL consent to {component}? (y/N) \n> "
 
             confirm = input(confirm_prompt).strip().lower()
 
@@ -89,9 +89,9 @@ class ConfigManager:
             print(f"\n[*] HISTORY: You previously denied consent for {component}.")
             
             if default:
-                confirm_prompt = f"Do you want to change your mind and consent to {component}? (Will default to YES) \n> ".strip().lower()
+                confirm_prompt = f"Do you want to change your mind and consent to {component}? (Y/n) \n> "
             else:
-                confirm_prompt = f"Do you want to change your mind and consent to {component}? (Will default to NO) \n> ".strip().lower()
+                confirm_prompt = f"Do you want to change your mind and consent to {component}? (y/N) \n> "
             
             change = input(confirm_prompt).strip().lower()
 
