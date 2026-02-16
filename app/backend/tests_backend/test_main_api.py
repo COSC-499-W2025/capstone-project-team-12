@@ -34,11 +34,11 @@ def mock_backend(mocker):
     db_instance.db.execute_update.return_value = True
     
     def simple_query_side_effect(query, params=None):
-        if "WHERE result_id" in query:
+        if "WHERE analysis_id" in query:
             if params and str(params[0]) == "00000000-0000-0000-0000-000000000000":
                 return [] 
             return [{"project_data": {"name": "Test Project", "info": "Details"}}]
-        return [{"result_id": "fake-uuid-123", "project_data": {"name": "Test Project"}}]
+        return [{"analysis_id": "fake-uuid-123", "project_data": {"name": "Test Project"}}]
         
     db_instance.db.execute_query.side_effect = simple_query_side_effect
     db_instance.get_analysis_data.side_effect = lambda rid: None if rid == "missing-id" else {"topic_vector": {}, "resume_points": "Old Summary"}
@@ -199,3 +199,85 @@ def test_edit_resume_db_failure(mock_backend):
     res = client.post("/resume/valid-id/edit", json={"resume_points": "Text"})
     assert res.status_code == 500
     assert "Save failed" in res.json()["detail"]
+
+# --- Portfolio & Skills Tests ---
+
+def test_get_portfolio_interface_success(mock_backend, mocker):
+    """Interface test: GET /portfolio/{result_id} returns mocked portfolio data."""
+    mock_builder_class = mocker.patch("main_api.PortfolioBuilder")
+    mock_builder_instance = mock_builder_class.return_value
+    dummy_portfolio = {"portfolio_id": "123", "projects_detail": [{"name": "Mocked Project"}]}
+    mock_builder_instance.create_portfolio_from_result_id.return_value = dummy_portfolio
+
+    res = client.get("/portfolio/valid-uuid")
+
+    assert res.status_code == 200
+    assert res.json() == dummy_portfolio
+
+def test_get_portfolio_implementation_not_found(mock_backend, mocker):
+    """Implementation test: returns 404 when builder cannot find the result."""
+    mock_builder_class = mocker.patch("main_api.PortfolioBuilder")
+    mock_builder_instance = mock_builder_class.return_value
+    mock_builder_instance.create_portfolio_from_result_id.return_value = None
+
+    res = client.get("/portfolio/invalid-uuid")
+
+    assert res.status_code == 404
+    assert res.json()["detail"] == "Portfolio not found"
+
+def test_get_skills_interface_success(mock_backend):
+    """Interface test: GET /skills aggregates languages/frameworks correctly."""
+    mock_backend["db"].get_all_results_summary.return_value = [
+        {
+            "metadata_insights": {
+                "language_stats": {
+                    "Python": {"file_count": 3},
+                    "JavaScript": {"file_count": 1}
+                },
+                "skill_stats": {
+                    "Backend Development": {"file_count": 2}
+                }
+            },
+            "project_insights": {
+                "analyzed_insights": [{
+                    "imports_summary": {
+                        "FastAPI": {"frequency": 1}
+                    }
+                }]
+            }
+        },
+        {
+            "metadata_insights": {
+                "language_stats": {
+                    "Python": {"file_count": 2}
+                },
+                "skill_stats": {}
+            },
+            "project_insights": {
+                "analyzed_insights": [{
+                    "imports_summary": {
+                        "React": {"frequency": 1}
+                    }
+                }]
+            }
+        },
+    ]
+
+    res = client.get("/skills")
+
+    assert res.status_code == 200
+    skills = res.json()["skills"]
+    assert skills["Python"] == 5
+    assert skills["JavaScript"] == 1
+    assert skills["FastAPI"] == 1
+    assert skills["React"] == 1
+    assert skills["Backend Development"] == 2
+
+def test_get_skills_implementation_empty_db(mock_backend):
+    """Implementation test: GET /skills returns empty skills on empty database."""
+    mock_backend["db"].get_all_results_summary.return_value = []
+
+    res = client.get("/skills")
+
+    assert res.status_code == 200
+    assert res.json() == {"skills": {}}

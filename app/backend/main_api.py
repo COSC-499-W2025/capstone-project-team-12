@@ -15,6 +15,7 @@ from cli_interface import CLI
 from config_manager import ConfigManager
 from database_manager import DatabaseManager
 from llm.llm_clients import LocalLLMClient, OnlineLLMClient
+from portfolio_builder import PortfolioBuilder
 
 app = FastAPI(title="Artifact Mining API")
 
@@ -97,12 +98,12 @@ async def get_projects(db: DatabaseManager = Depends(get_db)):
     Fetch all projects.
     Returns: List of {result_id, project_data} from tracked_data table.
     """
-    query = "SELECT result_id, project_data FROM Tracked_Data;"
+    query = "SELECT analysis_id, project_data FROM Tracked_Data;"
     try:
         results = db.db.execute_query(query)
         # Convert UUID objects to strings for JSON serialization
         for row in results:
-            row['result_id'] = str(row['result_id'])
+            row['result_id'] = str(row.pop('analysis_id'))
         return results
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {e}")
@@ -113,7 +114,7 @@ async def get_project_detail(result_id: str, db: DatabaseManager = Depends(get_d
     Fetch specific project details.
     Returns: {project_data} from tracked_Data table for the given ID.
     """
-    query = "SELECT project_data FROM Tracked_Data WHERE result_id = %s;"
+    query = "SELECT project_data FROM Tracked_Data WHERE analysis_id = %s;"
     try:
         # Validate UUID format
         u_id = uuid.UUID(result_id)
@@ -134,9 +135,54 @@ async def get_project_detail(result_id: str, db: DatabaseManager = Depends(get_d
 
 @app.get("/skills")
 async def get_skills(db: DatabaseManager = Depends(get_db)):
-    """Aggregate skills (Placeholder cause we don't have a separate skills thing yet)."""
+    """Aggregate skills across all analysed projects."""
     results = db.get_all_results_summary()
-    return {"count": len(results), "message": "Skill aggregation logic pending."}
+    skill_counts: Dict[str, int] = {}
+    for row in results:
+        #extract languages from language_stats (metadata stuff)
+        meta = row.get("metadata_insights")
+        if isinstance(meta, str):
+            try:
+                meta = json.loads(meta)
+            except (json.JSONDecodeError, TypeError):
+                meta = {}
+        if not isinstance(meta, dict):
+            meta = {}
+
+        #langauge stat is dict
+        for lang_name, lang_info in meta.get("language_stats", {}).items():
+            if lang_name and lang_name != "Text only":
+                count = lang_info.get("file_count", 1) if isinstance(lang_info, dict) else 1
+                skill_counts[lang_name] = skill_counts.get(lang_name, 0) + count
+
+        #skill_stats has categories like "Backend Development", "Web Development"
+        for skill_name, skill_info in meta.get("skill_stats", {}).items():
+            if skill_name and skill_name != "Documentation":
+                count = skill_info.get("file_count", 1) if isinstance(skill_info, dict) else 1
+                skill_counts[skill_name] = skill_counts.get(skill_name, 0) + count
+
+        # project_insights: extract frameworks/libraries from imports_summary ---
+        proj = row.get("project_insights")
+        if isinstance(proj, str):
+            try:
+                proj = json.loads(proj)
+            except (json.JSONDecodeError, TypeError):
+                proj = {}
+        if not isinstance(proj, dict):
+            proj = {}
+
+        for project in proj.get("analyzed_insights", []):
+            if not isinstance(project, dict):
+                continue
+            # imports_summary is a dict like {"pytest": {"frequency": 2, ...}, "anytree": {...}}
+            for import_name, import_info in project.get("imports_summary", {}).items():
+                if not import_name:
+                    continue
+                freq = import_info.get("frequency", 1) if isinstance(import_info, dict) else 1
+                skill_counts[import_name] = skill_counts.get(import_name, 0) + freq
+
+    sorted_skills = dict(sorted(skill_counts.items(), key=lambda x: x[1], reverse=True))
+    return {"skills": sorted_skills}
 
 @app.get("/resume/{result_id}")
 async def get_resume(result_id: str, db: DatabaseManager = Depends(get_db)):
@@ -193,8 +239,18 @@ async def edit_resume(result_id: str, new: ResumeEditRequest, db: DatabaseManage
 
 @app.get("/portfolio/{result_id}")
 async def get_portfolio(result_id: str, db: DatabaseManager = Depends(get_db)):
-    """Placeholder for potential future standalone generation"""
-    return {"status": "ignored", "message": "Portfolio generation happens in upload"}
+    """Generate and return a portfolio for the given result."""
+    #check if result id exists
+    result_data = db.get_analysis_data(result_id)
+    if not result_data:
+        raise HTTPException(status_code=404, detail="Result ID not found in database")
+    
+    builder = PortfolioBuilder()
+    cli = CLI()
+    portfolio = builder.create_portfolio_from_result_id(db, cli, result_id)
+    if portfolio is None:
+        raise HTTPException(status_code=404, detail="Portfolio not found")
+    return portfolio
 
 @app.post("/portfolio/generate")
 async def generate_portfolio(result_id: str = Form(...)):
