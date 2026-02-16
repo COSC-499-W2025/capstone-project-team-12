@@ -40,9 +40,9 @@ class ConfigManager:
 
             # checks if default is True, and informs user of the default consent status
             if default:
-                prompt_display = f"{prompt_text} (Will default to YES) \n> "
+                prompt_display = f"{prompt_text} (Y/n) \n> "
             else:
-                prompt_display = f"{prompt_text} (Will default to NO) \n> "
+                prompt_display = f"{prompt_text} (y/N) \n> "
 
             while True:
                 user_input = input(prompt_display).strip().lower()
