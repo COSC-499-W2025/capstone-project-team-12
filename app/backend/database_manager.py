@@ -13,7 +13,7 @@ class DatabaseManager:
     
 
     # old funct name: create_new_result(self) -> str:
-    def create_analyses(self, file_path: str = None) -> str:
+    def create_analysis(self, file_path: str = None) -> str:
         """
         Create a new Analysis entry and initialize associated 1:1 records.
         Returns the analysis_id UUID (str).
@@ -74,7 +74,7 @@ class DatabaseManager:
                 return result[0]['current_path'] or result[0]['original_path']
             return None
         except Exception as e:
-            raise LookupError(f"Error fetching file path: {e}")
+            raise LookupError(f"Error fetching analysis file path: {e}")
     
 
     def get_fileset_data(self, analysis_id: str) -> Tuple[Optional[bytes], Optional[Dict]]:

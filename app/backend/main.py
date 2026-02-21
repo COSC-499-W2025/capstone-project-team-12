@@ -75,7 +75,7 @@ def main() -> None:
                     try:
                         #analysis pipeline starting, moved to another file
                         pipeline = AnalysisPipeline(cli, config_manager, database_manager)
-                        result_id = pipeline.run_analysis(str(path),return_id=True) #Return the new result id so it can be used to add image to result
+                        analysis_id = pipeline.run_analysis(str(path),return_id=True) #Return the new analysis id so it can be used to add image to analysis
                     except Exception as e:
                         cli.print_status(f"Analysis Pipeline Error: {e}", "error")
                         
@@ -106,7 +106,7 @@ def main() -> None:
                                 raise RuntimeError(f"Error reading image:{e}")
                             #Save Image to db
                             try:
-                                insert_thumbnail(database_manager,cli,result_id,img_data)
+                                insert_thumbnail(database_manager,cli,analysis_id,img_data)
                                 cli.print_status(f"Image added successfully!","success")
                             except Exception as e:
                                 raise RuntimeError(f"Failed to add image to db:{e}")
@@ -120,14 +120,14 @@ def main() -> None:
                     # View all saved insights from database
                     try:
                         cli.print_header("All Stored Analysis Summary")
-                        view_all_results(database_manager)
+                        view_all_analyses(database_manager)
                     except Exception as e:
                         cli.print_status(f"Error retrieving all analysis: {e}", "error")
                 case 'v':
                     try:    
-                        result_id = cli.get_input("Enter Analysis ID: ").strip()
-                        result_id = validate_uuid(result_id)
-                        view_result_by_id(database_manager,cli,result_id)        
+                        analysis_id = cli.get_input("Enter Analysis ID: ").strip()
+                        analysis_id = validate_uuid(analysis_id)
+                        view_analysis_by_id(database_manager,cli,analysis_id)        
                     except ValueError as e:
                         cli.print_status(f"UUID Error:{e}", "error")
                     except Exception as e:
@@ -135,13 +135,13 @@ def main() -> None:
                 case 'g':
                     # Generate new resume
                     try:
-                        result_id = cli.get_input("Enter Analysis ID to generate Portfolio or Resume from: ").strip()
-                        result_id = validate_uuid(result_id)
+                        analysis_id = cli.get_input("Enter Analysis ID to generate Portfolio or Resume from: ").strip()
+                        analysis_id = validate_uuid(analysis_id)
 
                         generation_type = cli.get_input("Would you like to generate a Portfolio or a Resume? (P/R): ").strip().lower()
 
                         if generation_type in ('r','resume'):
-                            resume = resume_builder.create_resume_from_result_id(database_manager, cli, result_id)
+                            resume = resume_builder.create_resume_from_result_id(database_manager, cli, analysis_id)
                             if resume:
                                 resume_builder.display_resume(resume, cli)
                                 # Allow the user to edit the resume before saving
@@ -151,7 +151,7 @@ def main() -> None:
                                     resume = editor.edit_resume(resume)
 
                         elif generation_type in ('p','portfolio'):
-                            portfolio = portfolio_builder.create_portfolio_from_result_id(database_manager, cli, result_id)
+                            portfolio = portfolio_builder.create_portfolio_from_result_id(database_manager, cli, analysis_id)
                             if portfolio:
                                 portfolio_builder.display_portfolio(portfolio, cli)
 
@@ -201,10 +201,12 @@ def main() -> None:
                     analysis_id = cli.get_input("Enter Analysis ID to update: ").strip()
                     
                     # 1. Fetch info
-                    old_path = database_manager.get_analysis_filepath(analysis_id)
-                    if not old_path:
-                        cli.print_status("Analysis ID not found or has no associated file path.", "error")
-                        continue
+                    try:
+                        old_path = database_manager.get_analysis_filepath(analysis_id)
+                        if not old_path:
+                            raise ValueError("Analysis ID not found or has no associated file path.")
+                    except Exception as e:
+                        cli.print_status(f"{e}","error")
                         
                     print(f"Current file path for this analysis: {old_path}")
                     
@@ -247,12 +249,15 @@ def main() -> None:
                     new_binary_list = load_result['binary_data']
 
                     # USE EXTRACTED HELPER for merging/db logic
-                    merged_tree, merged_binary_list = perform_update_merge(
-                        analysis_id, new_tree, new_binary_list, database_manager, tree_manager, importer, exporter
-                    )
+                    try:
+                        merged_tree, merged_binary_list = perform_update_merge(
+                            analysis_id, new_tree, new_binary_list, database_manager, tree_manager, importer, exporter)
+                        
+                        if not merged_tree:
+                            raise LookupError("Error: Could not retrieve previous file data from database.")
                     
-                    if not merged_tree:
-                        cli.print_status("Error: Could not retrieve previous file data from database.", "error")
+                    except Exception as e:
+                        cli.print_status(f"{e}", "error")
                         continue
 
                     # 7. Save merged result
@@ -260,52 +265,55 @@ def main() -> None:
                     merged_tree_dict = exporter.export(merged_tree)
                     merged_binary_blob = pickle.dumps(merged_binary_list)
                     
-                    if database_manager.save_fileset(analysis_id, merged_binary_blob, merged_tree_dict, new_path):
-                        cli.print_status("Update successful! Re-running analysis on updated files...", "success")
-                        
-                        # 8. Re-run analysis pipeline on the MERGED data
-                        try:
-                            pipeline = AnalysisPipeline(cli, config_manager, database_manager)
-                            # Call the updated run_analysis with the merged data
-                            pipeline.run_analysis(
-                                filepath=new_path, 
-                                return_id=False,
-                                existing_analysis_id=analysis_id,
-                                preloaded_tree=merged_tree,
-                                preloaded_binary=merged_binary_list
-                            )
-                            cli.print_status("Analysis update complete.", "success")
-                        except Exception as e:
-                            cli.print_status(f"Error re-running analysis pipeline: {e}", "error")
-                    else:
+                    try:
+                        database_manager.save_fileset(analysis_id, merged_binary_blob, merged_tree_dict, new_path)
+                    except Exception as e:
                         cli.print_status("Failed to save updates to database.", "error")
+                        continue
+                    
+                    cli.print_status("Update successful! Re-running analysis on updated files...", "success")         
+                    
+                    # 8. Re-run analysis pipeline on the MERGED data
+                    try:
+                        pipeline = AnalysisPipeline(cli, config_manager, database_manager)
+                        # Call the updated run_analysis with the merged data
+                        pipeline.run_analysis(
+                            filepath=new_path, 
+                            return_id=False,
+                            existing_analysis_id=analysis_id,
+                            preloaded_tree=merged_tree,
+                            preloaded_binary=merged_binary_list
+                        )
+                        cli.print_status("Analysis update complete.", "success")
+                    except Exception as e:
+                        cli.print_status(f"Error re-running analysis pipeline: {e}", "error")
 
                 case 'd':
                     # Delete specific analysis from database
-                    delete_result = cli.get_input("\nDelete a stored analysis? (y/n): ").lower()
-                    if delete_result not in ('n', 'no'):
+                    delete_confirmation = cli.get_input("\nDelete a stored analysis? (y/n): ").lower()
+                    if delete_confirmation not in ('n', 'no'):
                         try:
-                            result_id = cli.get_input("Enter Result ID to delete: (or press Enter to cancel)").strip()
-                            if not result_id.strip():
+                            analysis_id = cli.get_input("Enter Analysis ID to delete: (or press Enter to cancel)").strip()
+                            if not analysis_id.strip():
                                 cli.print_status("Deletion cancelled.", "info")
                                 continue
-                            result_id = validate_uuid(result_id)
-                            delete_result_by_id(database_manager,cli,result_id)
+                            analysis_id = validate_uuid(analysis_id)
+                            delete_analysis_by_id(database_manager,cli,analysis_id)
                         except ValueError as e:
                             cli.print_status(f"UUID Error:{e}","error")
                         except Exception as e:
-                            cli.print_status(f"Error deleting result with ID {result_id}: {e}", "error")
+                            cli.print_status(f"Error deleting analysis with ID {analysis_id}: {e}", "error")
                 case'r':
-                    # Delete results from database
+                    # Delete analyses from database
                     try:
-                        delete_results = cli.get_input("\nType 'CONFIRM DELETE' to erase of all past results in database (case-sensitive):")
-                        if delete_results == "CONFIRM DELETE":
-                            delete_all_results(database_manager)
-                            cli.print_status("All results deleted from database.", "success")
+                        delete_confirmation = cli.get_input("\nType 'CONFIRM DELETE' to erase of all past analyses in database (case-sensitive):")
+                        if delete_confirmation == "CONFIRM DELETE":
+                            delete_all_analyses(database_manager)
+                            cli.print_status("All all analyses deleted from database.", "success")
                         else:
-                            cli.print_status("Improper confirmation, No results deleted.","warning")
+                            cli.print_status("Improper confirmation, No analyses deleted.","warning")
                     except Exception as e:
-                        cli.print_status(f"Error deleting results: {e}", "error")
+                        cli.print_status(f"Error deleting analyses: {e}", "error")
                 case 'q':
                     sys.exit(0)
                 case _:

@@ -598,7 +598,7 @@ class AnalysisPipeline:
                     analysis_id = existing_analysis_id
                     self.cli.print_status(f"Updating existing analysis ID: {analysis_id}", "info")
                 else:
-                    analysis_id = self.database_manager.create_analyses(file_path=filepath)
+                    analysis_id = self.database_manager.create_analysis(file_path=filepath)
                     
                     # Serialize binary data
                     binary_blob = pickle.dumps(binary_data)
@@ -610,7 +610,7 @@ class AnalysisPipeline:
                     self.database_manager.save_fileset(analysis_id, binary_blob, tree_dict, filepath)
                 
             except Exception as e:
-                self.cli.print_status(f"Database Initialization Error: {e}", "error")
+                self.cli.print_status(f"Database Analysis Creation Error: {e}", "error")
                 return
        
         #classify loaded files in text or code and extract git repos
