@@ -16,7 +16,7 @@ Analyses(
 CREATE TABLE IF NOT EXISTS
 Filesets(
     fileset_id SERIAL PRIMARY KEY,
-    analysis_id uuid REFERENCES Analyses(analysis_id) NOT NULL UNIQUE ON DELETE CASCADE,
+    analysis_id uuid NOT NULL UNIQUE REFERENCES Analyses(analysis_id) ON DELETE CASCADE,
     file_data bytea, 
     file_data_tree_id integer,
     latest_file_path text  
@@ -25,14 +25,14 @@ Filesets(
 CREATE TABLE IF NOT EXISTS
 Filetrees(
     filetree_id SERIAL PRIMARY KEY,
-    fileset_id integer REFERENCES Filesets(fileset_id)ON DELETE CASCADE,
+    fileset_id integer NOT NULL REFERENCES Filesets(fileset_id)ON DELETE CASCADE,
     filetree JSON
 );
 
 CREATE TABLE IF NOT EXISTS 
 Tracked_Data(
     data_id SERIAL PRIMARY KEY,
-    analysis_id uuid REFERENCES Analyses(analysis_id) NOT NULL ON DELETE CASCADE,
+    analysis_id uuid NOT NULL REFERENCES Analyses(analysis_id)  ON DELETE CASCADE,
     bow_cache JSON,
     project_data JSON,
     package_data JSON,
@@ -42,25 +42,25 @@ Tracked_Data(
 CREATE TABLE IF NOT EXISTS 
 Results(
     result_id SERIAL PRIMARY KEY,
-    analysis_id uuid REFERENCES Analyses(analysis_id) NOT NULL ON DELETE CASCADE,
+    analysis_id uuid  NOT NULL REFERENCES Analyses(analysis_id) ON DELETE CASCADE,
     topic_vector JSON, 
     resume_points JSON,
     project_insights JSON,
     package_insights JSON,
-    metadata_insights JSON,
+    metadata_insights JSON
 );
 
 CREATE TABLE IF NOT EXISTS
 Resumes(
  resume_id SERIAL PRIMARY KEY,
- analysis_id uuid REFERENCES Analyses(analysis_id) ON DELETE CASCADE,
+ analysis_id uuid NOT NULL REFERENCES Analyses(analysis_id) ON DELETE CASCADE,
  resume_data JSON
 );
 
 CREATE TABLE IF NOT EXISTS
 Portfolios(
     portfolio_id SERIAL PRIMARY KEY,
-    analysis_id uuid REFERENCES Analyses(analysis_id) ON DELETE CASCADE,
+    analysis_id uuid NOT NULL REFERENCES Analyses(analysis_id) ON DELETE CASCADE,
     portfolio_data JSON
     
 );
