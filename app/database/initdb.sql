@@ -53,6 +53,7 @@ Results(
 CREATE TABLE IF NOT EXISTS
 Resumes(
  resume_id SERIAL PRIMARY KEY,
+ resume_title TEXT DEFAULT NULL,
  analysis_id uuid NOT NULL REFERENCES Analyses(analysis_id) ON DELETE CASCADE,
  resume_data JSON
 );
@@ -60,6 +61,7 @@ Resumes(
 CREATE TABLE IF NOT EXISTS
 Portfolios(
     portfolio_id SERIAL PRIMARY KEY,
+    portfolio_title TEXT DEFAULT NULL,
     analysis_id uuid NOT NULL REFERENCES Analyses(analysis_id) ON DELETE CASCADE,
     portfolio_data JSON
     
