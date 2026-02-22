@@ -42,7 +42,7 @@ def sample_resume():
         }
 
 @pytest.fixture
-def mock_backend(mocker,sample_analysis):
+def mock_backend(mocker,sample_analysis,sample_resume):
     """
     Mocks all external dependencies using the pytest 'mocker' fixture.
     """
@@ -83,6 +83,12 @@ def mock_backend(mocker,sample_analysis):
         {'analysis_id':'00000000-0000-0000-0000-000000000001','analysis_title': 'Title2','metadata_insights':'Some JSON Object as string','project_insights':'Some JSON Object as string','file_path':'some_path2'}
     ]
     
+    # mock_db_manager returns for resume functions
+    db_instance.get_all_resumes.return_value = [sample_resume, sample_resume]
+    db_instance.get_resumes_by_analysis_id.return_value = [sample_resume]
+    db_instance.get_resume_by_resume_id.return_value = sample_resume
+    db_instance.save_resume.return_value = 1  # integer resume_id
+        
     # 4. Configure LLM Defaults
     local_llm_instance.generate_summary.return_value = "Local AI Summary"
     online_llm_instance.generate_summary.return_value = "Online AI Summary"
@@ -185,6 +191,24 @@ def test_edit_resume_success(mock_backend):
                      )
     assert response.status_code == 204
     assert response.headers['location'] == "/resume/0"
+    
+def test_get_all_resumes_success(mock_backend, sample_resume):
+    """Test fetching all resumes."""
+    response = client.get("/resumes")
+    assert response.status_code == 200
+    assert response.json() == [sample_resume, sample_resume]
+
+def test_get_resumes_by_analysis_success(mock_backend, sample_resume, analysis_id):
+    """Test fetching all resumes for a given analysis."""
+    response = client.get(f"/resumes/{analysis_id}")
+    assert response.status_code == 200
+    assert response.json() == [sample_resume]
+
+def test_get_resume_success(mock_backend, sample_resume):
+    """Test fetching a single resume by id."""
+    response = client.get("/resume/1")
+    assert response.status_code == 200
+    assert response.json() == sample_resume
 
 def test_privacy_consent(mock_backend):
     """Test consent update."""
