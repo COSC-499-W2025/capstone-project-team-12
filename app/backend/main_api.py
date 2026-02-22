@@ -185,7 +185,7 @@ async def get_skills(db: DatabaseManager = Depends(get_db)):
                 skill_counts[import_name] = skill_counts.get(import_name, 0) + freq
 
     sorted_skills = dict(sorted(skill_counts.items(), key=lambda x: x[1], reverse=True))
-    return {"skills": sorted_skills}
+    return JSONResponse(status_code=200,content=sorted_skills)
 
 #reworked to return a full resume instead of resume points. resume_points can be extracted from returned result by front_end
 @app.get("/resumes")
@@ -292,7 +292,7 @@ async def generate_resume(analysis_id: str, db: DatabaseManager = Depends(get_db
         
         #Save new resume to database
         try:
-            resume_id = db.save_resume(analysis_id,resume,resume_title=)
+            resume_id = db.save_resume(analysis_id,resume,resume_title)
         except Exception as e:
             raise RuntimeError("Failed to save new resume")
         
