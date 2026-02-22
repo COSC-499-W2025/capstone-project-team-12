@@ -8,7 +8,7 @@ from database_manager import DatabaseManager
 def mock_db_connector():
     """Fixture to create a mock DB_connector."""
     with patch('database_manager.DB_connector') as mock_connector:
-        mock_instance = Mock()
+        mock_instance = MagicMock()
         mock_connector.return_value = mock_instance
         yield mock_instance
 
@@ -147,17 +147,17 @@ class TestSaveResumeData:
     """Tests for new save_resume_data method."""
     
     def test_save_resume_data_success(self, db_manager, mock_db_connector, sample_analysis_id):
+        
         resume_data = {
             "summary": "Experienced Dev",
             "skills": ["Python", "SQL"]
         }
         
-        result = db_manager.save_resume_data(sample_analysis_id, resume_data)
+        result = db_manager.save_resume(sample_analysis_id, resume_data)
         
-        assert result is True
         call_args = mock_db_connector.execute_update.call_args
-        assert 'UPDATE Resumes' in call_args[0][0]
-        assert 'SET resume_data' in call_args[0][0]
+        assert 'INSERT INTO Resumes' in call_args[0][0]
+        assert 'VALUES' in call_args[0][0]
 
 class TestGetAnalysisData:
     """Tests for get_analysis_data (formerly get_result_by_id)."""

@@ -230,6 +230,7 @@ class AnalysisPipeline:
             self.database_manager.save_tracked_data(analysis_id, data_bundle.metadata_results, data_bundle.final_bow, data_bundle.processed_git_repos)
 
             # save insights
+
             self.database_manager.save_metadata_analysis(analysis_id, results_bundle.metadata_analysis)
             self.database_manager.save_text_analysis(analysis_id, results_bundle.doc_topic_vectors, results_bundle.topic_term_vectors)
             self.database_manager.save_repository_analysis(analysis_id, results_bundle.project_analysis_data)
@@ -237,7 +238,7 @@ class AnalysisPipeline:
             if return_id:
                 return analysis_id
         except Exception as e:
-            self.cli.print_status(f"Error saving result to database: {e}", "error")
+            raise RuntimeError(f"Error saving result to database: {e}", "error")
     
     def classify_files(self,filetree,binary_data):
         #classify and retrieve text and code files        

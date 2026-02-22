@@ -68,7 +68,7 @@ def perform_update_merge(
 
 def view_all_analyses(database_manager:DatabaseManager) -> None:
     try:
-        all_analyses: List[Dict] = database_manager.get_all_results_summary()
+        all_analyses: List[Dict] = database_manager.get_all_analyses_summary()
     except Exception as e:
         raise LookupError(f"Main Utils Error: {e}")
     for res in all_analyses:
