@@ -195,14 +195,15 @@ async def get_all_resumes(db:DatabaseManager = Depends(get_db)):
     """
     try:
         result = db.get_all_resumes()
+        
+        if not result:
+            raise HTTPException(status_code=404, detail = f"No resumes found")
+        
         return result
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid UUID format")
+    except HTTPException as e:
+        raise e
     except Exception as e:
-        if "returned None" in str(e):
-            raise HTTPException(status_code=404, detail = f"No resumes found:{e}")
-        else:
-            raise HTTPException(status_code=500, detail =f"Internal Server Error:{e}")
+        raise HTTPException(status_code=500, detail =f"Internal Server Error:{e}")
     
 
 @app.get("/resumes/{analysis_id}")
@@ -215,29 +216,37 @@ async def get_resumes(analysis_id: str, db: DatabaseManager = Depends(get_db)):
         # Validate UUID format
         
         result = db.get_resumes_by_analysis_id(analysis_id)
+        
+        if not result:
+            raise HTTPException(status_code=404, detail = f"No resumes found")
+        
         return result
-    
+    except HTTPException as e:
+        raise e
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid UUID format")
     except Exception as e:
-        if "returned None" in str(e):
-            raise HTTPException(status_code=404, detail = f"Analysis has no resumes:{e}")
-        else:
             raise HTTPException(status_code=500, detail =f"Internal Server Error:{e}")
 
 @app.get("/resume/{resume_id}")
-async def get_resume(resume_id: str, db: DatabaseManager = Depends(get_db)):
+async def get_resume(resume_id: int, db: DatabaseManager = Depends(get_db)):
     """
         Returns a particular resume with given id.
     """
     try:
+        
+        
         result = db.get_resume_by_resume_id(resume_id)
+        
+        if not result:
+            raise HTTPException(status_code=404, detail = f"Resume with id {resume_id} not found")
+        
         return result
-   
+    except HTTPException as e:
+        raise e
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid resume_id parameter. Expected integer")
     except Exception as e:
-        if "returned None" in str(e):
-            raise HTTPException(status_code=404, detail = f"Resume not found:{e}")
-        else:
             raise HTTPException(status_code=500, detail =f"Internal Server Error:{e}")
 
 @app.post("/resume/generate/{analysis_id}")
