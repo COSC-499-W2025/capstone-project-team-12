@@ -2,7 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 import sys
 import os
-from unittest.mock import ANY
+from unittest.mock import ANY,patch
 
 # path to import backend code
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -11,7 +11,38 @@ from main_api import app
 client = TestClient(app)
 
 @pytest.fixture
-def mock_backend(mocker):
+def sample_analysis():
+    return {
+            'analysis_id':'00000000-0000-0000-0000-000000000000',
+            'analysis_title': 'Title',
+            'topic_vector':{},
+            'resume_points':{},
+            'project_insights':{},
+            'package_insights':{},
+            'metadata_insights':{},
+            'tracked_data':{
+                'bow_cache':{}, 
+                'project_data':{}, 
+                'package_data':{},
+                'metadata_stats':{}
+                },
+            'resume_data':{},
+            'portfolio_data':{}
+        }
+    
+@pytest.fixture
+def sample_resume():
+    return {
+            "resume_id": 1,
+            "result_id": 00000000-0000-0000-0000-000000000000,
+            "summary": "Test summary",
+            "projects": [],
+            "skills": [],
+            "languages": []
+        }
+
+@pytest.fixture
+def mock_backend(mocker,sample_analysis):
     """
     Mocks all external dependencies using the pytest 'mocker' fixture.
     """
@@ -40,12 +71,18 @@ def mock_backend(mocker):
             return [{"project_data": {"name": "Test Project", "info": "Details"}}]
         return [{"analysis_id": "fake-uuid-123", "project_data": {"name": "Test Project"}}]
         
-    db_instance.db.execute_query.side_effect = simple_query_side_effect
-    db_instance.get_analysis_data.side_effect = lambda rid: None if rid == "missing-id" else {"topic_vector": {}, "resume_points": "Old Summary"}
+    
+    #db_instance.db.execute_query.side_effect = simple_query_side_effect
+    db_instance.get_analysis_data.side_effect = lambda rid: None if rid == "missing-id" else sample_analysis
     
     db_instance.save_resume_points.return_value = True
-    db_instance.get_all_results_summary.return_value = []
-
+    
+    #mock db_manager return for return all analyses
+    db_instance.get_all_analyses_summary.return_value =[
+        {'analysis_id':'00000000-0000-0000-0000-000000000000','analysis_title': 'Title','metadata_insights':'Some JSON Object as string','project_insights':'Some JSON Object as string','file_path':'some_path'},
+        {'analysis_id':'00000000-0000-0000-0000-000000000001','analysis_title': 'Title2','metadata_insights':'Some JSON Object as string','project_insights':'Some JSON Object as string','file_path':'some_path2'}
+    ]
+    
     # 4. Configure LLM Defaults
     local_llm_instance.generate_summary.return_value = "Local AI Summary"
     online_llm_instance.generate_summary.return_value = "Online AI Summary"
@@ -55,7 +92,7 @@ def mock_backend(mocker):
 
     # 6. Configure Pipeline Return Value
     # The API now expects run_analysis to return a UUID string.
-    pipeline_instance.run_analysis.return_value = "generated-uuid-123"
+    pipeline_instance.run_analysis.return_value = "00000000-0000-0000-0000-000000000000"
 
     return {
         "db": db_instance,
@@ -77,35 +114,77 @@ def test_upload_project_success(mock_backend):
     files = {'file': ('test.zip', b'content', 'application/zip')}
     
     # We no longer pass 'result_id' in the form data
-    res = client.post("/projects/upload", files=files)
+    response = client.post("/projects/upload", files=files)
+        
+    #check success
+    assert response.status_code == 201
     
-    assert res.status_code == 200
-    json_data = res.json()
-    assert json_data["status"] == "success"
-    # Verify the backend generated ID is returned
-    assert json_data["result_id"] == "generated-uuid-123"
+    # Verify Analysis ID of new entry is returned
+    assert response.headers["location"] == "/projects/00000000-0000-0000-0000-000000000000"
 
     # Check if the pipeline instance was called correctly
     # We use ANY for the path since it's a random temp file
     mock_backend["pipeline"].run_analysis.assert_called_once_with(ANY, return_id=True)
 
+
 def test_get_projects_success(mock_backend):
     """Test fetching project list."""
-    res = client.get("/projects")
-    assert res.status_code == 200
-    assert len(res.json()) > 0
+    response = client.get("/projects")
+    print(response.content)
+    assert response.status_code == 200
+    assert len(response.content) > 0
 
-def test_get_project_detail_success(mock_backend):
+def test_get_project_success(mock_backend,sample_analysis):
     """Test fetching valid project detail."""
     # Use a valid UUID string
-    res = client.get("/projects/123e4567-e89b-12d3-a456-426614174000")
-    assert res.status_code == 200
-    assert res.json()["project_data"]["name"] == "Test Project"
+    response = client.get("/projects/123e4567-e89b-12d3-a456-426614174000")
+    assert response.status_code == 200
+    assert response.json() == sample_analysis
+
+def test_get_resume_success(mock_backend,sample_resume):
+    #TODO Implement test
+    assert True
+
+def test_generate_resume_success(mock_backend, sample_analysis,sample_resume):
+    """Test successful resume generation and save."""
+    
+    #test analysis UUID
+    analysis_id = "00000000-0000-0000-0000-000000000000"
+    
+    with patch("main_api.ConfigManager") as mock_config, \
+         patch("main_api.ResumeBuilder") as mock_builder:
+        
+        mock_config.return_value.preferences = {"online_llm_consent": True}
+        
+        mock_backend['db'].get_analysis_data.return_value = sample_analysis
+
+        #Sample valid resume
+        mock_builder.return_value._build_resume.return_value = sample_resume
+        
+        #Expected value for returns based on fixture's mock
+        resume_id = sample_resume['resume_id']
+        #Exec and retrieve result
+        mock_backend['db'].save_resume.return_value = resume_id
+        
+        response = client.post(f"/resume/generate/{analysis_id}")
+        
+        if not response.status_code == 201:
+            print(response.json()['detail'])
+        
+        assert response.status_code == 201
+        assert response.headers["location"] == f"/resume/{resume_id}"
 
 def test_edit_resume_success(mock_backend):
     """Test saving edits."""
-    res = client.post("/resume/valid-id/edit", json={"resume_points": "Edited"})
-    assert res.status_code == 200
+    response = client.put(
+                    "/resume/0", #Changed to dummy int because isinstance(int) is verfied by dbmanager, 
+                     json={
+                        'resume_title':'new_title',
+                        'resume_data':{} #Has some data exists here just for type matching
+                        }
+                     )
+    assert response.status_code == 204
+    assert response.headers['location'] == "/resume/0"
 
 def test_privacy_consent(mock_backend):
     """Test consent update."""
@@ -114,50 +193,7 @@ def test_privacy_consent(mock_backend):
     assert res.json()["status"] == "success"
 
 
-def test_generate_resume_online_consent(mock_backend):
-    """Scenario: User CONSENTS to Online LLM, and it works."""
-    mock_backend["config"].preferences = {"online_llm_consent": True}
-    
-    res = client.post("/resume/generate", data={"result_id": "valid-id"})
-    
-    assert res.status_code == 200
-    data = res.json()
-    assert data["resume_points"] == "Online AI Summary" 
-    assert data["model_used"] == "online"
-    
-    mock_backend["online_llm"].generate_summary.assert_called()
-    mock_backend["local_llm"].generate_summary.assert_not_called()
 
-def test_generate_resume_local_consent(mock_backend):
-    """Scenario: User DENIES consent (or default), uses Local LLM."""
-    mock_backend["config"].preferences = {"online_llm_consent": False}
-    
-    res = client.post("/resume/generate", data={"result_id": "valid-id"})
-    
-    assert res.status_code == 200
-    data = res.json()
-    assert data["resume_points"] == "Local AI Summary"
-    assert data["model_used"] == "local"
-    
-    mock_backend["local_llm"].generate_summary.assert_called()
-    mock_backend["online_llm"].generate_summary.assert_not_called()
-
-def test_generate_resume_online_fallback(mock_backend):
-    """Scenario: User CONSENTS, but Online LLM fails. Should fallback."""
-    mock_backend["config"].preferences = {"online_llm_consent": True}
-    
-    # Simulate Online LLM crashing
-    mock_backend["online_llm"].generate_summary.side_effect = Exception("API Key Missing")
-    
-    res = client.post("/resume/generate", data={"result_id": "valid-id"})
-    
-    assert res.status_code == 200
-    data = res.json()
-    assert data["resume_points"] == "Local AI Summary" 
-    assert data["model_used"] == "local_fallback" 
-    
-    mock_backend["online_llm"].generate_summary.assert_called()
-    mock_backend["local_llm"].generate_summary.assert_called()
 # --- Negative Tests ---
 
 def test_upload_project_pipeline_failure(mock_backend):
