@@ -42,12 +42,9 @@ class DatabaseManager:
             #tracked data
             self.db.execute_update("INSERT INTO Tracked_Data (analysis_id) VALUES (%s);", (a_uuid,))
 
-            #resumes
-            self.db.execute_update("INSERT INTO Resumes (analysis_id) VALUES (%s);", (a_uuid,))
-
-            #portfolios
-            self.db.execute_update("INSERT INTO Portfolios (analysis_id) VALUES (%s);", (a_uuid,))
-            
+            #resume and portfolio row init removed, there can be multiple resumes and portfolios.
+            #save_resume,update_resume,save_portfolio,update_portfolio methods manage insert and update as necessary
+                        
             #we ar enot initializing fileset here
             #filesets are created only when files are actually uploaded via save_fileset.
 
@@ -109,7 +106,7 @@ class DatabaseManager:
         """
         Updates the Fileset (binary) for the analysis and appends the new filetree.
         Logic: 
-        1. UPSERT the Filesets table (Ensure only 1 fileset row per analysis, update binary if exists).
+        1. UPDATE the Filesets table (Ensure only 1 fileset row per analysis, update binary if exists).
         2. INSERT the new tree into Filetrees linked to that fileset.
         """
         try:
@@ -303,38 +300,122 @@ class DatabaseManager:
         except Exception as e:
             raise RuntimeError(f"Error saving tracked data: {e}")
 
-    def save_resume_data(self, analysis_id: str, resume_data: Dict[str, Any]) -> bool:
+    def save_resume(self,analysis_id:str,resume_data:Dict[str,Any],resume_title:str = None)->int:
         """
-        Save detailed resume sections to the Resumes table.
-        Expects keys: summary, projects, skills, languages, full_resume.
+        Insert new resume into the Resumes table with new data
+        resume_title is optional, set to None to skip it , also default value
         """
         try:
-
+            if not resume_data:
+                raise RuntimeError(f"Empty resume data passed to db manager")
+            
             query = """
-                UPDATE Resumes
-                SET resume_data = COALESCE(%s,resume_data)
-                WHERE analysis_id = %s;
+                INSERT INTO Resumes (resume_title,analysis_id,resume_data)
+                VALUES (%s, %s ,%s) RETURNING resume_id;
             """
             resume_json = json.dumps(resume_data)
         
-            self.db.execute_update(query, (
-                resume_json,
-                uuid.UUID(analysis_id)
-            ))
+            result = self.db.execute_update(query, (resume_title,analysis_id,resume_json),returning=True)
+            resume_id = result[0] #get returned new resume_id
+            print(f"Saved new resume with resume id:{resume_id} to db for analysis_id:{analysis_id}")
+            return resume_id
+        
+        except Exception as e:
+            raise RuntimeError(f"Error saving new resume: {e}")
+        
+        
+    def update_resume(self, resume_id: str, resume_data: Dict[str, Any],resume_title=None) -> bool:
+        """
+        Update existing resume in the Resumes table with new data
+        resume_title is optional, set to None to skip it , also default value
+        """
+        try:
+            if not resume_data:
+                raise RuntimeError(f"Empty resume data passed to db manager")
             
-            print(f"Saved resume table data for analysis_id: {analysis_id}")
+            query = """
+                UPDATE Resumes
+                SET (resume_data,resume_title) = (%s,%s)
+                WHERE resume_id = %s RETURNING analysis_id;
+            """
+            resume_json = json.dumps(resume_data)
+        
+            result = self.db.execute_update(query, (resume_json,resume_title,resume_id))
+            analysis_id = result[0] #get analysis_id of associated analysis
+            print(f"Successfully updated resume with resume_id:{resume_id} for analysis id:{analysis_id}")
             return True
         except Exception as e:
-            print(f"Error saving resume table data: {e}")
-            return False
+            raise RuntimeError(f"Error updating resume with resume_id{resume_id}: {e}")
+        
+    def save_portfolio(self,analysis_id:str,portfolio_data:Dict[str,Any],portfolio_title:str = None)->bool:
+        """
+        Insert new Portfolio into the Resumes table with new data
+        portfolio_title is optional, set to None to skip it , also default value
+        """
+        try:
+            if not portfolio_data:
+                raise RuntimeError(f"Empty portfolio data passed to db manager")
+            
+            query = """
+                INSERT Into Portfolios (portfolio_title,analysis_id,portfolio_data)
+                VALUES (%s, %s ,%s) RETURNING resume_id;
+            """
+            portfolio_json = json.dumps(portfolio_data)
+        
+            result = self.db.execute_update(query, (portfolio_title,analysis_id,portfolio_json),returning=True)
+            portfolio_id = result[0] #get returned new resume_id
+            print(f"Saved new portfolio with portfolio_id:{portfolio_id} to db for analysis_id:{analysis_id}")
+            return True
+        
+        except Exception as e:
+            raise RuntimeError(f"Error saving new portfolio:{e}")
+        
+        
+    def update_portfolio(self, portfolio_id: str, portfolio_data: Dict[str, Any],portfolio_title=None) -> bool:
+        """
+        Update existing portfolio in the Portfolio table with new data
+        portfolio_title is optional, set to None to skip it , also default value
+        """
+        try:
+            if not portfolio_data:
+                raise RuntimeError(f"Empty portfolio data passed to db manager")
+            
+            query = """
+                UPDATE Portfolios
+                SET (portfolio_data,portfolio_title) = (%s,%s)
+                WHERE portfolio_id = %s RETURNING analysis_id;
+            """
+            portfolio_json = json.dumps(portfolio_data)
+        
+            result = self.db.execute_update(query, (portfolio_json,portfolio_title,portfolio_id))
+            analysis_id = result[0] #get analysis_id of associated analysis
+            print(f"Successfully updated portfolio with portfolio_id:{portfolio_id} for analysis id:{analysis_id}")
+            return True
+        except Exception as e:
+            RuntimeError(f"Error updating portfolio with portfolio_id:{portfolio_id}: {e}")
+   
+    def get_all_resumes(self):
+        try:
+            query = """
+                SELECT * FROM Resumes 
+            """
+            
+            result = self.db.execute_query(query,())
+            
+            if not result:
+                raise LookupError("Database returned None")
+            return result
+        except Exception as e:
+            raise LookupError(f"Error retrieving Resumes:{e}")
+    
 
-    def get_all_resume_data(self,analysis_id:str):
+    def get_resumes_by_analysis_id(self,analysis_id:str):
         try:
             query = """
                 SELECT * from Resumes res WHERE res.analysis_id = %s
             """
             
-            result = self.db.execute_update(query,(analysis_id,))
+            result = self.db.execute_query(query,(analysis_id,))
             
             if not result:
                 raise LookupError("Database returned None")
@@ -343,21 +424,63 @@ class DatabaseManager:
         except Exception as e:
             raise LookupError(f"Error retrieving Resumes for analysis_id: {analysis_id}:{e}")
     
-    def get_resume_data_by_id(self,analysis_id:str,resume_id:int):
+    def get_resume_by_resume_id(self,resume_id:int):
         try:
             if not isinstance(resume_id,int):
                 raise ValueError(f"Invalid resume_id")
             
-            query = """Select * from Resumes res WHERE res.analysis_id = %s AND res.resume_id = %s"""
+            query = """Select * from Resumes res WHERE res.resume_id = %s"""
             
-            result = self.db.execute_query(query,(analysis_id,resume_id))    
+            result = self.db.execute_query(query,(resume_id,))    
 
             if not result:
                 raise LookupError("Database returned None")
             return result
-        
         except Exception as e:
-            raise LookupError(f"Error retrieving resume for analysis_id {analysis_id}, resume_id{resume_id}: {e}")   
+            raise LookupError(f"Error retrieving resume for resume_id{resume_id}: {e}")   
+
+    def get_all_portfolios(self):
+        try:
+            query = """
+                SELECT * FROM Portfolios 
+            """
+            
+            result = self.db.execute_query(query,())
+            
+            if not result:
+                raise LookupError("Database returned None")
+            return result
+        except Exception as e:
+            raise LookupError(f"Error retrieving Portfolios:{e}")
+    
+    def get_portfolios_by_analysis_id(self,analysis_id:str):
+        try:
+            query = """
+                SELECT * from Portfolios port WHERE port.analysis_id = %s
+            """
+            
+            result = self.db.execute_query(query,(analysis_id,))
+            
+            if not result:
+                raise LookupError("Database returned None")
+            return result
+        except Exception as e:
+            raise LookupError(f"Error retrieving Resumes for analysis_id: {analysis_id}:{e}")
+    
+    def get_portfolio_by_portfolio_id(self,portfolio_id:int):
+        try:
+            if not isinstance(portfolio_id,int):
+                raise ValueError(f"Invalid portfolio_id")
+            
+            query = """Select * from portfolio port WHERE port.portfolio_id = %s"""
+            
+            result = self.db.execute_query(query,(portfolio_id,))    
+
+            if not result:
+                raise LookupError("Database returned None")
+            return result
+        except Exception as e:
+            raise LookupError(f"Error retrieving portfolio for portfolio_id{portfolio_id}: {e}")   
 
         
     def get_analysis_data(self, analysis_id: str) -> Optional[Dict[str, Any]]:
@@ -382,7 +505,7 @@ class DatabaseManager:
             results = self.db.execute_query(query, (uuid.UUID(analysis_id),))
             
             if not results:
-                return None
+                raise LookupError("Database returned None")
 
             #main result data
             row = results[0]
@@ -408,7 +531,7 @@ class DatabaseManager:
         except Exception as e:
             raise LookupError(f"Error retrieving analysis: {e}")
 
-    def get_all_results_summary(self) -> List[Dict[str, Any]]:
+    def get_all_analyses_summary(self) -> List[Dict[str, Any]]:
         """Retrieve a summary of all results from the database."""
         try:
             # Updated to use latest_file_path and original_file_path
