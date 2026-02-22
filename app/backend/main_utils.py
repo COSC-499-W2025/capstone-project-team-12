@@ -67,7 +67,10 @@ def perform_update_merge(
     return merged_tree, merged_binary_list
 
 def view_all_analyses(database_manager:DatabaseManager) -> None:
-    all_analyses: List[Dict] = database_manager.get_all_results_summary()
+    try:
+        all_analyses: List[Dict] = database_manager.get_all_results_summary()
+    except Exception as e:
+        raise LookupError(f"Main Utils Error: {e}")
     for res in all_analyses:
         print(f"Analysis ID: {res['analysis_id']}")
         print("\nMetadata insights:")
@@ -138,11 +141,11 @@ def view_analysis_by_id(database_manager:DatabaseManager, cli:CLI, view_id:str,d
         raise ValueError(f"No Analysis found with ID: {view_id}")
 
 def delete_analysis_by_id(database_manager:DatabaseManager,cli:CLI,delete_id:str)->None:
-    deletion_result = database_manager.delete_analysis(delete_id)
-    if deletion_result:
+    try:
+        database_manager.delete_analysis(delete_id)
         cli.print_status(f"Analysis with ID {delete_id} deleted from database.", "success")
-    else:
-        raise RuntimeError("Failed to delete entry")
+    except Exception as e:
+        raise e
 
 def insert_thumbnail(database_manager:DatabaseManager,cli:CLI,analysis_id:str,img_data:BinaryIO):
     if analysis_id is None:
@@ -161,4 +164,7 @@ def read_image(img_path:Path)->BinaryIO:
         raise e
 
 def delete_all_analyses(database_manager:DatabaseManager):
-    database_manager.wipe_all_data()
+    try:
+        database_manager.wipe_all_data()
+    except Exception as e:
+        raise e

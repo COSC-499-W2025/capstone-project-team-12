@@ -5,8 +5,8 @@ from db_utils import DB_connector
 
 class DatabaseManager:
     """Primary Database interaction class for all downstream modules. 
-        For saves/inserts returns true on success and raises RuntimeError on failure 
-        For gets/get_all returns the requested result and LookupError on failure"""
+        For saves/inserts/delete methods returns true on success and raises RuntimeError on failure 
+        For gets/get_all methods returns the requested result and LookupError on failure"""
     def __init__(self):
         """Initialize database connection."""
         self.db = DB_connector()
@@ -455,7 +455,7 @@ class DatabaseManager:
             raise RuntimeError(f"Error wiping database tables: {e}")
     
     def save_analysis_thumbnail(self, analysis_id: str, data: BinaryIO) -> bool:
-        """Update thumbnail image for a particular analysis result."""
+        """Update thumbnail image for a particular analysis."""
         try:
             query = "UPDATE Analyses SET thumbnail_image = %s WHERE analysis_id = %s;"
             self.db.execute_update(query, (data, uuid.UUID(analysis_id)))
@@ -467,7 +467,7 @@ class DatabaseManager:
 
     
     def get_analysis_thumbnail(self,analysis_id):
-        """Retrieve thumbnail image for a particular analysis result."""
+        """Retrieve thumbnail image for a particular analysis."""
         try:
             query = "SELECT thumbnail_image from Analyses WHERE analysis_id = %s;"
             result = self.db.execute_query(query, (analysis_id,))
