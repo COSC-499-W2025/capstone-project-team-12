@@ -392,7 +392,7 @@ class DatabaseManager:
             print(f"Successfully updated portfolio with portfolio_id:{portfolio_id} for analysis id:{analysis_id}")
             return True
         except Exception as e:
-            RuntimeError(f"Error updating portfolio with portfolio_id:{portfolio_id}: {e}")
+            raise RuntimeError(f"Error updating portfolio with portfolio_id:{portfolio_id}: {e}")
    
     def get_all_resumes(self):
         try:
