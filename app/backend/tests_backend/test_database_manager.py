@@ -52,7 +52,7 @@ class TestCreateAnalyses:
             None  # Portfolios insert
         ]
         
-        analysis_id = db_manager.create_analyses()
+        analysis_id = db_manager.create_analysis()
         assert analysis_id == str(expected_uuid)
 
     def test_create_analyses_failure(self, db_manager, mock_db_connector):
@@ -60,7 +60,7 @@ class TestCreateAnalyses:
         mock_db_connector.execute_update.return_value = None
         
         with pytest.raises(Exception, match="Failed to generate analysis_id"):
-            db_manager.create_analyses()
+            db_manager.create_analysis()
 
 def execute_update_sideeffect_func(query,params,returning=False):
     """Helper function for conditional mocking execute update calls in database manager"""
@@ -157,7 +157,7 @@ class TestSaveResumeData:
         assert result is True
         call_args = mock_db_connector.execute_update.call_args
         assert 'UPDATE Resumes' in call_args[0][0]
-        assert 'SET summary' in call_args[0][0]
+        assert 'SET resume_data' in call_args[0][0]
 
 class TestGetAnalysisData:
     """Tests for get_analysis_data (formerly get_result_by_id)."""
@@ -165,6 +165,7 @@ class TestGetAnalysisData:
     def test_get_analysis_data_success(self, db_manager, mock_db_connector, sample_analysis_id):
         mock_row = {
             'analysis_id': uuid.UUID(sample_analysis_id),
+            'analysis_title': None,
             'topic_vector': {},
             'resume_points': [],
             'project_insights': {},
@@ -174,11 +175,10 @@ class TestGetAnalysisData:
             'project_data': {},
             'package_data': {},
             'metadata_stats': {},
-            'resume_summary': "Summary",
-            'full_resume': "Full",
-            'resume_projects': [],
-            'resume_skills': []
+            'resume_data':{},
+            'portfolio_data':{}
         }
+        
         mock_db_connector.execute_query.return_value = [mock_row]
         
         result = db_manager.get_analysis_data(sample_analysis_id)
@@ -203,7 +203,7 @@ class TestDeleteAnalysis:
         assert result is True
         # Logic deletes Filetrees -> Child Tables (5) -> Parent Table (1)
         # Exact count may vary depending on how you group deletes, but based on code it is 7 calls
-        assert mock_db_connector.execute_update.call_count == 7
+        assert mock_db_connector.execute_update.call_count == 1
         
         calls = mock_db_connector.execute_update.call_args_list
         assert 'DELETE FROM Analyses' in calls[-1][0][0] # Last call should be parent
@@ -228,4 +228,4 @@ class TestSaveResultThumbnail:
         
         assert result is True
         call_args = mock_db_connector.execute_update.call_args
-        assert 'UPDATE Results SET thumbnail_image' in call_args[0][0]
+        assert 'UPDATE Analyses SET thumbnail_image' in call_args[0][0]

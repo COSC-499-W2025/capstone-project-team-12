@@ -121,7 +121,8 @@ def test_get_result_by_id_formats_data(mock_db_manager, sample_analysis_data, sa
     """Test get_result_by_id returns properly formatted data with tracked_data."""
     result_id = str(uuid.uuid4())
     mock_db_manager.db.execute_query.return_value = [{
-        "analysis_id": uuid.UUID(result_id), 
+        "analysis_id": uuid.UUID(result_id),
+        "analysis_title":None,
         "topic_vector": None,
         "resume_points": None,
         "project_insights": json.dumps(sample_analysis_data),
@@ -130,7 +131,9 @@ def test_get_result_by_id_formats_data(mock_db_manager, sample_analysis_data, sa
         "bow_cache": json.dumps(sample_tracked_data["bow_cache"]),
         "project_data": json.dumps(sample_tracked_data["project_data"]),
         "package_data": json.dumps(sample_tracked_data["package_data"]),
-        "metadata_stats": json.dumps(sample_tracked_data["metadata_results"])
+        "metadata_stats": json.dumps(sample_tracked_data["metadata_results"]),
+        "resume_data":{},
+        "portfolio_data":{}
     }]
 
     # FIX: get_result_by_id -> get_analysis_data
