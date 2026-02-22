@@ -40,7 +40,7 @@ def get_db():
 #helper
 def location_header(location:str):
     """Returns dict with location header with given location string"""
-    {"Location": location}
+    return {"location": location}
     
 
 class ResumeEditRequest(BaseModel):
@@ -95,7 +95,7 @@ async def upload_project(
 
         # 4. Return success response
         #JSONResponse does not include content as it too large, front end can query returned location if needed
-        return JSONResponse(status_code=201,headers=location_header(f"/projects/{analysis_id}"))
+        return JSONResponse(status_code=201,headers=location_header(f"/projects/{analysis_id}"),content = None)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -114,8 +114,8 @@ async def get_projects(db: DatabaseManager = Depends(get_db)):
         results = db.get_all_analyses_summary()
         # Convert UUID objects to strings for JSON serialization
         for row in results:
-            row['result_id'] = str(row.pop('analysis_id'))
-        return results
+            row['analysis_id'] = str(row.pop('analysis_id'))
+        return JSONResponse(status_code=200,content=results)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {e}")
 
@@ -129,8 +129,8 @@ async def get_project_detail(analysis_id: str, db: DatabaseManager = Depends(get
         validate_uuid(analysis_id)
         # Validate UUID format
         
-        results = db.get_analysis_data(analysis_id)
-        return results   
+        result:Dict[str:Any] = db.get_analysis_data(analysis_id)
+        return JSONResponse(status_code=200,content=result)   
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid UUID format")
     except Exception as e:
@@ -241,27 +241,53 @@ async def get_resume(resume_id: str, db: DatabaseManager = Depends(get_db)):
             raise HTTPException(status_code=500, detail =f"Internal Server Error:{e}")
 
 @app.post("/resume/generate/{analysis_id}")
-async def generate_resume(analysis_id: str, db: DatabaseManager = Depends(get_db)):
-    """Uses resume_builder to build and save new resume for a given analysis"""
+async def generate_resume(analysis_id: str, db: DatabaseManager = Depends(get_db),resume_title:str = None):
+    """Uses resume_builder to build and save new resume for a given analysis
+        Important Param note, resume title if any must be sent as query request by the frontend
+        Eg. client.post(resume/generate/<some UUID>?resume_title= 'Capybara Resume' """
     try:
+        #Check to make sure provided uuid is valid 
         try:
             validate_uuid(analysis_id)
             # Validate UUID format
         except ValueError as e:
             raise e
-        
+        #Check to ensure that user llm consent has been set, expected to be done by frontend using a seperate endpoint
         try:
+            config = ConfigManager()
+            llm_consent = config.preferences['online_llm_consent']
+            if not llm_consent:
+                #On fail raise precondition error
+                raise HTTPException(status_code=422, detail="LLM consent must be set before generating a resume")
+        except HTTPException as e:
+            raise e
+        except Exception as e:
+            raise Exception("Internal error during online consent check")
+        #Use resume_builder to generate new resume
+        try:
+            #get data
+            analysis_data = db.get_analysis_data(analysis_id)
+            
+            #check result
+            if not analysis_data:
+                raise RuntimeError("DB returned empty analysis data")
+            
+            #build actual resume object
             resume_builder = ResumeBuilder()
-            resume = resume_builder.create_resume_from_result_id(analysis_id)
-        except:
+            resume = resume_builder._build_resume(analysis_data,analysis_id)
+            if not resume:
+                raise RuntimeError("Resume builder returned empty resume")
+        
+        except Exception as e:
             raise RuntimeError(f"Failed to build resume:{e}") 
         
+        #Save new resume to database
         try:
-            resume_id = db.save_resume(analysis_id,None,resume)
+            resume_id = db.save_resume(analysis_id,resume,resume_title=)
         except Exception as e:
             raise RuntimeError("Failed to save new resume")
         
-        return JSONResponse(status_code=201,headers=location_header(f"/resume/{resume_id}"))
+        return JSONResponse(status_code=201,headers=location_header(f"/resume/{resume_id}"),content = resume)
     except ValueError as e:
          raise HTTPException(status_code=400, detail=f"Generation failed: {str(e)}")
     except Exception as e:
@@ -274,7 +300,7 @@ async def edit_resume(resume_id: str, new: ResumeEditRequest, db: DatabaseManage
     try: 
         db.update_resume(resume_id,new.resume_data,new.resume_title)
 
-        return JSONResponse(status_code=204,headers = location_header(f"/resume/{resume_id}"))
+        return JSONResponse(status_code=204,headers = location_header(f"/resume/{resume_id}"),content = None)
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"{e}")
