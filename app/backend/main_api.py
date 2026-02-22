@@ -199,7 +199,7 @@ async def get_all_resumes(db:DatabaseManager = Depends(get_db)):
         if not result:
             raise HTTPException(status_code=404, detail = f"No resumes found")
         
-        return result
+        return JSONResponse(status_code=200,content=result)
     except HTTPException as e:
         raise e
     except Exception as e:
@@ -220,7 +220,7 @@ async def get_resumes(analysis_id: str, db: DatabaseManager = Depends(get_db)):
         if not result:
             raise HTTPException(status_code=404, detail = f"No resumes found")
         
-        return result
+        return JSONResponse(status_code=200,content=result)
     except HTTPException as e:
         raise e
     except ValueError:
@@ -241,7 +241,7 @@ async def get_resume(resume_id: int, db: DatabaseManager = Depends(get_db)):
         if not result:
             raise HTTPException(status_code=404, detail = f"Resume with id {resume_id} not found")
         
-        return result
+        return JSONResponse(status_code=200,content=result)
     except HTTPException as e:
         raise e
     except ValueError:
