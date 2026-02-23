@@ -207,7 +207,8 @@ def test_portfolio_handling_failures(db_manager, mock_db_connector):
     with pytest.raises(RuntimeError):
         db_manager.save_portfolio("analysis-1", {"project": "X"})
     # NOTE: bug in source — update_portfolio swallows the exception and returns None
-    assert db_manager.update_portfolio("port-1", {"project": "Y"}) is None
+    with pytest.raises(RuntimeError):
+        db_manager.update_portfolio("port-1", {"project": "Y"})
     with pytest.raises(LookupError):
         db_manager.get_all_portfolios()
     with pytest.raises(LookupError):
