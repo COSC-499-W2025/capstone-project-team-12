@@ -403,7 +403,7 @@ class DatabaseManager:
             result = self.db.execute_query(query,())
             
             if not result:
-                raise LookupError("Database returned None")
+                raise LookupError("No entries in db for resumes")
             return result
         except Exception as e:
             raise LookupError(f"Error retrieving Resumes:{e}")
@@ -418,7 +418,7 @@ class DatabaseManager:
             result = self.db.execute_query(query,(analysis_id,))
             
             if not result:
-                raise LookupError("Database returned None")
+                raise LookupError("No resumes attached to this analysis")
             return result
         
         except Exception as e:
@@ -434,7 +434,7 @@ class DatabaseManager:
             result = self.db.execute_query(query,(resume_id,))    
 
             if not result:
-                raise LookupError("Database returned None")
+                raise LookupError(f"A resume with if {resume_id} does not exist")
             return result
         except Exception as e:
             raise LookupError(f"Error retrieving resume for resume_id{resume_id}: {e}")   
@@ -448,7 +448,7 @@ class DatabaseManager:
             result = self.db.execute_query(query,())
             
             if not result:
-                raise LookupError("Database returned None")
+                raise LookupError("No entries in db for portfolios")
             return result
         except Exception as e:
             raise LookupError(f"Error retrieving Portfolios:{e}")
@@ -462,7 +462,7 @@ class DatabaseManager:
             result = self.db.execute_query(query,(analysis_id,))
             
             if not result:
-                raise LookupError("Database returned None")
+                raise LookupError("Analysis has no portfolios attached to it")
             return result
         except Exception as e:
             raise LookupError(f"Error retrieving Resumes for analysis_id: {analysis_id}:{e}")
@@ -477,7 +477,7 @@ class DatabaseManager:
             result = self.db.execute_query(query,(portfolio_id,))    
 
             if not result:
-                raise LookupError("Database returned None")
+                raise LookupError(f"portfolio with portfolio_id: {portfolio_id} does not exist")
             return result
         except Exception as e:
             raise LookupError(f"Error retrieving portfolio for portfolio_id{portfolio_id}: {e}")   
@@ -504,7 +504,7 @@ class DatabaseManager:
             """
             results = self.db.execute_query(query, (uuid.UUID(analysis_id),))
             
-            if not results:
+            if not results or results == None:
                 raise LookupError("Database returned None")
 
             #main result data
