@@ -419,7 +419,7 @@ def test_get_portfolio_success(mock_backend, sample_portfolio):
     assert response.status_code == 200
     assert response.json() == sample_portfolio
 
-def test_generate_portfolio_failures(mock_backend,placeholder_UUID):
+def test_generate_portfolio_failures(mock_backend,placeholder_UUID,sample_analysis):
     """Trigger all non Internal Error responses + some internal"""
     
     #Case one: Endpoint with missing analysis parameter
