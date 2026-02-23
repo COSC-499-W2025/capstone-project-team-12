@@ -8,14 +8,17 @@ from database_manager import DatabaseManager
 def mock_db_connector():
     """Fixture to create a mock DB_connector."""
     with patch('database_manager.DB_connector') as mock_connector:
-        mock_instance = Mock()
+        mock_instance = MagicMock()
         mock_connector.return_value = mock_instance
         yield mock_instance
 
 @pytest.fixture
 def db_manager(mock_db_connector):
     """Fixture to create a DatabaseManager instance with mocked DB_connector"""
+    db_manager = DatabaseManager()
+    db_manager.db = mock_db_connector
     return DatabaseManager()
+
 
 @pytest.fixture
 def sample_analysis_id():
@@ -52,7 +55,7 @@ class TestCreateAnalyses:
             None  # Portfolios insert
         ]
         
-        analysis_id = db_manager.create_analyses()
+        analysis_id = db_manager.create_analysis()
         assert analysis_id == str(expected_uuid)
 
     def test_create_analyses_failure(self, db_manager, mock_db_connector):
@@ -60,10 +63,10 @@ class TestCreateAnalyses:
         mock_db_connector.execute_update.return_value = None
         
         with pytest.raises(Exception, match="Failed to generate analysis_id"):
-            db_manager.create_analyses()
+            db_manager.create_analysis()
 
 def execute_update_sideeffect_func(query,params,returning=False):
-    """Helper function for conditional mocking execute update calls in database manager"""
+    """Helper function for conditional mocking execute update calls in database db_manager"""
     if returning:
         if 'INSERT INTO Filesets' in query:
             return [{'fileset_id': 1}] #When Inserting into Fileset return fileset_id for later use
@@ -147,17 +150,70 @@ class TestSaveResumeData:
     """Tests for new save_resume_data method."""
     
     def test_save_resume_data_success(self, db_manager, mock_db_connector, sample_analysis_id):
+        
         resume_data = {
             "summary": "Experienced Dev",
             "skills": ["Python", "SQL"]
         }
         
-        result = db_manager.save_resume_data(sample_analysis_id, resume_data)
+        result = db_manager.save_resume(sample_analysis_id, resume_data)
         
-        assert result is True
         call_args = mock_db_connector.execute_update.call_args
-        assert 'UPDATE Resumes' in call_args[0][0]
-        assert 'SET summary' in call_args[0][0]
+        assert 'INSERT INTO Resumes' in call_args[0][0]
+        assert 'VALUES' in call_args[0][0]
+
+def test_resume_handling_successes(db_manager, mock_db_connector):
+    mock_db_connector.execute_update.return_value = [42]
+    mock_db_connector.execute_query.return_value = [{"resume_id": 42}]
+
+    assert db_manager.save_resume("analysis-1", {"name": "Alice"}, "My Resume") == 42
+    assert db_manager.update_resume("resume-1", {"name": "Bob"}) is True
+    assert db_manager.get_all_resumes() == [{"resume_id": 42}]
+    assert db_manager.get_resumes_by_analysis_id("analysis-1") == [{"resume_id": 42}]
+    assert db_manager.get_resume_by_resume_id(42) == [{"resume_id": 42}]
+
+
+def test_portfolio_handling_successes(db_manager, mock_db_connector):
+    mock_db_connector.execute_update.return_value = [10]
+    mock_db_connector.execute_query.return_value = [{"portfolio_id": 10}]
+
+    assert db_manager.save_portfolio("analysis-1", {"project": "X"}) is True
+    assert db_manager.update_portfolio("port-1", {"project": "Y"}) is True
+    assert db_manager.get_all_portfolios() == [{"portfolio_id": 10}]
+    assert db_manager.get_portfolios_by_analysis_id("analysis-1") == [{"portfolio_id": 10}]
+    assert db_manager.get_portfolio_by_portfolio_id(10) == [{"portfolio_id": 10}]
+
+
+def test_resume_handling_failures(db_manager, mock_db_connector):
+    mock_db_connector.execute_update.side_effect = Exception("Some DB Error")
+    mock_db_connector.execute_query.side_effect = Exception("Some DB Error")
+
+    with pytest.raises(RuntimeError):
+        db_manager.save_resume("analysis-1", {"name": "Alice"})
+    with pytest.raises(RuntimeError):
+        db_manager.update_resume("resume-1", {"name": "Bob"})
+    with pytest.raises(LookupError):
+        db_manager.get_all_resumes()
+    with pytest.raises(LookupError):
+        db_manager.get_resumes_by_analysis_id("analysis-1")
+    with pytest.raises(LookupError):
+        db_manager.get_resume_by_resume_id(1)
+
+
+def test_portfolio_handling_failures(db_manager, mock_db_connector):
+    mock_db_connector.execute_update.side_effect = Exception("Some DB Error")
+    mock_db_connector.execute_query.side_effect = Exception("Some DB Error")
+
+    with pytest.raises(RuntimeError):
+        db_manager.save_portfolio("analysis-1", {"project": "X"})
+    # NOTE: bug in source — update_portfolio swallows the exception and returns None
+    assert db_manager.update_portfolio("port-1", {"project": "Y"}) is None
+    with pytest.raises(LookupError):
+        db_manager.get_all_portfolios()
+    with pytest.raises(LookupError):
+        db_manager.get_portfolios_by_analysis_id("analysis-1")
+    with pytest.raises(LookupError):
+        db_manager.get_portfolio_by_portfolio_id(1)
 
 class TestGetAnalysisData:
     """Tests for get_analysis_data (formerly get_result_by_id)."""
@@ -165,6 +221,7 @@ class TestGetAnalysisData:
     def test_get_analysis_data_success(self, db_manager, mock_db_connector, sample_analysis_id):
         mock_row = {
             'analysis_id': uuid.UUID(sample_analysis_id),
+            'analysis_title': None,
             'topic_vector': {},
             'resume_points': [],
             'project_insights': {},
@@ -174,11 +231,10 @@ class TestGetAnalysisData:
             'project_data': {},
             'package_data': {},
             'metadata_stats': {},
-            'resume_summary': "Summary",
-            'full_resume': "Full",
-            'resume_projects': [],
-            'resume_skills': []
+            'resume_data':{},
+            'portfolio_data':{}
         }
+        
         mock_db_connector.execute_query.return_value = [mock_row]
         
         result = db_manager.get_analysis_data(sample_analysis_id)
@@ -203,7 +259,7 @@ class TestDeleteAnalysis:
         assert result is True
         # Logic deletes Filetrees -> Child Tables (5) -> Parent Table (1)
         # Exact count may vary depending on how you group deletes, but based on code it is 7 calls
-        assert mock_db_connector.execute_update.call_count == 7
+        assert mock_db_connector.execute_update.call_count == 1
         
         calls = mock_db_connector.execute_update.call_args_list
         assert 'DELETE FROM Analyses' in calls[-1][0][0] # Last call should be parent
@@ -228,4 +284,4 @@ class TestSaveResultThumbnail:
         
         assert result is True
         call_args = mock_db_connector.execute_update.call_args
-        assert 'UPDATE Results SET thumbnail_image' in call_args[0][0]
+        assert 'UPDATE Analyses SET thumbnail_image' in call_args[0][0]

@@ -230,6 +230,7 @@ class AnalysisPipeline:
             self.database_manager.save_tracked_data(analysis_id, data_bundle.metadata_results, data_bundle.final_bow, data_bundle.processed_git_repos)
 
             # save insights
+
             self.database_manager.save_metadata_analysis(analysis_id, results_bundle.metadata_analysis)
             self.database_manager.save_text_analysis(analysis_id, results_bundle.doc_topic_vectors, results_bundle.topic_term_vectors)
             self.database_manager.save_repository_analysis(analysis_id, results_bundle.project_analysis_data)
@@ -237,7 +238,7 @@ class AnalysisPipeline:
             if return_id:
                 return analysis_id
         except Exception as e:
-            self.cli.print_status(f"Error saving result to database: {e}", "error")
+            raise RuntimeError(f"Error saving result to database: {e}", "error")
     
     def classify_files(self,filetree,binary_data):
         #classify and retrieve text and code files        
@@ -600,7 +601,7 @@ class AnalysisPipeline:
                     analysis_id = existing_analysis_id
                     self.cli.print_status(f"Updating existing analysis ID: {analysis_id}", "info")
                 else:
-                    analysis_id = self.database_manager.create_analyses(file_path=filepath)
+                    analysis_id = self.database_manager.create_analysis(file_path=filepath)
                     
                     # Serialize binary data
                     binary_blob = pickle.dumps(binary_data)
@@ -612,7 +613,7 @@ class AnalysisPipeline:
                     self.database_manager.save_fileset(analysis_id, binary_blob, tree_dict, filepath)
                 
             except Exception as e:
-                self.cli.print_status(f"Database Initialization Error: {e}", "error")
+                self.cli.print_status(f"Database Analysis Creation Error: {e}", "error")
                 return
        
         #classify loaded files in text or code and extract git repos

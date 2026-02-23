@@ -88,11 +88,14 @@ def perform_update_merge(
     and returning the merged results.
     """
     print("Fetching previous analysis state...")
-    old_binary_blob, old_tree_dict = db_manager.get_fileset_data(analysis_id)
     
-    if not old_binary_blob or not old_tree_dict:
-        return None, None
-
+    try:
+        old_binary_blob, old_tree_dict = db_manager.get_fileset_data(analysis_id)
+        if not old_binary_blob or not old_tree_dict:
+            raise LookupError
+    except Exception as e:
+        raise e
+    
     # Deserialize
     old_binary_list = pickle.loads(old_binary_blob)
     old_tree = importer.import_(old_tree_dict)
@@ -104,9 +107,12 @@ def perform_update_merge(
     
     return merged_tree, merged_binary_list
 
-def view_all_results(database_manager:DatabaseManager) -> None:
-    all_results: List[Dict] = database_manager.get_all_results_summary()
-    for res in all_results:
+def view_all_analyses(database_manager:DatabaseManager) -> None:
+    try:
+        all_analyses: List[Dict] = database_manager.get_all_analyses_summary()
+    except Exception as e:
+        raise LookupError(f"Main Utils Error: {e}")
+    for res in all_analyses:
         print(f"Analysis ID: {res['analysis_id']}")
         print("\nMetadata insights:")
         print(f"{'Extension':<10} | {'Count':<8} | {'Size':<15} | {'Percentage':<8} | {'Category'}")
@@ -117,17 +123,20 @@ def view_all_results(database_manager:DatabaseManager) -> None:
             print(f"{ext:<10} | {stats['count']:<8} | {stats['total_size']:<15} | {stats['percentage']:<8}% | {stats['category']}")
         print(f"\nPrimary skills: {', '.join(meta_insights['primary_skills'])}\n")
 
-def view_result_by_id(database_manager:DatabaseManager, cli:CLI, view_id:str,debug_data:bool = False) -> None:        
-    result: Dict[str, Any] = database_manager.get_analysis_data(view_id)
-    if result:
-        cli.print_header(f"Result ID: {view_id}")
+def view_analysis_by_id(database_manager:DatabaseManager, cli:CLI, view_id:str,debug_data:bool = False) -> None:        
+    analysis: Dict[str, Any] = database_manager.get_analysis_data(view_id)
+    
+    if analysis:
+        
+        cli.print_header(f"Analysis ID: {view_id}")
         # Check that results are saved properly
         # print(f"Topic vectors: {result['topic_vector']}")
+        
         print("Resume points:")
-        print(f"{result['resume_points']}")
+        print(f"{analysis['resume_points']}")
 
         # Display the project insights
-        project_insights = result.get('project_insights', {})
+        project_insights = analysis.get('project_insights', {})
         if project_insights:
             analyzed_repos = project_insights.get('analyzed_insights',[])
             timeline = project_insights.get('timeline', [])
@@ -146,16 +155,16 @@ def view_result_by_id(database_manager:DatabaseManager, cli:CLI, view_id:str,deb
         
 
 
-        print(f"\nPackage insights: {result['package_insights']}")
+        print(f"\nPackage insights: {analysis['package_insights']}")
         print("\nMetadata insights:")
         print(f"{'Extension':<10} | {'Count':<8} | {'Size':<15} | {'Percentage':<8} | {'Category'}")
         print("-" * 70)
-        for ext, stats in result['metadata_insights']['extension_stats'].items():
+        for ext, stats in analysis['metadata_insights']['extension_stats'].items():
             print(f"{ext:<10} | {stats['count']:<8} | {stats['total_size']:<15} | {stats['percentage']:<8}% | {stats['category']}")
         
         try:
-            result = database_manager.get_analysis_thumbnail(view_id)
-            if result:
+            thumbnail_result = database_manager.get_analysis_thumbnail(view_id)
+            if thumbnail_result:
                 cli.print_status(f"A Thumbnail is associated with this analysis!","info")
             else:
                 cli.print_status(f"There is NO thumbnail associated with this analysis!","info")
@@ -164,26 +173,26 @@ def view_result_by_id(database_manager:DatabaseManager, cli:CLI, view_id:str,deb
         #To Check that tracked data is saved properly
         if(debug_data):
             print(f"\nTracked data summary:")
-            print(f"BoW cache: {result['tracked_data']['bow_cache']}")
-            print(f"Project data: {result['tracked_data']['project_data']}")
-            print(f"Package data: {result['tracked_data']['package_data']}")
-            print(f"Metadata stats: {result['tracked_data']['metadata_stats']}")
+            print(f"BoW cache: {analysis['tracked_data']['bow_cache']}")
+            print(f"Project data: {analysis['tracked_data']['project_data']}")
+            print(f"Package data: {analysis['tracked_data']['package_data']}")
+            print(f"Metadata stats: {analysis['tracked_data']['metadata_stats']}")
         
     else:
-        raise ValueError(f"No result found with ID: {view_id}")
+        raise ValueError(f"No Analysis found with ID: {view_id}")
 
-def delete_result_by_id(database_manager:DatabaseManager,cli:CLI,delete_id:str)->None:
-    result = database_manager.delete_analysis(delete_id)
-    if result:
-        cli.print_status(f"Result with ID {delete_id} deleted from database.", "success")
-    else:
-        raise RuntimeError("Failed to delete entry")
-
-def insert_thumbnail(database_manager:DatabaseManager,cli:CLI,result_id:str,img_data:BinaryIO):
-    if result_id is None:
-        raise TypeError("Result id is None")
+def delete_analysis_by_id(database_manager:DatabaseManager,cli:CLI,delete_id:str)->None:
     try:
-        database_manager.save_analysis_thumbnail(result_id,img_data)
+        database_manager.delete_analysis(delete_id)
+        cli.print_status(f"Analysis with ID {delete_id} deleted from database.", "success")
+    except Exception as e:
+        raise e
+
+def insert_thumbnail(database_manager:DatabaseManager,cli:CLI,analysis_id:str,img_data:BinaryIO):
+    if analysis_id is None:
+        raise TypeError("Analysis id is None")
+    try:
+        database_manager.save_analysis_thumbnail(analysis_id,img_data)
     except Exception as e:
         raise e
 
@@ -195,5 +204,8 @@ def read_image(img_path:Path)->BinaryIO:
     except Exception as e:
         raise e
 
-def delete_all_results(database_manager:DatabaseManager):
-    database_manager.wipe_all_data()
+def delete_all_analyses(database_manager:DatabaseManager):
+    try:
+        database_manager.wipe_all_data()
+    except Exception as e:
+        raise e
