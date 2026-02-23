@@ -355,14 +355,16 @@ class AnalysisPipeline:
 
         metadata_analyzer = MetadataAnalyzer(metadata_results)
         metadata_analysis = metadata_analyzer.analyze_all()
-        
-        print("\n--- File Extension Statistics ---")
-        print(f"{'Extension':<10} | {'Count':<8} | {'Size':<15} | {'Percentage':<8} | {'Category'}")
-        print("-" * 70)
-        for ext, stats in metadata_analysis['extension_stats'].items():
-            print(f"{ext:<10} | {stats['count']:<8} | {stats['total_size']:<15} | {stats['percentage']:<8}% | {stats['category']}")
-        print(f"\nPrimary programming languages: {', '.join(metadata_analysis['primary_languages'])}\n")
-        
+        if(metadata_analysis and metadata_analysis != {}):
+            print("\n--- File Extension Statistics ---")
+            print(f"{'Extension':<10} | {'Count':<8} | {'Size':<15} | {'Percentage':<8} | {'Category'}")
+            print("-" * 70)
+            for ext, stats in metadata_analysis['extension_stats'].items():
+                print(f"{ext:<10} | {stats['count']:<8} | {stats['total_size']:<15} | {stats['percentage']:<8}% | {stats['category']}")
+            print(f"\nPrimary programming languages: {', '.join(metadata_analysis['primary_languages'])}\n")
+        else:
+            self.cli.print_status("Error during metadata analysis: Empty analysis result.","error")
+            return {},{}
         return metadata_results,metadata_analysis
     
     def run_repo_analysis_pipeline(self,git_repos,binary_data):
@@ -592,7 +594,7 @@ class AnalysisPipeline:
                 binary_data = []
                 return
 
-            # NEW: Create Analysis ID and Save Initial Fileset immediately for future updates
+            #Create Analysis ID and Save Initial Fileset immediately for future updates
             try:
                 if existing_analysis_id:
                     analysis_id = existing_analysis_id
