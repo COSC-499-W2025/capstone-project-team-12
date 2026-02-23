@@ -360,7 +360,145 @@ class TestRunRepoAnalysisPipeline:
         
         # Verify return values
         assert result == (git_repos, reranked_repos, timeline, processed_repos)
-    
-def test_metadata_pipeline():
-    assert True
 
+@patch('analysis_pipeline.MetadataAnalyzer')
+@patch('analysis_pipeline.MetadataExtractor')
+def test_metadata_pipeline_empty_data(mock_extractor_cls, mock_analyzer_cls,         #Pipeline classes
+                                         pipeline, mock_text_nodes, mock_code_nodes):   #Mock data fixtures
+    """Test metadata pipeline with no files passed"""
+    
+    # Setup mock with empty results
+    mock_extractor = Mock()
+    mock_extractor.extract_all_metadata.return_value = {}
+    mock_extractor_cls.return_value = mock_extractor
+    
+    mock_analyzer = Mock()
+    mock_analyzer.analyze_all.return_value = {}
+    mock_analyzer_cls.return_value = mock_analyzer
+    
+    # Execute function
+    result = pipeline.run_metadata_analysis_pipeline(mock_text_nodes, mock_code_nodes, []) #Empty file_data array
+    
+    #Verify Implementation and results
+    pipeline.cli.print_status.assert_called_once_with("Error during metadata analysis: Empty analysis result.","error")
+    mock_analyzer_cls.assert_called_once_with({})
+    mock_analyzer.analyze_all.assert_called_once()
+    assert result == ({}, {})
+ 
+@patch('analysis_pipeline.MetadataAnalyzer')
+@patch('analysis_pipeline.MetadataExtractor')
+def test_metadata_pipeline(mock_extractor_cls, mock_analyzer_cls,                                   #Pipeline classes
+                          pipeline, mock_text_nodes, mock_code_nodes, sample_bin_data_array):       #Mock data fixtures
+    """Test successful execution of metadata analysis pipeline"""
+    
+    # Setup mock metadata extractor
+    mock_extractor = Mock()
+    metadata_results = {
+        'text1.txt': {'size': 1024, 'lines': 50, 'encoding': 'utf-8'},
+        'text2.md': {'size': 2048, 'lines': 100, 'encoding': 'utf-8'},
+        'code1.py': {'size': 3072, 'lines': 150, 'encoding': 'utf-8'},
+        'code2.cpp': {'size': 4096, 'lines': 200, 'encoding': 'utf-8'}
+    }
+    mock_extractor.extract_all_metadata.return_value = metadata_results
+    mock_extractor_cls.return_value = mock_extractor
+    
+    # Setup mock metadata analyzer
+    mock_analyzer = Mock()
+    metadata_analysis = {
+        'total_files': 4,
+        'total_size': 10240,
+        'average_lines': 125,
+        'extension_stats':{ 
+                            'txt':{'count':1,'total_size':1024,'percentage':25,'category':'text'}, 
+                            'md': {'count':1,'total_size':2048,'percentage':25,'category':'test'}, 
+                            'py': {'count':1,'total_size':3072,'percentage':25,'category':'code'}, 
+                            'cpp': {'count':1,'total_size':4096,'percentage':25,'category':'code'}
+                        },
+        'primary_languages':{'Python':50,'CPP':50}
+        }
+    mock_analyzer.analyze_all.return_value = metadata_analysis
+    mock_analyzer_cls.return_value = mock_analyzer
+    
+    # Execute function
+    result = pipeline.run_metadata_analysis_pipeline(mock_text_nodes, mock_code_nodes, sample_bin_data_array)
+    
+    # Verify MetadataExtractor was instantiated
+    mock_extractor_cls.assert_called_once()
+    
+    # Verify extract_all_metadata was called with combined nodes
+    all_nodes = mock_text_nodes + mock_code_nodes
+    mock_extractor.extract_all_metadata.assert_called_once_with(all_nodes, sample_bin_data_array)
+
+    #Verify Implementation and results
+    mock_analyzer_cls.assert_called_once_with(metadata_results)
+    mock_analyzer.analyze_all.assert_called_once()
+
+class TestSaveResults:
+    """Tests for save_results method"""
+
+    @pytest.fixture
+    def mock_data_bundle(self):
+        """Mock data bundle with required attributes"""
+        bundle = Mock()
+        bundle.metadata_results = {'file1.txt': {'size': 1024}}
+        bundle.final_bow = [['word1', 'word2'], ['word3', 'word4']]
+        bundle.processed_git_repos = [{'repo': 'test-repo'}]
+        return bundle
+
+    @pytest.fixture
+    def mock_results_bundle(self):
+        """Mock results bundle with required attributes"""
+        bundle = Mock()
+        bundle.metadata_analysis = {'total_files': 10}
+        bundle.doc_topic_vectors = [[0.5, 0.3], [0.7, 0.2]]
+        bundle.topic_term_vectors = [[0.4, 0.6], [0.3, 0.7]]
+        bundle.project_analysis_data = [{'project': 'test', 'score': 10}]
+        bundle.medium_summary = ['Point 1', 'Point 2', 'Point 3']
+        return bundle
+
+    def test_successful_save(self, pipeline, mock_data_bundle, mock_results_bundle):
+        """Test successful saving of all results to database"""
+        
+        analysis_id = "00000000-0000-0000-0000-000000000000" #Testing uuid
+        
+        # Execute
+        result = pipeline.save_results(mock_data_bundle, mock_results_bundle, analysis_id,True)
+        
+        # Verify save_tracked_data was called correctly
+        pipeline.database_manager.save_tracked_data.assert_called_once_with(
+            analysis_id,
+            mock_data_bundle.metadata_results,
+            mock_data_bundle.final_bow,
+            mock_data_bundle.processed_git_repos
+        )
+        
+        # Verify save_metadata_analysis was called
+        pipeline.database_manager.save_metadata_analysis.assert_called_once_with(
+            analysis_id,
+            mock_results_bundle.metadata_analysis
+        )
+        
+        # Verify save_text_analysis was called
+        pipeline.database_manager.save_text_analysis.assert_called_once_with(
+            analysis_id,
+            mock_results_bundle.doc_topic_vectors,
+            mock_results_bundle.topic_term_vectors
+        )
+        
+        # Verify save_repository_analysis was called
+        pipeline.database_manager.save_repository_analysis.assert_called_once_with(
+            analysis_id,
+            mock_results_bundle.project_analysis_data
+        )
+        
+        # Verify save_resume_points was called
+        pipeline.database_manager.save_resume_points.assert_called_once_with(
+            analysis_id,
+            mock_results_bundle.medium_summary
+        )
+        
+        # Verify no error message was printed
+        pipeline.cli.print_status.assert_not_called()
+        
+        # Verify return value is not None since return_id is true
+        assert result is not None
