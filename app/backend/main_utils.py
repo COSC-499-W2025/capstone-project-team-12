@@ -1,12 +1,14 @@
 import os
 import pickle
 import difflib
-from typing import List, Dict, Any, BinaryIO
+from typing import List, Dict, Any, BinaryIO, Optional, Tuple
 from pathlib import Path
 from database_manager import DatabaseManager
 from cli_interface import CLI
 from display_helpers import display_project_insights, display_project_summary, display_project_timeline
 from input_validation import validate_analysis_path, validate_thumbnail_path, validate_uuid
+from resume_editor import ResumeEditor
+from portfolio_editor import PortfolioEditor
 
 # This file contains extracted implementations of various main.py's execution paths. 
 # Allows for better abstraction and easy refactoring moving forward.
@@ -311,7 +313,7 @@ def generate_portfolio(analysis_id: str, database_manager, portfolio_builder, cl
         return None
 
 # Sub menus for managing resumes and portfolios.
-def manage_resume(cli, database_manager, resume_builder) -> None:
+def manage_resumes(cli, database_manager, resume_builder) -> None:
     cli.print_header("Manage Resumes")
     analysis_id = _pick_analysis(cli, database_manager)
     if not analysis_id:
@@ -367,7 +369,7 @@ def manage_resume(cli, database_manager, resume_builder) -> None:
         else:
             cli.print_status("Invalid action. Please try again.", "warning")
 
-def manage_portfolio(cli: CLI, database_manager: DatabaseManager, portfolio_builder) -> None:
+def manage_portfolios(cli: CLI, database_manager: DatabaseManager, portfolio_builder) -> None:
     cli.print_header("Manage Portfolios")
     analysis_id = _pick_analysis(cli, database_manager)
     if not analysis_id:
@@ -422,4 +424,3 @@ def manage_portfolio(cli: CLI, database_manager: DatabaseManager, portfolio_buil
             break
         else:
             cli.print_status("Invalid action.", "warning")
-            
