@@ -5,10 +5,13 @@ import json
 from typing import Optional, Dict, Any, List
 from pathlib import Path
 import uuid
+from input_validation import validate_uuid
 
 from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Form
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from resume_builder import ResumeBuilder
 
 from analysis_pipeline import AnalysisPipeline
 from cli_interface import CLI
@@ -34,11 +37,20 @@ def get_db():
     finally:
         db.close()
 
+#helper
+def location_header(location:str):
+    """Returns dict with location header with given location string"""
+    return {"location": location}
+    
+
 class ResumeEditRequest(BaseModel):
-    resume_points: str # Accepts raw text or JSON string
+    resume_title: str = None
+    resume_data:Dict[str,Any]
 
 class PortfolioEditRequest(BaseModel):
-    insights: Dict[str, Any]
+    portfolio_title: str = None
+    portfolio_data:Dict[str,Any]
+
 
 class ConsentRequest(BaseModel):
     consent_type: str
@@ -81,10 +93,11 @@ async def upload_project(
         pipeline = AnalysisPipeline(cli, config, db)
         
         # return_id=True ensures we get the new UUID back to send to the frontend
-        result_id = pipeline.run_analysis(tmp_path, return_id=True)
+        analysis_id = pipeline.run_analysis(tmp_path, return_id=True)
 
-        # 4. Return the ID 
-        return {"status": "success", "result_id": result_id}
+        # 4. Return success response
+        #JSONResponse does not include content as it too large, front end can query returned location if needed
+        return JSONResponse(status_code=201,headers=location_header(f"/projects/{analysis_id}"),content = None)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -96,47 +109,42 @@ async def upload_project(
 async def get_projects(db: DatabaseManager = Depends(get_db)):
     """
     Fetch all projects.
-    Returns: List of {result_id, project_data} from tracked_data table.
+    Returns: List of {analysis_id, project_data} from tracked_data table.
     """
-    query = "SELECT analysis_id, project_data FROM Tracked_Data;"
+    
     try:
-        results = db.db.execute_query(query)
+        results = db.get_all_analyses_summary()
         # Convert UUID objects to strings for JSON serialization
         for row in results:
-            row['result_id'] = str(row.pop('analysis_id'))
-        return results
+            row['analysis_id'] = str(row.pop('analysis_id'))
+        return JSONResponse(status_code=200,content=results)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {e}")
 
-@app.get("/projects/{result_id}")
-async def get_project_detail(result_id: str, db: DatabaseManager = Depends(get_db)):
+@app.get("/projects/{analysis_id}")
+async def get_project_detail(analysis_id: str, db: DatabaseManager = Depends(get_db)):
     """
     Fetch specific project details.
-    Returns: {project_data} from tracked_Data table for the given ID.
+    Returns: complete analysis data from all child tables for the given ID.
     """
-    query = "SELECT project_data FROM Tracked_Data WHERE analysis_id = %s;"
     try:
+        validate_uuid(analysis_id)
         # Validate UUID format
-        u_id = uuid.UUID(result_id)
-        results = db.db.execute_query(query, (u_id,))
-            
         
+        result:Dict[str,Any] = db.get_analysis_data(analysis_id)
+        return JSONResponse(status_code=200,content=result)   
+    
+    except LookupError:
+        raise HTTPException(status_code=404, detail=f"No analysis with{analysis_id} found")
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid UUID format")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {e}")
 
-    if not results:
-        raise HTTPException(status_code=404, detail="Project not found")
-        
-    return results[0] # Returns dict like {"project_data": {...}}
-
-    
-
 @app.get("/skills")
 async def get_skills(db: DatabaseManager = Depends(get_db)):
     """Aggregate skills across all analysed projects."""
-    results = db.get_all_results_summary()
+    results = db.get_all_analyses_summary()
     skill_counts: Dict[str, int] = {}
     for row in results:
         #extract languages from language_stats (metadata stuff)
@@ -182,85 +190,260 @@ async def get_skills(db: DatabaseManager = Depends(get_db)):
                 skill_counts[import_name] = skill_counts.get(import_name, 0) + freq
 
     sorted_skills = dict(sorted(skill_counts.items(), key=lambda x: x[1], reverse=True))
-    return {"skills": sorted_skills}
+    return JSONResponse(status_code=200,content={'skills':sorted_skills})
 
-@app.get("/resume/{result_id}")
-async def get_resume(result_id: str, db: DatabaseManager = Depends(get_db)):
-    res = db.get_analysis_data(result_id)
-    if not res:
-        raise HTTPException(status_code=404, detail="Project not found")
-    return {"resume_points": res.get("resume_points")}
-
-@app.post("/resume/generate")
-async def generate_resume_manual(result_id: str = Form(...), db: DatabaseManager = Depends(get_db)):
-    """Triggers LLM generation manually using stored topic vectors."""
-    result = db.get_analysis_data(result_id)
-    if not result:
-        raise HTTPException(status_code=404, detail="Result not found")
-    
-    # 1. Check Config for Consent
-    config = ConfigManager()
-    use_online = config.preferences.get("online_llm_consent", False) 
-    
-    summary = ""
-    model_used = "local"
-    
+#reworked to return a full resume instead of resume points. resume_points can be extracted from returned result by front_end
+@app.get("/resumes")
+async def get_all_resumes(db:DatabaseManager = Depends(get_db)):
+    """
+        Returns all resumes stored in database
+    """
     try:
-        if use_online:
-            try:
-                # 2. Try Online Generation
-                client = OnlineLLMClient()
-                summary = client.generate_summary(result.get("topic_vector", {}))
-                model_used = "online"
-            except Exception as e:
-                # 3. Fallback to Local if API Key missing or Request fails
-                print(f"Online LLM failed: {e}. Falling back to local.")
-                client = LocalLLMClient()
-                summary = client.generate_summary(result.get("topic_vector", {}))
-                model_used = "local_fallback"
-        else:
-            # 4. Use Local Default
-            client = LocalLLMClient()
-            summary = client.generate_summary(result.get("topic_vector", {}))
-            model_used = "local"
+        result = db.get_all_resumes()
+        return JSONResponse(status_code=200,content=result)
 
-        db.save_resume_points(result_id, summary)
-        return {"status": "success", "resume_points": summary, "model_used": model_used}
-
+    except LookupError as e: #redundant catch case it is here for consistency with other getters for resumes
+        raise HTTPException(status_code=404, detail =f"Internal Server Error:{e}")
+    except HTTPException as e:
+        raise e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Generation failed: {str(e)}")
-
-@app.post("/resume/{result_id}/edit")
-async def edit_resume(result_id: str, new: ResumeEditRequest, db: DatabaseManager = Depends(get_db)):
-    success = db.save_resume_points(result_id, new.resume_points)
-    if not success:
-        raise HTTPException(status_code=500, detail="Save failed")
-    return {"status": "success"}
-
-@app.get("/portfolio/{result_id}")
-async def get_portfolio(result_id: str, db: DatabaseManager = Depends(get_db)):
-    """Generate and return a portfolio for the given result."""
-    #check if result id exists
-    result_data = db.get_analysis_data(result_id)
-    if not result_data:
-        raise HTTPException(status_code=404, detail="Result ID not found in database")
+        raise HTTPException(status_code=500, detail =f"Internal Server Error:{e}")
     
-    builder = PortfolioBuilder()
-    cli = CLI()
-    portfolio = builder.create_portfolio_from_result_id(db, cli, result_id)
-    if portfolio is None:
-        raise HTTPException(status_code=404, detail="Portfolio not found")
-    return portfolio
 
-@app.post("/portfolio/generate")
-async def generate_portfolio(result_id: str = Form(...)):
-    """Placeholder for potential future standalone generation"""
-    return {"status": "ignored", "message": "Portfolio generation happens in upload"}
+@app.get("/resumes/{analysis_id}")
+async def get_resumes(analysis_id: str, db: DatabaseManager = Depends(get_db)):
+    """
+        Returns all resumes associated with an analysis.
+    """
+    try:
+        validate_uuid(analysis_id)
+        # Validate UUID format
+        
+        result = db.get_resumes_by_analysis_id(analysis_id)    
+        return JSONResponse(status_code=200,content=result)
+    
+    except HTTPException as e:
+        raise e
+    except LookupError:
+        raise HTTPException(status_code=404, detail="Analysis for resume request not Found")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid UUID format")
+    except Exception as e:
+            raise HTTPException(status_code=500, detail =f"Internal Server Error:{e}")
 
-@app.post("/portfolio/{result_id}/edit")
-async def edit_portfolio(result_id: str, req: PortfolioEditRequest, db: DatabaseManager = Depends(get_db)):
-    """Placeholder for potential future standalone generation"""
-    return {"status": "ignored", "message": "Portfolio generation happens in upload"}
+@app.get("/resume/{resume_id}")
+async def get_resume(resume_id: int, db: DatabaseManager = Depends(get_db)):
+    """
+        Returns a particular resume with given id.
+    """
+    try:
+        result = db.get_resume_by_resume_id(resume_id)
+        return JSONResponse(status_code=200,content=result)
+    
+    except HTTPException as e:
+        raise e
+    except LookupError:
+        raise HTTPException(status_code=404, detail = f"Resume with id {resume_id} not found")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid resume_id parameter. Expected integer")
+    except Exception as e:
+            raise HTTPException(status_code=500, detail =f"Internal Server Error:{e}")
+
+@app.post("/resume/generate/{analysis_id}")
+async def generate_resume(analysis_id: str, db: DatabaseManager = Depends(get_db),resume_title:str = None):
+    """Uses resume_builder to build and save new resume for a given analysis
+        Important Param note, resume title if any must be sent as query request by the frontend
+        Eg. client.post(resume/generate/<some UUID>?resume_title= 'Capybara Resume' """    
+    try:
+        
+        #Check to make sure provided uuid is valid 
+        try:
+            validate_uuid(analysis_id)
+            # Validate UUID format
+        except ValueError as e:
+            raise e
+        
+        #Check to ensure that user llm consent has been set, expected to be done by frontend using a seperate endpoint
+        try:
+            config = ConfigManager()
+            llm_consent = config.preferences['online_llm_consent'] #raises key error when not set 
+            if llm_consent is None or llm_consent is {}:
+                #On fail raise precondition error
+                raise HTTPException(status_code=422, detail="LLM consent must be set before generating a resume")
+        except KeyError:
+            raise HTTPException(status_code=422, detail="LLM consent must be set before generating a portfolio")
+        except HTTPException as e:
+            raise e
+        except Exception as e:
+            raise Exception(f"Internal error during online consent check:{e}")
+        
+        #Main execution block
+        #Use resume_builder to generate new resume
+        try:
+            #get data
+            analysis_data = db.get_analysis_data(analysis_id) #raises Lookup error on analysis_id not found
+                        
+            #build actual resume object
+            resume_builder = ResumeBuilder()
+            resume = resume_builder._build_resume(analysis_data,analysis_id)
+            if not resume:
+                raise RuntimeError("Resume builder returned empty resume")
+        
+        except LookupError as e:
+            raise HTTPException(status_code=404,detail =f"No Analysis with {analysis_id} found:")
+        except Exception as e:
+            raise RuntimeError(f"Failed to build resume:{e}") 
+        
+        #Save new resume to database
+        try:
+            resume_id = db.save_resume(analysis_id,resume,resume_title)
+        except Exception as e:
+            raise RuntimeError("Failed to save new resume")
+        
+        return JSONResponse(status_code=201,headers=location_header(f"/resume/{resume_id}"),content = resume)
+    except HTTPException as e:
+        raise e
+    except ValueError as e:
+         raise HTTPException(status_code=400, detail=f"Generation failed: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500,detail = f"Fatal Internal error during resume generation:{e}")
+
+#for updating a resume make a PUT request to a resume's url 
+@app.put("/resume/{resume_id}")
+async def edit_resume(resume_id: int, new: ResumeEditRequest, db: DatabaseManager = Depends(get_db)):
+    try: 
+        
+        db.update_resume(resume_id,new.resume_data,new.resume_title)
+        return JSONResponse(status_code=204,headers = location_header(f"/resume/{resume_id}"),content = None)
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"{e}")
+
+@app.get("/portfolios")
+async def get_all_portfolios(db:DatabaseManager = Depends(get_db)):
+    """
+        Returns all portfolios stored in database
+    """
+    try:
+        result = db.get_all_portfolios()
+        return JSONResponse(status_code=200,content=result)
+    
+    except LookupError as e: #redundant catch case it is here for consistency with other getters for portfolios
+        raise HTTPException(status_code=404, detail =f"Internal Server Error:{e}")
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail =f"Internal Server Error:{e}")
+    
+
+@app.get("/portfolios/{analysis_id}")
+async def get_portfolios(analysis_id: str, db: DatabaseManager = Depends(get_db)):
+    """
+        Returns all portfolios associated with an analysis.
+    """
+    try:
+        validate_uuid(analysis_id)
+        # Validate UUID format
+        
+        result = db.get_portfolios_by_analysis_id(analysis_id)    
+        return JSONResponse(status_code=200,content=result)
+    
+    except HTTPException as e:
+        raise e
+    except LookupError:
+        raise HTTPException(status_code=404, detail="Analysis for portfolio request not Found")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid UUID format")
+    except Exception as e:
+            raise HTTPException(status_code=500, detail =f"Internal Server Error:{e}")
+
+@app.get("/portfolio/{portfolio_id}")
+async def get_portfolio(portfolio_id: int, db: DatabaseManager = Depends(get_db)):
+    """
+        Returns a particular portfolio with given id.
+    """
+    try:
+        result = db.get_portfolio_by_portfolio_id(portfolio_id)
+        return JSONResponse(status_code=200,content=result)
+    
+    except HTTPException as e:
+        raise e
+    except LookupError:
+        raise HTTPException(status_code=404, detail = f"portfolio with id {portfolio_id} not found")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid portfolio_id parameter. Expected integer")
+    except Exception as e:
+            raise HTTPException(status_code=500, detail =f"Internal Server Error:{e}")
+
+@app.post("/portfolio/generate/{analysis_id}")
+async def generate_portfolio(analysis_id: str, db: DatabaseManager = Depends(get_db),portfolio_title:str = None):
+    """Uses portfolio_builder to build and save new portfolio for a given analysis
+        Important Param note, portfolio title if any must be sent as query request by the frontend
+        Eg. client.post(portfolio/generate/<some UUID>?portfolio_title= 'Capybara portfolio' """    
+    try:
+        
+        #Check to make sure provided uuid is valid 
+        try:
+            validate_uuid(analysis_id)
+            # Validate UUID format
+        except ValueError as e:
+            raise e
+        
+        #Check to ensure that user llm consent has been set, expected to be done by frontend using a seperate endpoint
+        try:
+            config = ConfigManager()
+            llm_consent = config.preferences['online_llm_consent'] #raises key_error if it is not set!
+            if llm_consent is None or llm_consent is {}:
+                #On fail raise precondition error
+                raise HTTPException(status_code=422, detail="LLM consent must be set before generating a portfolio")
+        except KeyError:
+            raise HTTPException(status_code=422, detail="LLM consent must be set before generating a portfolio")
+        except HTTPException as e:
+            raise e
+        except Exception as e:
+            raise Exception(f"Internal error during online consent check:{e}")
+        
+        #Main execution block
+        #Use portfolio_builder to generate new portfolio
+        try:
+            #get data
+            analysis_data = db.get_analysis_data(analysis_id) #raises Lookup error on analysis_id not found
+                        
+            #build actual portfolio object
+            portfolio_builder = PortfolioBuilder()
+            portfolio = portfolio_builder._build_portfolio(analysis_data,analysis_id)
+            if not portfolio:
+                raise RuntimeError("portfolio builder returned empty portfolio")
+        
+        except LookupError as e:
+            raise HTTPException(status_code=404,detail =f"No Analysis with {analysis_id} found:")
+        except Exception as e:
+            raise RuntimeError(f"Failed to build portfolio:{e}") 
+        
+        #Save new portfolio to database
+        try:
+            portfolio_id = db.save_portfolio(analysis_id,portfolio,portfolio_title)
+        except Exception as e:
+            raise RuntimeError("Failed to save new portfolio")
+        
+        return JSONResponse(status_code=201,headers=location_header(f"/portfolio/{portfolio_id}"),content = portfolio)
+    except HTTPException as e:
+        raise e
+    except ValueError as e:
+         raise HTTPException(status_code=400, detail=f"Generation failed: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500,detail = f"Fatal Internal error during portfolio generation:{e}")
+
+#for updating a portfolio make a PUT request to a portfolio's url 
+@app.put("/portfolio/{portfolio_id}")
+async def edit_portfolio(portfolio_id: int, new: PortfolioEditRequest, db: DatabaseManager = Depends(get_db)):
+    try: 
+        
+        db.update_portfolio(portfolio_id,new.portfolio_data,new.portfolio_title)
+        return JSONResponse(status_code=204,headers = location_header(f"/portfolio/{portfolio_id}"),content = None)
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"{e}")
 
 @app.post("/privacy-consent")
 async def update_consent(req: ConsentRequest):
