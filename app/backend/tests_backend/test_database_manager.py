@@ -163,7 +163,7 @@ class TestSaveResumeData:
         assert 'VALUES' in call_args[0][0]
 
 def test_resume_handling_successes(db_manager, mock_db_connector):
-    mock_db_connector.execute_update.return_value = [42]
+    mock_db_connector.execute_update.return_value = [{"resume_id": 42}]
     mock_db_connector.execute_query.return_value = [{"resume_id": 42}]
 
     assert db_manager.save_resume("analysis-1", {"name": "Alice"}, "My Resume") == 42
@@ -174,10 +174,10 @@ def test_resume_handling_successes(db_manager, mock_db_connector):
 
 
 def test_portfolio_handling_successes(db_manager, mock_db_connector):
-    mock_db_connector.execute_update.return_value = [10]
+    mock_db_connector.execute_update.return_value = [{"portfolio_id": 10}]
     mock_db_connector.execute_query.return_value = [{"portfolio_id": 10}]
 
-    assert db_manager.save_portfolio("analysis-1", {"project": "X"}) is True
+    assert db_manager.save_portfolio("analysis-1", {"project": "X"}) == 10
     assert db_manager.update_portfolio("port-1", {"project": "Y"}) is True
     assert db_manager.get_all_portfolios() == [{"portfolio_id": 10}]
     assert db_manager.get_portfolios_by_analysis_id("analysis-1") == [{"portfolio_id": 10}]
