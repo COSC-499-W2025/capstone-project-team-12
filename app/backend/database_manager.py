@@ -316,7 +316,7 @@ class DatabaseManager:
             resume_json = json.dumps(resume_data)
         
             result = self.db.execute_update(query, (resume_title,analysis_id,resume_json),returning=True)
-            resume_id = result[0] #get returned new resume_id
+            resume_id = result[0]['resume_id'] #get returned new resume_id
             print(f"Saved new resume with resume id:{resume_id} to db for analysis_id:{analysis_id}")
             return resume_id
         
@@ -347,7 +347,7 @@ class DatabaseManager:
         except Exception as e:
             raise RuntimeError(f"Error updating resume with resume_id{resume_id}: {e}")
         
-    def save_portfolio(self,analysis_id:str,portfolio_data:Dict[str,Any],portfolio_title:str = None)->bool:
+    def save_portfolio(self,analysis_id:str,portfolio_data:Dict[str,Any],portfolio_title:str = None)->int:
         """
         Insert new Portfolio into the Resumes table with new data
         portfolio_title is optional, set to None to skip it , also default value
@@ -358,14 +358,14 @@ class DatabaseManager:
             
             query = """
                 INSERT Into Portfolios (portfolio_title,analysis_id,portfolio_data)
-                VALUES (%s, %s ,%s) RETURNING resume_id;
+                VALUES (%s, %s ,%s) RETURNING portfolio_id;
             """
             portfolio_json = json.dumps(portfolio_data)
         
             result = self.db.execute_update(query, (portfolio_title,analysis_id,portfolio_json),returning=True)
-            portfolio_id = result[0] #get returned new resume_id
+            portfolio_id = result[0]['portfolio_id'] #get returned new resume_id
             print(f"Saved new portfolio with portfolio_id:{portfolio_id} to db for analysis_id:{analysis_id}")
-            return True
+            return portfolio_id
         
         except Exception as e:
             raise RuntimeError(f"Error saving new portfolio:{e}")
@@ -456,7 +456,7 @@ class DatabaseManager:
     def get_portfolios_by_analysis_id(self,analysis_id:str):
         try:
             query = """
-                SELECT * from Portfolios port WHERE port.analysis_id = %s
+                SELECT * from Portfolios WHERE analysis_id = %s
             """
             
             result = self.db.execute_query(query,(analysis_id,))
@@ -472,7 +472,7 @@ class DatabaseManager:
             if not isinstance(portfolio_id,int):
                 raise ValueError(f"Invalid portfolio_id")
             
-            query = """Select * from portfolio port WHERE port.portfolio_id = %s"""
+            query = """Select * from Portfolios WHERE portfolio_id = %s"""
             
             result = self.db.execute_query(query,(portfolio_id,))    
 
