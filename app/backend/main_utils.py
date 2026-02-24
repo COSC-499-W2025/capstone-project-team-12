@@ -249,7 +249,7 @@ def _pick_resume(cli:CLI, database_manager:DatabaseManager, analysis_id:str) -> 
         return None
     
     if len(resumes) == 1:
-        return resumes[0]['resume_data']
+        return resumes[0]['resume_id'],resumes[0]['resume_data']
 
     print("\nAvailable resumes:")
     for idx, res in enumerate(resumes, 1):
@@ -259,7 +259,7 @@ def _pick_resume(cli:CLI, database_manager:DatabaseManager, analysis_id:str) -> 
     
     choice = cli.get_input("Enter the number of the resume you want to select (or Enter to go back):\n ").strip()
     if choice.isdigit() and 1 <= int(choice) <= len(resumes):
-        return resumes[int(choice) - 1]['resume_data']
+        return resumes[int(choice) - 1]['resume_id'],resumes[int(choice) - 1]['resume_data']
 
     if not choice:
         return None
@@ -274,7 +274,7 @@ def _pick_portfolio(cli:CLI, database_manager:DatabaseManager, analysis_id:str) 
         return None
     
     if len(portfolios) == 1:
-        return portfolios[0]['portfolio_data']
+        return portfolios[0]['portfolio_id'],portfolios[0]['portfolio_data']
 
     print("\nAvailable portfolios:")
     for idx, res in enumerate(portfolios, 1):
@@ -283,7 +283,7 @@ def _pick_portfolio(cli:CLI, database_manager:DatabaseManager, analysis_id:str) 
         print(f"{idx}. {title}")
     choice = cli.get_input("Enter the number of the portfolio you want to select (or Enter to go back):\n ").strip()
     if choice.isdigit() and 1 <= int(choice) <= len(portfolios):
-        return portfolios[int(choice) - 1]['portfolio_data']
+        return portfolios[int(choice) - 1]['portfolio_id'],portfolios[int(choice) - 1]['portfolio_data']
     if not choice:
         return None
     cli.print_status("Invalid selection.", "error")
@@ -333,7 +333,7 @@ def manage_resumes(cli, database_manager, resume_builder) -> None:
     resume_id, resume = result
 
     while True:
-        action = cli.get_input("Select an action:\n- 'V' View Resume\n- 'E' Edit Resume\n- 'D' Delete Resume\n- 'R' Regenerate Resume (Will replace existing resume)\n- 'B' Back to Main Menu\n").strip()
+        action = cli.get_input("Select an action:\n- 'V' View Resume\n- 'E' Edit Resume\n- 'D' Delete Resume\n- 'G' Generate New Resume\n- 'B' Back to Main Menu\n").strip()
         if action.lower() == "v":
             resume_builder.display_resume(resume, cli)
         elif action.lower() == "e":
@@ -356,14 +356,14 @@ def manage_resumes(cli, database_manager, resume_builder) -> None:
                 break
             else:
                 cli.print_status("Delete action cancelled.", "info")
-        elif action.lower() == "r":
+        elif action.lower() == "g":
             result = generate_resume(analysis_id, database_manager, resume_builder, cli)
             if not result:
                 cli.print_status("Resume regeneration failed. Original resume is still intact.", "warning")
             else:
                 resume_id, resume = result
-                database_manager.update_resume(resume_id, resume)
-                cli.print_status("Resume regenerated and updated successfully!", "success")
+                cli.print_status("New resume generated, you are now viewing the new resume.", "info")
+                
         elif action.lower() == "b":
             break
         else:
@@ -389,7 +389,7 @@ def manage_portfolios(cli: CLI, database_manager: DatabaseManager, portfolio_bui
     portfolio_id, portfolio = result
 
     while True:
-        action = cli.get_input("Select an action:\n- 'V' View Portfolio\n- 'E' Edit Portfolio\n- 'D' Delete Portfolio\n- 'R' Regenerate Portfolio (Will replace existing portfolio)\n- 'B' Back to Main Menu\n").strip()
+        action = cli.get_input("Select an action:\n- 'V' View Portfolio\n- 'E' Edit Portfolio\n- 'D' Delete Portfolio\n- 'G' Generate New Portfolio\n- 'B' Back to Main Menu\n").strip()
         if action.lower() == "v":
             portfolio_builder.display_portfolio(portfolio, cli)
         elif action.lower() == "e":
@@ -412,14 +412,13 @@ def manage_portfolios(cli: CLI, database_manager: DatabaseManager, portfolio_bui
                 break
             else:
                 cli.print_status("Delete action cancelled.", "info")
-        elif action.lower() == "r":
+        elif action.lower() == "g":
             result = generate_portfolio(analysis_id, database_manager, portfolio_builder, cli)
             if not result:
                 cli.print_status("Portfolio regeneration failed. Original portfolio is still intact.", "warning")
             else:
                 portfolio_id, portfolio = result
-                database_manager.update_portfolio(portfolio_id, portfolio)
-                cli.print_status("Portfolio regenerated and updated successfully!", "success")
+                cli.print_status("New portfolio generated, you are now viewing the new portfolio.", "info")
         elif action.lower() == "b":
             break
         else:

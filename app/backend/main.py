@@ -80,10 +80,24 @@ def main() -> None:
                     except Exception as e:
                         cli.print_status(f"Analysis Pipeline Error: {e}", "error")
                         
+
+
+                    # Auto generate resume and portfolio after analysis completion
+                    if analysis_id:
+                        cli.print_status("Generating resume and portfolio for this analysis...", "info")
+                        try: 
+                            resume = generate_resume(analysis_id, database_manager, resume_builder, cli)
+                        except Exception as e:
+                            cli.print_status(f"Error generating resume: {e}", "error")
+                        try:
+                            portfolio = generate_portfolio(analysis_id, database_manager, portfolio_builder, cli)
+                        except Exception as e:
+                            cli.print_status(f"Error generating portfolio: {e}", "error")
+
                     #Thumbnail handling
                     
                     #Prompt to add thumbnail
-                    img_response = cli.get_input("Would you like to add a thumbnail to represent this analysis? (y/N) \n")            
+                    img_response = cli.get_input("Would you like to add a thumbnail to represent this analysis? (Y/n) \n")            
                     if img_response.lower() not in ('n','no'):
                         try:    
                             #Receive image filepath
@@ -116,19 +130,6 @@ def main() -> None:
                         except Exception as e:
                             cli.print_status(f"Unhandled Thumbnail Error:{e} \n Returning to main menu", "warning")
                             continue
-
-                    # Auto generate resume and portfolio after analysis completion
-                    if analysis_id:
-                        try: 
-                            resume = generate_resume(analysis_id, database_manager, resume_builder, cli)
-                        except Exception as e:
-                            cli.print_status(f"Error generating resume: {e}", "error")
-                        try:
-                            portfolio = generate_portfolio(analysis_id, database_manager, portfolio_builder, cli)
-                        except Exception as e:
-                            cli.print_status(f"Error generating portfolio: {e}", "error")
-
-                        cli.print_status("Analysis complete! Your resume and portfolio have been generated. Returning to main menu.", "success")
                     
                             
                 case 'a':
