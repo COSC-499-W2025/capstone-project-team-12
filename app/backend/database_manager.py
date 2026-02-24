@@ -347,6 +347,17 @@ class DatabaseManager:
         except Exception as e:
             raise RuntimeError(f"Error updating resume with resume_id{resume_id}: {e}")
         
+    def delete_resume(self,resume_id: int)->bool:
+        try:
+            query = """
+                DELETE FROM Resumes WHERE resume_id = %s;
+            """
+            self.db.execute_update(query, (resume_id,))
+            print(f"Successfully deleted resume with resume_id: {resume_id}")
+            return True
+        except Exception as e:
+            raise RuntimeError(f"Error deleting resume with resume_id {resume_id}: {e}")
+
     def save_portfolio(self,analysis_id:str,portfolio_data:Dict[str,Any],portfolio_title:str = None)->int:
         """
         Insert new Portfolio into the Resumes table with new data
@@ -394,6 +405,17 @@ class DatabaseManager:
         except Exception as e:
             raise RuntimeError(f"Error updating portfolio with portfolio_id:{portfolio_id}: {e}")
    
+    def delete_portfolio(self,portfolio_id: int)->bool:
+        try:
+            query = """
+                DELETE FROM Portfolios WHERE portfolio_id = %s;
+            """
+            self.db.execute_update(query, (portfolio_id,))
+            print(f"Successfully deleted portfolio with portfolio_id: {portfolio_id}")
+            return True
+        except Exception as e:
+            raise RuntimeError(f"Error deleting portfolio with portfolio_id {portfolio_id}: {e}")
+
     def get_all_resumes(self):
         try:
             query = """
