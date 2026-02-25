@@ -6,7 +6,18 @@ import { type Project } from "../types";
 
 const ProjectCard: React.FC<{ project: Project; index: number }> = ({ project, index }) => {
   const [open, setOpen] = useState(false);
-  const levelColor = project.contribution.level === "Top Contributor" ? "#e8ff47" : "#47d9ff";
+
+  const levelColors: Record<string, string> = {
+    "Sole Contributor":        "#e8ff47",  
+    "Top Contributor":         "#FFD700",  
+    "Major Contributor":       "#a78bfa",
+    "Significant Contributor": "#47d9ff",  
+    "Contributor":             "#8899bb",  
+  };
+
+  const levelColor = levelColors[project.contribution.level] ?? "#8899bb";
+
+//   const levelColor = project.contribution.level === "Top Contributor" ? "#e8ff47" : "#47d9ff";
 
   return (
     <div className="bg-[#111318] border border-[#1e2330] rounded-md mb-4 overflow-hidden fade-in-card" style={{ animationDelay: `${index * 150}ms` }}>
