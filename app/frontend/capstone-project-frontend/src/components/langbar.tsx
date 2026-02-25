@@ -25,7 +25,7 @@ const LangBar: React.FC<Language & { index: number }> = ({ name, pct, files, ind
         }} />
       </div>
       <span style={{ width: 48, fontSize: "0.72rem", fontWeight: 700, textAlign: "right", flexShrink: 0, color }}>{pct.toFixed(1)}%</span>
-      <span className="text-[0.62rem] text-[#445060] text-right shrink-0" style={{ width: 32 }}>{files}f</span>
+      <span className="text-[0.62rem] text-[#445060] text-right shrink-0" style={{ width: 36 }}>{files} files</span>
     </div>
   );
 };

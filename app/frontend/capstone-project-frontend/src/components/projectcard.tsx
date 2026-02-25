@@ -54,7 +54,7 @@ const ProjectCard: React.FC<{ project: Project; index: number }> = ({ project, i
           <div className="h-6 bg-[#1a1d26] rounded overflow-hidden relative">
             <div className="h-full rounded transition-[width] duration-1000 ease-out" style={{ width: open ? `${project.contribution.share}%` : "0%", background: "linear-gradient(90deg,#e8ff47,#a8e030)" }} />
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[0.65rem] font-bold text-[#111318] pointer-events-none mix-blend-multiply">
-              {project.contribution.share}% of commits
+              {project.contribution.share}% of total commits
             </span>
           </div>
 
