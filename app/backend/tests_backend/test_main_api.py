@@ -202,6 +202,63 @@ def test_get_project_success(mock_backend,sample_analysis,placeholder_UUID):
     assert response.status_code == 200
     assert response.json() == sample_analysis
 
+# ---- Delete Endpoints Tests ----
+
+def test_delete_project_success(mock_backend, placeholder_UUID, sample_analysis):
+    """Test successful deletion of a specific project."""
+    
+    mock_backend["db"].get_analysis_data.return_value = sample_analysis
+    
+    mock_backend["db"].delete_analysis.return_value = True
+
+    response = client.delete(f"/projects/{placeholder_UUID}")
+    
+    #success returns 204 No Content
+    assert response.status_code == 204
+    mock_backend["db"].delete_analysis.assert_called_once_with(placeholder_UUID)
+
+def test_delete_project_failures(mock_backend, placeholder_UUID, sample_analysis):
+    """Test all failure modes for deleting a specific project."""
+    
+    #case 1: invalid UUID format
+    response = client.delete("/projects/invalid-uuid")
+    assert response.status_code == 400
+
+    #case 2: analysis not found in DB
+    #the endpoint calls get_analysis_data first to verify existence
+    mock_backend["db"].get_analysis_data.side_effect = LookupError("Analysis not found")
+    response = client.delete(f"/projects/{placeholder_UUID}")
+    assert response.status_code == 404
+    
+    #reset side effect for next case
+    mock_backend["db"].get_analysis_data.side_effect = None
+
+    #case 3: general DB error during the actual deletion
+    mock_backend["db"].get_analysis_data.return_value = sample_analysis
+    mock_backend["db"].delete_analysis.side_effect = Exception("DB deletion failed")
+    response = client.delete(f"/projects/{placeholder_UUID}")
+    assert response.status_code == 500
+
+
+def test_delete_all_projects_success(mock_backend):
+    """Test successful wipe of all projects from the database."""
+    
+    mock_backend["db"].wipe_all_data.return_value = True
+
+    response = client.delete("/projects")
+    
+    assert response.status_code == 204
+    mock_backend["db"].wipe_all_data.assert_called_once()
+
+def test_delete_all_projects_failures(mock_backend):
+    """Test failure modes for wiping all projects."""
+    
+    mock_backend["db"].wipe_all_data.side_effect = Exception("DB truncate failed")
+    
+    response = client.delete("/projects")
+    
+    assert response.status_code == 500
+
 # ---- Resume Tests ----#
 def test_generate_resume_success(mock_backend, sample_analysis,sample_resume,placeholder_UUID):
     """Test successful resume generation and save."""
