@@ -56,6 +56,8 @@ class ConsentRequest(BaseModel):
     consent_type: str
     value: bool
 
+class TopicEditRequest(BaseModel):
+    topic_keywords: List[Dict[str, Any]] 
 
 # --- Endpoints ---
 @app.get("/")
