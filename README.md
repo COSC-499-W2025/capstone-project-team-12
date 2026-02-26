@@ -76,6 +76,20 @@ This command will build the container in detached mode.
 
 This will open a new VS Code window connected to the container's file system.
 
+
+### 5. Input your OpenRouter API Key for the Online LLM
+
+In the terminal on Mac:
+```
+set OPENROUTER_API_KEY=your_api_key_here
+```
+
+In the terminal on Windows:
+```
+$env:OPENROUTER_API_KEY="your_api_key_here"
+```
+
+
 ### 5. Run the Backend Pipeline
 
 In the attached container's terminal, execute:
