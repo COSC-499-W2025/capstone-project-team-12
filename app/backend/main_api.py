@@ -478,3 +478,34 @@ async def get_project_topics(analysis_id: str, db: DatabaseManager = Depends(get
         raise HTTPException(status_code=400, detail="Invalid UUID format")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {e}")
+
+@app.put("/projects/{analysis_id}/topics")
+async def edit_project_topics(analysis_id: str, new: TopicEditRequest, db: DatabaseManager = Depends(get_db)):
+    """
+    Update topic keywords based on user edits.
+    """
+    try:
+        validate_uuid(analysis_id)
+        
+        result: Dict[str, Any] = db.get_analysis_data(analysis_id)
+        topic_blob = result.get("topic_vector", {})
+        
+        doc_topic_vectors = topic_blob.get("doc_topic_vectors", [])
+        
+        # Overwrite the original topic_term_vectors with the user's edited topic_keywords
+        db.save_text_analysis(analysis_id, doc_topic_vectors, new.topic_keywords)
+        
+        return JSONResponse(
+            status_code=204,
+            headers=location_header(f"/projects/{analysis_id}/topics"),
+            content=None
+        )
+    
+    except HTTPException as e:
+        raise e
+    except LookupError:
+        raise HTTPException(status_code=404, detail=f"No analysis with {analysis_id} found")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid UUID format")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {e}")
