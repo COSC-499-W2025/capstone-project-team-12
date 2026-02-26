@@ -410,6 +410,39 @@ def test_edit_resume_failures(mock_backend, sample_resume):
     mock_backend["db"].update_resume.side_effect = Exception("DB error")
     response = client.put("/resume/1", json={"resume_title": "title", "resume_data": sample_resume})
     assert response.status_code == 500
+
+# ---- Resume Delete Tests ----
+
+def test_delete_resume_success(mock_backend, sample_resume):
+    """Test successful deletion of a specific resume."""
+    
+    mock_backend["db"].get_resume_by_resume_id.return_value = sample_resume
+    mock_backend["db"].delete_resume.return_value = True
+
+    response = client.delete("/resume/1")
+    
+    assert response.status_code == 204
+    mock_backend["db"].delete_resume.assert_called_once_with(1)
+
+def test_delete_resume_failures(mock_backend):
+    """Test all failure modes for deleting a resume."""
+    
+    # Case 1: type validation failure 
+    response = client.delete("/resume/not-an-int")
+    assert response.status_code == 422
+
+    #case 2: resume not found in DB
+    mock_backend["db"].get_resume_by_resume_id.side_effect = LookupError("Not found")
+    response = client.delete("/resume/999")
+    assert response.status_code == 404
+    
+    mock_backend["db"].get_resume_by_resume_id.side_effect = None
+
+    #case 3: general DB Error during deletion
+    mock_backend["db"].get_resume_by_resume_id.return_value = {"resume_id": 1}
+    mock_backend["db"].delete_resume.side_effect = Exception("DB error")
+    response = client.delete("/resume/1")
+    assert response.status_code == 500
     
 # ---- Portfolio Tests ----
 # Portfolio endpoint and testing was reworked to match fastAPI best practices 
@@ -575,6 +608,39 @@ def test_edit_portfolio_failures(mock_backend, sample_portfolio):
     # Case 3 : DB error
     mock_backend["db"].update_portfolio.side_effect = Exception("DB error")
     response = client.put("/portfolio/1", json={"portfolio_title": "title", "portfolio_data": sample_portfolio})
+    assert response.status_code == 500
+
+# ---- Portfolio Delete Tests ----
+
+def test_delete_portfolio_success(mock_backend, sample_portfolio):
+    """Test successful deletion of a specific portfolio."""
+    
+    mock_backend["db"].get_portfolio_by_portfolio_id.return_value = sample_portfolio
+    mock_backend["db"].delete_portfolio.return_value = True
+
+    response = client.delete("/portfolio/1")
+    
+    assert response.status_code == 204
+    mock_backend["db"].delete_portfolio.assert_called_once_with(1)
+
+def test_delete_portfolio_failures(mock_backend):
+    """Test all failure modes for deleting a portfolio."""
+    
+    #case 1: type validation failure
+    response = client.delete("/portfolio/not-an-int")
+    assert response.status_code == 422
+
+    #case 2: portfolio not found in DB
+    mock_backend["db"].get_portfolio_by_portfolio_id.side_effect = LookupError("Not found")
+    response = client.delete("/portfolio/999")
+    assert response.status_code == 404
+    
+    mock_backend["db"].get_portfolio_by_portfolio_id.side_effect = None
+
+    #case 3: general DB Error during deletion
+    mock_backend["db"].get_portfolio_by_portfolio_id.return_value = {"portfolio_id": 1}
+    mock_backend["db"].delete_portfolio.side_effect = Exception("DB error")
+    response = client.delete("/portfolio/1")
     assert response.status_code == 500
     
 # --- Negative Tests ---

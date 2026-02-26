@@ -547,3 +547,43 @@ async def delete_all_projects(db: DatabaseManager = Depends(get_db)):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {e}")
+
+@app.delete("/resume/{resume_id}")
+async def delete_resume(resume_id: int, db: DatabaseManager = Depends(get_db)):
+    """
+    Delete a specific resume by its ID.
+    """
+    try:
+        db.get_resume_by_resume_id(resume_id)
+        
+        db.delete_resume(resume_id)
+        return JSONResponse(status_code=204, content=None)
+        
+    except HTTPException as e:
+        raise e
+    except LookupError:
+        raise HTTPException(status_code=404, detail=f"Resume with id {resume_id} not found")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid resume_id parameter. Expected integer")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {e}")
+
+@app.delete("/portfolio/{portfolio_id}")
+async def delete_portfolio(portfolio_id: int, db: DatabaseManager = Depends(get_db)):
+    """
+    Delete a specific portfolio by its ID.
+    """
+    try:
+        db.get_portfolio_by_portfolio_id(portfolio_id)
+        
+        db.delete_portfolio(portfolio_id)
+        return JSONResponse(status_code=204, content=None)
+        
+    except HTTPException as e:
+        raise e
+    except LookupError:
+        raise HTTPException(status_code=404, detail=f"Portfolio with id {portfolio_id} not found")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid portfolio_id parameter. Expected integer")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {e}")
