@@ -597,3 +597,99 @@ def test_get_skills_implementation_empty_db(mock_backend):
 
     assert res.status_code == 200
     assert res.json() == {"skills": {}}
+
+# ---- Topic Vector Tests ----
+
+def test_get_project_topics_success(mock_backend, placeholder_UUID, sample_analysis):
+    """Test fetching valid project topics."""
+    
+    # We populate the topic_vector field so it passes the 'if not topic_data:' check
+    sample_topics = {
+        "doc_topic_vectors": [[0.1, 0.9], [0.8, 0.2]], 
+        "topic_keywords": [{"topic_id": 0, "keywords": ["python", "fastapi"]}]
+    }
+    sample_analysis["topic_vector"] = sample_topics
+    mock_backend["db"].get_analysis_data.return_value = sample_analysis
+
+    response = client.get(f"/projects/{placeholder_UUID}/topics")
+    
+    assert response.status_code == 200
+    assert response.json() == sample_topics
+
+def test_get_project_topics_failures(mock_backend, placeholder_UUID, sample_analysis):
+    """Test all failure modes for getting project topics."""
+    
+    # Case 1: Invalid UUID format
+    response = client.get("/projects/invalid-uuid/topics")
+    assert response.status_code == 400
+
+    # Case 2: Analysis not found in DB
+    mock_backend["db"].get_analysis_data.side_effect = LookupError("Analysis not found")
+    response = client.get(f"/projects/{placeholder_UUID}/topics")
+    assert response.status_code == 404
+    
+    # Reset side effect for next case
+    mock_backend["db"].get_analysis_data.side_effect = None
+
+    # Case 3: Analysis exists, but topic vectors are empty (or not yet generated)
+    sample_analysis["topic_vector"] = {}
+    mock_backend["db"].get_analysis_data.return_value = sample_analysis
+    response = client.get(f"/projects/{placeholder_UUID}/topics")
+    assert response.status_code == 404
+
+    # Case 4: General DB error
+    mock_backend["db"].get_analysis_data.side_effect = Exception("DB error")
+    response = client.get(f"/projects/{placeholder_UUID}/topics")
+    assert response.status_code == 500
+
+
+def test_edit_project_topics_success(mock_backend, placeholder_UUID, sample_analysis):
+    """Test successful update of topic keywords based on user edits."""
+    
+    # Mock topic vectors
+    sample_analysis["topic_vector"] = {
+        "doc_topic_vectors": [[0.5, 0.5]]
+    }
+    mock_backend["db"].get_analysis_data.return_value = sample_analysis
+
+    payload = {
+        "topic_keywords": [{"topic_id": 1, "keywords": ["react", "frontend"]}]
+    }
+    
+    response = client.put(f"/projects/{placeholder_UUID}/topics", json=payload)
+    
+    assert response.status_code == 204
+    assert response.headers["location"] == f"/projects/{placeholder_UUID}/topics"
+    
+    mock_backend["db"].save_text_analysis.assert_called_once_with(
+        placeholder_UUID, 
+        [[0.5, 0.5]], 
+        payload["topic_keywords"]
+    )
+
+def test_edit_project_topics_failures(mock_backend, placeholder_UUID, sample_analysis):
+    """Test all failure modes for updating project topics."""
+    
+    valid_payload = {"topic_keywords": [{"topic_id": 1, "keywords": ["test"]}]}
+
+    # Case 1: Invalid UUID format
+    response = client.put("/projects/invalid-uuid/topics", json=valid_payload)
+    assert response.status_code == 400
+
+    # Case 2: Malformed payload (missing the required 'topic_keywords' field)
+    response = client.put(f"/projects/{placeholder_UUID}/topics", json={"wrong_field": "data"})
+    assert response.status_code == 422
+
+    # Case 3: Analysis not found in DB
+    mock_backend["db"].get_analysis_data.side_effect = LookupError("Analysis not found")
+    response = client.put(f"/projects/{placeholder_UUID}/topics", json=valid_payload)
+    assert response.status_code == 404
+    
+    #Reset side effect for next case
+    mock_backend["db"].get_analysis_data.side_effect = None
+
+    #Case 4: General DB error during the save operation
+    mock_backend["db"].get_analysis_data.return_value = sample_analysis
+    mock_backend["db"].save_text_analysis.side_effect = Exception("DB write failed")
+    response = client.put(f"/projects/{placeholder_UUID}/topics", json=valid_payload)
+    assert response.status_code == 500    
