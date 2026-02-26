@@ -509,3 +509,41 @@ async def edit_project_topics(analysis_id: str, new: TopicEditRequest, db: Datab
         raise HTTPException(status_code=400, detail="Invalid UUID format")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {e}")
+
+@app.delete("/projects/{analysis_id}")
+async def delete_project(analysis_id: str, db: DatabaseManager = Depends(get_db)):
+    """
+    Delete a specific analysis and all its associated data (resumes, portfolios, filesets, etc.).
+    """
+    try:
+        validate_uuid(analysis_id)
+        
+        db.get_analysis_data(analysis_id)
+        
+        db.delete_analysis(analysis_id)
+        
+        #return 204 No Content on success
+        return JSONResponse(status_code=204, content=None)
+        
+    except HTTPException as e:
+        raise e
+    except LookupError:
+        raise HTTPException(status_code=404, detail=f"No analysis with {analysis_id} found")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid UUID format")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {e}")
+
+
+@app.delete("/projects")
+async def delete_all_projects(db: DatabaseManager = Depends(get_db)):
+    """
+    Wipe all analyses and associated data from the database.
+    """
+    try:
+        db.wipe_all_data()
+        
+        return JSONResponse(status_code=204, content=None)
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {e}")
