@@ -315,111 +315,121 @@ def generate_portfolio(analysis_id: str, database_manager, portfolio_builder, cl
 # Sub menus for managing resumes and portfolios.
 def manage_resumes(cli, database_manager, resume_builder) -> None:
     cli.print_header("Manage Resumes")
-    analysis_id = _pick_analysis(cli, database_manager)
-    if not analysis_id:
-        raise TypeError("Analysis ID is None")
 
-    # Sub menu for selecting the resume to proceed with
-    result = _pick_resume(cli, database_manager, analysis_id)
-    if not result:
-        generate = cli.get_input("Would you like to generate a resume? (Y/n): ").strip()
-        if generate.lower() == "n":
-            return
-        elif not generate or generate.lower() == "y" or generate.lower() == "yes":
-            result = generate_resume(analysis_id, database_manager, resume_builder, cli)
-            if not result:
-                return            
-
-    resume_id, resume = result
-
+    # Outer loop to select analysis, inner loop to manage resumes for that analysis. Allows user to easily switch between analyses without going back to main menu each time.
     while True:
-        action = cli.get_input("Select an action:\n- 'V' View Resume\n- 'E' Edit Resume\n- 'D' Delete Resume\n- 'G' Generate New Resume\n- 'B' Back to Main Menu\n").strip()
-        if action.lower() == "v":
-            resume_builder.display_resume(resume, cli)
-        elif action.lower() == "e":
-            resume = ResumeEditor(cli).edit_resume(resume)
+        analysis_id = _pick_analysis(cli, database_manager)
+        if not analysis_id:
+            # We assume no input means the user watns to return to main menu
+            return
+   
+        # Sub menu for selecting the resume to proceed with
+        result = _pick_resume(cli, database_manager, analysis_id)
+        if not result:
+            generate = cli.get_input("Would you like to generate a resume? (Y/n): ").strip()
+            if generate.lower() == "n":
+                break
+            elif not generate or generate.lower() == "y" or generate.lower() == "yes":
+                result = generate_resume(analysis_id, database_manager, resume_builder, cli)
+                if not result:
+                    break
 
-            # Update the resume in the database after editing
-            try:
-                database_manager.update_resume(resume_id, resume)
-                cli.print_status("Resume updated successfully!", "success")
-            except Exception as e:
-                cli.print_status(f"Failed to update resume: {e}", "error")
-        elif action.lower() == "d":
-            confirm = cli.get_input("Are you sure you want to delete this resume? (y/N): ").strip()
-            if confirm.lower() in ["y", "yes"]:
+        if not result:
+            break
+
+        resume_id, resume = result
+
+        while True:
+            action = cli.get_input("Select an action:\n- 'V' View Resume\n- 'E' Edit Resume\n- 'D' Delete Resume\n- 'G' Generate New Resume\n- 'B' Back to Analysis Selection\n").strip()
+            if action.lower() == "v":
+                resume_builder.display_resume(resume, cli)
+            elif action.lower() == "e":
+                resume = ResumeEditor(cli).edit_resume(resume)
+
+                # Update the resume in the database after editing
                 try:
-                    database_manager.delete_resume(resume_id)
-                    cli.print_status("Resume deleted successfully.", "success")
+                    database_manager.update_resume(resume_id, resume)
+                    cli.print_status("Resume updated successfully!", "success")
                 except Exception as e:
-                    cli.print_status(f"Failed to delete resume: {e}", "error")
+                    cli.print_status(f"Failed to update resume: {e}", "error")
+            elif action.lower() == "d":
+                confirm = cli.get_input("Are you sure you want to delete this resume? (y/N): ").strip()
+                if confirm.lower() in ["y", "yes"]:
+                    try:
+                        database_manager.delete_resume(resume_id)
+                        cli.print_status("Resume deleted successfully.", "success")
+                    except Exception as e:
+                        cli.print_status(f"Failed to delete resume: {e}", "error")
+                    break
+                else:
+                    cli.print_status("Delete action cancelled.", "info")
+            elif action.lower() == "g":
+                result = generate_resume(analysis_id, database_manager, resume_builder, cli)
+                if not result:
+                    cli.print_status("Resume regeneration failed. Original resume is still intact.", "warning")
+                else:
+                    resume_id, resume = result
+                    cli.print_status("New resume generated, you are now viewing the new resume.", "info")
+                    
+            elif action.lower() == "b":
                 break
             else:
-                cli.print_status("Delete action cancelled.", "info")
-        elif action.lower() == "g":
-            result = generate_resume(analysis_id, database_manager, resume_builder, cli)
-            if not result:
-                cli.print_status("Resume regeneration failed. Original resume is still intact.", "warning")
-            else:
-                resume_id, resume = result
-                cli.print_status("New resume generated, you are now viewing the new resume.", "info")
-                
-        elif action.lower() == "b":
-            break
-        else:
-            cli.print_status("Invalid action. Please try again.", "warning")
-
+                cli.print_status("Invalid action. Please try again.", "warning")
 def manage_portfolios(cli: CLI, database_manager: DatabaseManager, portfolio_builder) -> None:
     cli.print_header("Manage Portfolios")
-    analysis_id = _pick_analysis(cli, database_manager)
-    if not analysis_id:
-        raise TypeError("Analysis ID is None")
-
-    # Sub menu for selecting the portfolio to proceed with
-    result = _pick_portfolio(cli, database_manager, analysis_id)
-    if not result:
-        generate = cli.get_input("Would you like to generate a portfolio? (Y/n): ").strip()
-        if generate.lower() == "n":
-            return
-        elif not generate or generate.lower() in ["y", "yes"]:
-            result = generate_portfolio(analysis_id, database_manager, portfolio_builder, cli)
-            if not result:
-                return            
-
-    portfolio_id, portfolio = result
-
     while True:
-        action = cli.get_input("Select an action:\n- 'V' View Portfolio\n- 'E' Edit Portfolio\n- 'D' Delete Portfolio\n- 'G' Generate New Portfolio\n- 'B' Back to Main Menu\n").strip()
-        if action.lower() == "v":
-            portfolio_builder.display_portfolio(portfolio, cli)
-        elif action.lower() == "e":
-            portfolio = PortfolioEditor(cli).edit_portfolio(portfolio)
+        analysis_id = _pick_analysis(cli, database_manager)
+        if not analysis_id:
+            # We assume no input means the user wants to return to main menu
+            return
 
-            # Update the portfolio in the database after editing
-            try:
-                database_manager.update_portfolio(portfolio_id, portfolio)
-                cli.print_status("Portfolio updated successfully!", "success")
-            except Exception as e:
-                cli.print_status(f"Failed to update portfolio: {e}", "error")
-        elif action.lower() == "d":
-            confirm = cli.get_input("Are you sure you want to delete this portfolio? (y/N): ").strip()
-            if confirm.lower() in ["y", "yes"]:
+        # Sub menu for selecting the portfolio to proceed with
+        result = _pick_portfolio(cli, database_manager, analysis_id)
+        if not result:
+            generate = cli.get_input("Would you like to generate a portfolio? (Y/n): ").strip()
+            if generate.lower() == "n":
+                break
+            elif not generate or generate.lower() in ["y", "yes"]:
+                result = generate_portfolio(analysis_id, database_manager, portfolio_builder, cli)
+                if not result:
+                    break
+        if not result:
+            break
+
+        portfolio_id, portfolio = result
+
+        while True:
+            action = cli.get_input("Select an action:\n- 'V' View Portfolio\n- 'E' Edit Portfolio\n- 'D' Delete Portfolio\n- 'G' Generate New Portfolio\n- 'B' Back to Analysis Selection\n").strip()
+            if action.lower() == "v":
+                portfolio_builder.display_portfolio(portfolio, cli)
+            elif action.lower() == "e":
+                portfolio = PortfolioEditor(cli).edit_portfolio(portfolio)
+
+                # Update the portfolio in the database after editing
                 try:
-                    database_manager.delete_portfolio(portfolio_id)
-                    cli.print_status("Portfolio deleted successfully.", "success")
+                    database_manager.update_portfolio(portfolio_id, portfolio)
+                    cli.print_status("Portfolio updated successfully!", "success")
                 except Exception as e:
-                    cli.print_status(f"Failed to delete portfolio: {e}", "error")
+                    cli.print_status(f"Failed to update portfolio: {e}", "error")
+            elif action.lower() == "d":
+                confirm = cli.get_input("Are you sure you want to delete this portfolio? (y/N): ").strip()
+                if confirm.lower() in ["y", "yes"]:
+                    try:
+                        database_manager.delete_portfolio(portfolio_id)
+                        cli.print_status("Portfolio deleted successfully.", "success")
+                    except Exception as e:
+                        cli.print_status(f"Failed to delete portfolio: {e}", "error")
+                    break
+                else:
+                    cli.print_status("Delete action cancelled.", "info")
+            elif action.lower() == "g":
+                result = generate_portfolio(analysis_id, database_manager, portfolio_builder, cli)
+                if not result:
+                    cli.print_status("Portfolio regeneration failed. Original portfolio is still intact.", "warning")
+                else:
+                    portfolio_id, portfolio = result
+                    cli.print_status("New portfolio generated, you are now viewing the new portfolio.", "info")
+            elif action.lower() == "b":
                 break
             else:
-                cli.print_status("Delete action cancelled.", "info")
-        elif action.lower() == "g":
-            result = generate_portfolio(analysis_id, database_manager, portfolio_builder, cli)
-            if not result:
-                cli.print_status("Portfolio regeneration failed. Original portfolio is still intact.", "warning")
-            else:
-                portfolio_id, portfolio = result
-                cli.print_status("New portfolio generated, you are now viewing the new portfolio.", "info")
-        elif action.lower() == "b":
-            break
-        else:
-            cli.print_status("Invalid action.", "warning")
+                cli.print_status("Invalid action.", "warning")
