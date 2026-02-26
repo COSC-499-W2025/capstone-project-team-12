@@ -453,3 +453,28 @@ async def update_consent(req: ConsentRequest):
     cfg = ConfigManager()
     cfg.save_prefs({req.consent_type: req.value})
     return {"status": "success"}
+
+@app.get("/projects/{analysis_id}/topics")
+async def get_project_topics(analysis_id: str, db: DatabaseManager = Depends(get_db)):
+    """
+    Retrieve generated topic vectors and keywords for user review.
+    """
+    try:
+        validate_uuid(analysis_id)
+        
+        result: Dict[str, Any] = db.get_analysis_data(analysis_id)
+        
+        topic_data = result.get("topic_vector")
+        if not topic_data:
+            raise HTTPException(status_code=404, detail="No topic analysis found for this project")
+            
+        return JSONResponse(status_code=200, content=topic_data)   
+    
+    except HTTPException as e:
+        raise e
+    except LookupError:
+        raise HTTPException(status_code=404, detail=f"No analysis with {analysis_id} found")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid UUID format")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {e}")
