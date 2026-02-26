@@ -646,7 +646,7 @@ def test_get_project_topics_failures(mock_backend, placeholder_UUID, sample_anal
 def test_edit_project_topics_success(mock_backend, placeholder_UUID, sample_analysis):
     """Test successful update of topic keywords based on user edits."""
     
-    # Mock topic vectors
+    #mock topic vectors
     sample_analysis["topic_vector"] = {
         "doc_topic_vectors": [[0.5, 0.5]]
     }
@@ -672,23 +672,23 @@ def test_edit_project_topics_failures(mock_backend, placeholder_UUID, sample_ana
     
     valid_payload = {"topic_keywords": [{"topic_id": 1, "keywords": ["test"]}]}
 
-    # Case 1: Invalid UUID format
+    # case 1: invalid UUID format
     response = client.put("/projects/invalid-uuid/topics", json=valid_payload)
     assert response.status_code == 400
 
-    # Case 2: Malformed payload (missing the required 'topic_keywords' field)
+    # case 2: malformed payload (missing the required 'topic_keywords' field)
     response = client.put(f"/projects/{placeholder_UUID}/topics", json={"wrong_field": "data"})
     assert response.status_code == 422
 
-    # Case 3: Analysis not found in DB
+    # case 3: analysis not found in DB
     mock_backend["db"].get_analysis_data.side_effect = LookupError("Analysis not found")
     response = client.put(f"/projects/{placeholder_UUID}/topics", json=valid_payload)
     assert response.status_code == 404
     
-    #Reset side effect for next case
+    #reset side effect for next case
     mock_backend["db"].get_analysis_data.side_effect = None
 
-    #Case 4: General DB error during the save operation
+    # case 4: general DB error during the save operation
     mock_backend["db"].get_analysis_data.return_value = sample_analysis
     mock_backend["db"].save_text_analysis.side_effect = Exception("DB write failed")
     response = client.put(f"/projects/{placeholder_UUID}/topics", json=valid_payload)
