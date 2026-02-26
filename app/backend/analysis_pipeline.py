@@ -461,68 +461,168 @@ class AnalysisPipeline:
             self.cli.print_status("Skipping Git linking.", "info")
             return [],[],[],[]
 
-    def run_AI_NLG(self,data_bundle,result_bundle,text_analysis_data):
-        try:
-            #"AI Summary Generation" header was here 
-            #I moved it down to after the skill selection.
+    def run_analysis_extract(self, filepath: str, existing_analysis_id: Optional[str] = None, preloaded_tree: Optional[Node] = None, preloaded_binary: Optional[List[bytes]] = None):
+        """
+        Phase 1: Data loading, classification, metadata analysis, topic analysis, repo analysis,
+        and data preparation for AI summary generation.
+        
+        Returns:
+            Tuple of (analysis_id, topic_vector_bundle, detected_skills, text_analysis_data)
+            or None if an error occurs during early steps.
+        """
+        filetree: Node = None
+        binary_data: List[bytes] = []
+
+        # Logic to handle preloaded data vs loading from disk
+        if preloaded_tree and preloaded_binary:
+            self.cli.print_status("Using preloaded/merged file data for analysis.", "info")
+            filetree = preloaded_tree
+            binary_data = preloaded_binary
+            self.file_data_list = binary_data # Update internal state for helpers
+            analysis_id = existing_analysis_id
+        else:
+            #Load Files using Filemanager
+            try:
+                fm_result = self.load_files(filepath) #File loading logic in helper function
+            except Exception as e:
+                # Updated error format to match the test expectation: "Load Error: fail"
+                self.cli.print_status(f"{e}","error")
+                return None
             
+            #Load various parts of fm_result as vars for downstream use
+            filetree = fm_result["tree"] #Extract Filetree from fm_result
+            binary_data = fm_result.get("binary_data")
+            
+            if not isinstance(binary_data, list):
+                self.cli.print_status("File Manager Error: Binary data not loaded. Aborting analysis.", " error") #changed because without any binary data cannot do any analysis
+                binary_data = []
+                return None
+
+            #Create Analysis ID and Save Initial Fileset immediately for future updates
+            try:
+                if existing_analysis_id:
+                    analysis_id = existing_analysis_id
+                    self.cli.print_status(f"Updating existing analysis ID: {analysis_id}", "info")
+                else:
+                    analysis_id = self.database_manager.create_analysis(file_path=filepath)
+                    
+                    # Serialize binary data
+                    binary_blob = pickle.dumps(binary_data)
+                    
+                    # Export tree
+                    tree_dict = self.dict_exporter.export(filetree)
+                    
+                    # Save fileset
+                    self.database_manager.save_fileset(analysis_id, binary_blob, tree_dict, filepath)
+                
+            except Exception as e:
+                self.cli.print_status(f"Database Analysis Creation Error: {e}", "error")
+                return None
+       
+        #classify loaded files in text or code and extract git repos
+        try:
+            textfile_nodes,codefile_nodes,git_repos,binary_data = self.classify_files(filetree,binary_data)
+        except Exception as e:
+            self.cli.print_status(f"File Classifier Error, Aborting analysis:{e}")
+            return None
+            
+        #run metadata analysis
+        try:
+            self.data_bundle.metadata_results, self.result_bundle.metadata_analysis = self.run_metadata_analysis_pipeline(textfile_nodes,codefile_nodes,binary_data)
+        except Exception as e:
+            self.cli.print_status(f"Metadata Analysis Error:{e}","error")
+       
+        #run topic analysis_pipeline
+        try:
+            self.data_bundle.lda_model, self.data_bundle.dictionary, self.result_bundle.doc_topic_vectors, self.result_bundle.topic_term_vectors,self.data_bundle.final_bow = self.run_topic_analysis_pipeline(textfile_nodes,codefile_nodes)
+        except Exception as e:
+            self.cli.print_status(f"Topic Analysis Error: {e}","error")
+        
+        #run git_repo_analysis
+        analyzed_repos = None
+        timeline = None
+        processed_git_repos = None
+        try:    
+            git_repos,analyzed_repos,timeline,processed_git_repos = self.run_repo_analysis_pipeline(git_repos,binary_data)
+        except Exception as e:
+            self.cli.print_status(f"{e}","error")
+            import traceback
+            traceback.print_exc()
+            
+        text_analysis_data = {
+            "num_documents": len(self.result_bundle.doc_topic_vectors),
+            "num_topics": len(self.result_bundle.topic_term_vectors),
+            "doc_topic_vectors": self.result_bundle.doc_topic_vectors,
+            "topic_term_vectors": self.result_bundle.topic_term_vectors
+        } if self.result_bundle.doc_topic_vectors else {}
+        
+        #Save project data to bundle
+        self.result_bundle.project_analysis_data = {
+            "analyzed_insights": analyzed_repos if analyzed_repos else [],
+            "timeline": timeline if timeline else []
+        } if git_repos else {}
+        self.data_bundle.processed_git_repos = processed_git_repos
+        
+        # Collect analysis statistics (moved from run_AI_NLG)
+        try:
             self.cli.print_status("Collecting analysis statistics...", "info")
             ai_data_bundle = collect_stats(
-                metadata_stats=data_bundle.metadata_results,
-                metadata_analysis=result_bundle.metadata_analysis,
+                metadata_stats=self.data_bundle.metadata_results,
+                metadata_analysis=self.result_bundle.metadata_analysis,
                 text_analysis=text_analysis_data,
-                project_analysis=result_bundle.project_analysis_data
+                project_analysis=self.result_bundle.project_analysis_data
             )
-            
-            topn_keywords = 10
-            topic_keywords = []
-            if data_bundle.lda_model is not None and data_bundle.dictionary is not None:
-                num_topics = len(result_bundle.topic_term_vectors) if result_bundle.topic_term_vectors else 0
-                for topic_id in range(num_topics):
-                    words = [w for (w, _) in data_bundle.lda_model.show_topic(topic_id, topn=topn_keywords)]
-                    topic_keywords.append({"topic_id": topic_id, "keywords": words})
+        except Exception as e:
+            raise RuntimeError(f"Error collecting statistics: {e}")
+        
+        # Build topic_vector_bundle (moved from run_AI_NLG)
+        topn_keywords = 10
+        topic_keywords = []
+        if self.data_bundle.lda_model is not None and self.data_bundle.dictionary is not None:
+            num_topics = len(self.result_bundle.topic_term_vectors) if self.result_bundle.topic_term_vectors else 0
+            for topic_id in range(num_topics):
+                words = [w for (w, _) in self.data_bundle.lda_model.show_topic(topic_id, topn=topn_keywords)]
+                topic_keywords.append({"topic_id": topic_id, "keywords": words})
 
-            doc_top_topics = []
-            for doc_idx, vec in enumerate(result_bundle.doc_topic_vectors or []):
-                if not vec:
-                    doc_top_topics.append({"doc_id": doc_idx, "top_topics": []})
-                    continue
-                top_pairs = sorted([(i, p) for i, p in enumerate(vec)], key=lambda x: x[1], reverse=True)[:2]
-                doc_top_topics.append({
-                    "doc_id": doc_idx,
-                    "top_topics": [{"topic_id": i, "prob": float(p)} for i, p in top_pairs]
-                })
+        doc_top_topics = []
+        for doc_idx, vec in enumerate(self.result_bundle.doc_topic_vectors or []):
+            if not vec:
+                doc_top_topics.append({"doc_id": doc_idx, "top_topics": []})
+                continue
+            top_pairs = sorted([(i, p) for i, p in enumerate(vec)], key=lambda x: x[1], reverse=True)[:2]
+            doc_top_topics.append({
+                "doc_id": doc_idx,
+                "top_topics": [{"topic_id": i, "prob": float(p)} for i, p in top_pairs]
+            })
 
-            topic_vector_bundle = {
-                "topic_keywords": topic_keywords,
-                "top_topics": doc_top_topics,
-            }
-            
-            topic_vector_bundle = self.review_topic_bundle(topic_vector_bundle)
+        topic_vector_bundle = {
+            "topic_keywords": topic_keywords,
+            "top_topics": doc_top_topics,
+        }
 
-            #extract detected skills from metadata analysis
-            detected_skills = []
-            if result_bundle.metadata_analysis:
-                primary_languages = result_bundle.metadata_analysis.get('primary_languages', [])
-                primary_skills = result_bundle.metadata_analysis.get('primary_skills', [])
-                #combine languages and skills, we can let the user decide on the scope
-                seen = set()
-                for skill in primary_languages + primary_skills:
-                    if skill and skill not in seen:
-                        detected_skills.append(skill)
-                        seen.add(skill)
-            
-            user_highlights = []
-            if detected_skills:
-                user_highlights = self.cli.display_skill_selection_menu(detected_skills)
-            
-            #add the new highlights into the bundle
-            topic_vector_bundle['user_highlights'] = user_highlights
-            #allow user to review and edit topic keywords
-            #no db saving for edited topic words tho (for now)
-            
-            
-            # MOVED: AI Summary Generation Header is now here
+        # Extract detected skills from metadata analysis (moved from run_AI_NLG)
+        detected_skills = []
+        if self.result_bundle.metadata_analysis:
+            primary_languages = self.result_bundle.metadata_analysis.get('primary_languages', [])
+            primary_skills = self.result_bundle.metadata_analysis.get('primary_skills', [])
+            #combine languages and skills, we can let the user decide on the scope
+            seen = set()
+            for skill in primary_languages + primary_skills:
+                if skill and skill not in seen:
+                    detected_skills.append(skill)
+                    seen.add(skill)
+
+        return (analysis_id, topic_vector_bundle, detected_skills, text_analysis_data)
+
+    def run_analysis_generate(self, analysis_id: str, topic_vector_bundle: dict, text_analysis_data: dict, return_id: bool = False):
+        """
+        Phase 2: AI summary generation and saving results to database.
+        
+        Returns:
+            analysis_id if return_id is True, otherwise the generated medium_summary.
+        """
+        try:
+            # AI Summary Generation
             self.cli.print_header("AI Summary Generation")
             
             self.cli.print_privacy_notice()
@@ -548,120 +648,45 @@ class AnalysisPipeline:
             self.cli.print_status("Generating project summary (this may take a moment)...", "info")
             
             try:
-                result_bundle.medium_summary = llm_client.generate_summary(topic_vector_bundle)
+                self.result_bundle.medium_summary = llm_client.generate_summary(topic_vector_bundle)
                 self.cli.print_header("Standard Summary")
-                print(result_bundle.medium_summary)
+                print(self.result_bundle.medium_summary)
                 print("=" * 60 + "\n")
-                return result_bundle.medium_summary
                 
             except Exception as e:
                 raise RuntimeError(f"Error generating summary: {e}")
         except Exception as e:
-            raise RuntimeError(f"Error collecting statistics: {e}")
-    
-    #main execution func
-    def run_analysis(self, filepath: str,return_id = False, existing_analysis_id: Optional[str] = None, preloaded_tree: Optional[Node] = None, preloaded_binary: Optional[List[bytes]] = None) -> None|str:
-        """
-        Runs the various analysis pipelines in sequence. 
-        Important Note: 
-            - Early steps common to all pipelines return from function when error is encountered
-            - When Pipelines encounter error, error is printed to console and next pipeline is executed.
-        """
-        filetree: Node = None
-        binary_data: List[bytes] = []
-
-        # Logic to handle preloaded data vs loading from disk
-        if preloaded_tree and preloaded_binary:
-            self.cli.print_status("Using preloaded/merged file data for analysis.", "info")
-            filetree = preloaded_tree
-            binary_data = preloaded_binary
-            self.file_data_list = binary_data # Update internal state for helpers
-            analysis_id = existing_analysis_id
-        else:
-            #Load Files using Filemanager
-            try:
-                fm_result = self.load_files(filepath) #File loading logic in helper function
-            except Exception as e:
-                # Updated error format to match the test expectation: "Load Error: fail"
-                self.cli.print_status(f"{e}","error")
-                return
-            
-            #Load various parts of fm_result as vars for downstream use
-            filetree = fm_result["tree"] #Extract Filetree from fm_result
-            binary_data = fm_result.get("binary_data")
-            
-            if not isinstance(binary_data, list):
-                self.cli.print_status("File Manager Error: Binary data not loaded. Aborting analysis.", " error") #changed because without any binary data cannot do any analysis
-                binary_data = []
-                return
-
-            #Create Analysis ID and Save Initial Fileset immediately for future updates
-            try:
-                if existing_analysis_id:
-                    analysis_id = existing_analysis_id
-                    self.cli.print_status(f"Updating existing analysis ID: {analysis_id}", "info")
-                else:
-                    analysis_id = self.database_manager.create_analysis(file_path=filepath)
-                    
-                    # Serialize binary data
-                    binary_blob = pickle.dumps(binary_data)
-                    
-                    # Export tree
-                    tree_dict = self.dict_exporter.export(filetree)
-                    
-                    # Save fileset
-                    self.database_manager.save_fileset(analysis_id, binary_blob, tree_dict, filepath)
-                
-            except Exception as e:
-                self.cli.print_status(f"Database Analysis Creation Error: {e}", "error")
-                return
-       
-        #classify loaded files in text or code and extract git repos
-        try:
-            textfile_nodes,codefile_nodes,git_repos,binary_data = self.classify_files(filetree,binary_data)
-        except Exception as e:
-            self.cli.print_status(f"File Classifier Error, Aborting analysis:{e}")
-            return # Added return to prevent UnboundLocalError later
-            
-        #run metadata analysis
-        try:
-            self.data_bundle.metadata_results, self.result_bundle.metadata_analysis = self.run_metadata_analysis_pipeline(textfile_nodes,codefile_nodes,binary_data)
-        except Exception as e:
-            self.cli.print_status(f"Metadata Analysis Error:{e}","error")
-       
-        #run topic analysis_pipeline
-        try:
-            self.data_bundle.lda_model, self.data_bundle.dictionary, self.result_bundle.doc_topic_vectors, self.result_bundle.topic_term_vectors,self.data_bundle.final_bow = self.run_topic_analysis_pipeline(textfile_nodes,codefile_nodes)
-        except Exception as e:
-            self.cli.print_status(f"Topic Analysis Error: {e}","error")
+            raise RuntimeError(f"Error during AI summary generation: {e}")
         
-        #run git_repo_analysis
-        try:    
-            git_repos,analyzed_repos,timeline,processed_git_repos = self.run_repo_analysis_pipeline(git_repos,binary_data)
-        except Exception as e:
-            self.cli.print_status(f"{e}","error")
-            import traceback
-            traceback.print_exc()
-            
-        text_analysis_data = {
-            "num_documents": len(self.result_bundle.doc_topic_vectors),
-            "num_topics": len(self.result_bundle.topic_term_vectors),
-            "doc_topic_vectors": self.result_bundle.doc_topic_vectors,
-            "topic_term_vectors": self.result_bundle.topic_term_vectors
-        } if self.result_bundle.doc_topic_vectors else {}
-        
-        #Save project data to bundle
-        self.result_bundle.project_analysis_data = {
-            "analyzed_insights": analyzed_repos if analyzed_repos else [],
-            "timeline": timeline if timeline else []
-        } if git_repos else {}
-        self.data_bundle.processed_git_repos = processed_git_repos
-        
-        #Run AI based Natural language generation
-        self.result_bundle.medium_summary = self.run_AI_NLG(self.data_bundle,self.result_bundle,text_analysis_data)
-        
-        #Save All relevent input data and results to DB
-        self.save_results(self.data_bundle,self.result_bundle,analysis_id,return_id)
+        #Save All relevant input data and results to DB
+        self.save_results(self.data_bundle, self.result_bundle, analysis_id, return_id)
         
         if return_id:
             return analysis_id
+        return self.result_bundle.medium_summary
+
+    #main execution func (wrapper)
+    def run_analysis(self, filepath: str,return_id = False, existing_analysis_id: Optional[str] = None, preloaded_tree: Optional[Node] = None, preloaded_binary: Optional[List[bytes]] = None) -> None|str:
+        """
+        Wrapper that orchestrates the full analysis pipeline via CLI.
+        Calls Phase 1 (extract), handles interactive CLI prompts, then calls Phase 2 (generate).
+        """
+        # Phase 1: Extract and analyze data
+        extract_result = self.run_analysis_extract(filepath, existing_analysis_id, preloaded_tree, preloaded_binary)
+        
+        if extract_result is None:
+            return None
+        
+        analysis_id, topic_vector_bundle, detected_skills, text_analysis_data = extract_result
+        
+        # CLI interactive prompts: review topics and select skills
+        topic_vector_bundle = self.review_topic_bundle(topic_vector_bundle)
+        
+        user_highlights = []
+        if detected_skills:
+            user_highlights = self.cli.display_skill_selection_menu(detected_skills)
+        
+        topic_vector_bundle['user_highlights'] = user_highlights
+        
+        # Phase 2: Generate AI summary and save results
+        return self.run_analysis_generate(analysis_id, topic_vector_bundle, text_analysis_data, return_id)
