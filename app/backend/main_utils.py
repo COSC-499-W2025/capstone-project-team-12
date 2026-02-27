@@ -1,12 +1,14 @@
 import os
 import pickle
 import difflib
-from typing import List, Dict, Any, BinaryIO
+from typing import List, Dict, Any, BinaryIO, Optional, Tuple
 from pathlib import Path
 from database_manager import DatabaseManager
 from cli_interface import CLI
 from display_helpers import display_project_insights, display_project_summary, display_project_timeline
 from input_validation import validate_analysis_path, validate_thumbnail_path, validate_uuid
+from resume_editor import ResumeEditor
+from portfolio_editor import PortfolioEditor
 
 # This file contains extracted implementations of various main.py's execution paths. 
 # Allows for better abstraction and easy refactoring moving forward.
@@ -209,3 +211,225 @@ def delete_all_analyses(database_manager:DatabaseManager):
         database_manager.wipe_all_data()
     except Exception as e:
         raise e
+
+# Helper method to display all analyses to let the user choose one
+def _pick_analysis(cli:CLI, database_manager:DatabaseManager) -> Optional[str]:
+    try:
+        all_analyses = database_manager.get_all_analyses_summary()
+    except Exception as e:
+        cli.print_status(f"Failed to retrieve analyses: {e}", "error")
+        return None
+    if not all_analyses:
+        cli.print_status("No analyses found in the database.", "info")
+        return None
+    
+    print("\nAvailable analyses:")
+    print(f"  {'#':<4} {'Analysis ID':<38} {'File Path'}")
+    print("  " + "-" * 80)
+    for idx, row in enumerate(all_analyses, 1):
+        print(f"  {idx:<4} {row['analysis_id']:<38} {row.get('file_path', 'N/A')}")
+
+    choice = cli.get_input("Enter the number of the analysis you want to select (or Enter to go back):\n ").strip()
+    if not choice:
+        return None
+
+    if choice.isdigit() and 1 <= int(choice) <= len(all_analyses):
+        return all_analyses[int(choice) - 1]['analysis_id']
+    
+    cli.print_status("Invalid selection.", "error")
+    return None
+
+# Helpers to fetch and display resume/portfolio data to let user pick
+# Seperated because they rely on different calls to db manager
+def _pick_resume(cli:CLI, database_manager:DatabaseManager, analysis_id:str) -> Optional[Dict]:
+    try:
+        resumes = database_manager.get_resumes_by_analysis_id(analysis_id)
+    except LookupError:
+        cli.print_status("No resumes found for this analysis.", "info")
+        return None
+    
+    if len(resumes) == 1:
+        return resumes[0]['resume_id'],resumes[0]['resume_data']
+
+    print("\nAvailable resumes:")
+    for idx, res in enumerate(resumes, 1):
+        # Use the resume title if available, otherwise fallback to a generic name with the resume ID
+        title = res.get('resume_title') or f"Resume {res['resume_id']}"
+        print(f"{idx}. {title}")
+    
+    choice = cli.get_input("Enter the number of the resume you want to select (or Enter to go back):\n ").strip()
+    if choice.isdigit() and 1 <= int(choice) <= len(resumes):
+        return resumes[int(choice) - 1]['resume_id'],resumes[int(choice) - 1]['resume_data']
+
+    if not choice:
+        return None
+    cli.print_status("Invalid selection.", "error")
+    return None
+
+def _pick_portfolio(cli:CLI, database_manager:DatabaseManager, analysis_id:str) -> Optional[Dict]:
+    try:
+        portfolios = database_manager.get_portfolios_by_analysis_id(analysis_id)
+    except LookupError:
+        cli.print_status("No portfolios found for this analysis.", "info")
+        return None
+    
+    if len(portfolios) == 1:
+        return portfolios[0]['portfolio_id'],portfolios[0]['portfolio_data']
+
+    print("\nAvailable portfolios:")
+    for idx, res in enumerate(portfolios, 1):
+        # Use the portfolio title if available, otherwise fallback to a generic name with the portfolio ID
+        title = res.get('portfolio_title') or f"Portfolio {res['portfolio_id']}"
+        print(f"{idx}. {title}")
+    choice = cli.get_input("Enter the number of the portfolio you want to select (or Enter to go back):\n ").strip()
+    if choice.isdigit() and 1 <= int(choice) <= len(portfolios):
+        return portfolios[int(choice) - 1]['portfolio_id'],portfolios[int(choice) - 1]['portfolio_data']
+    if not choice:
+        return None
+    cli.print_status("Invalid selection.", "error")
+    return None
+
+# Below methods are for Resume and Portfolio 
+def generate_resume(analysis_id: str, database_manager, resume_builder, cli) -> Optional[Tuple[int, Dict]]:
+    try:
+        resume = resume_builder.create_resume_from_analysis_id(database_manager, cli, analysis_id)
+        if resume:
+            resume_id = database_manager.save_resume(analysis_id, resume)
+            cli.print_status("Resume generated successfully.","success")
+        return resume_id, resume
+    except Exception as e:
+        cli.print_status(f"Resume generation failed: {e}", "warning")
+        return None
+    
+def generate_portfolio(analysis_id: str, database_manager, portfolio_builder, cli) -> Optional[Dict]:
+    try:
+        portfolio = portfolio_builder.create_portfolio_from_result_id(database_manager, cli, analysis_id)
+        if portfolio:
+            portfolio_id = database_manager.save_portfolio(analysis_id, portfolio)
+            cli.print_status("Portfolio generated successfully.","success")
+        return portfolio_id, portfolio
+    except Exception as e:
+        cli.print_status(f"Portfolio generation failed: {e}", "warning")
+        return None
+
+# Sub menus for managing resumes and portfolios.
+def manage_resumes(cli, database_manager, resume_builder) -> None:
+    cli.print_header("Manage Resumes")
+
+    # Outer loop to select analysis, inner loop to manage resumes for that analysis. Allows user to easily switch between analyses without going back to main menu each time.
+    while True:
+        analysis_id = _pick_analysis(cli, database_manager)
+        if not analysis_id:
+            # We assume no input means the user watns to return to main menu
+            return
+   
+        # Sub menu for selecting the resume to proceed with
+        result = _pick_resume(cli, database_manager, analysis_id)
+        if not result:
+            generate = cli.get_input("Would you like to generate a resume? (Y/n): ").strip()
+            if generate.lower() == "n":
+                break
+            elif not generate or generate.lower() == "y" or generate.lower() == "yes":
+                result = generate_resume(analysis_id, database_manager, resume_builder, cli)
+                if not result:
+                    break
+
+        if not result:
+            break
+
+        resume_id, resume = result
+
+        while True:
+            action = cli.get_input("Select an action:\n- 'V' View Resume\n- 'E' Edit Resume\n- 'D' Delete Resume\n- 'G' Generate New Resume\n- 'B' Back to Analysis Selection\n").strip()
+            if action.lower() == "v":
+                resume_builder.display_resume(resume, cli)
+            elif action.lower() == "e":
+                resume = ResumeEditor(cli).edit_resume(resume)
+
+                # Update the resume in the database after editing
+                try:
+                    database_manager.update_resume(resume_id, resume)
+                    cli.print_status("Resume updated successfully!", "success")
+                except Exception as e:
+                    cli.print_status(f"Failed to update resume: {e}", "error")
+            elif action.lower() == "d":
+                confirm = cli.get_input("Are you sure you want to delete this resume? (y/N): ").strip()
+                if confirm.lower() in ["y", "yes"]:
+                    try:
+                        database_manager.delete_resume(resume_id)
+                        cli.print_status("Resume deleted successfully.", "success")
+                    except Exception as e:
+                        cli.print_status(f"Failed to delete resume: {e}", "error")
+                    break
+                else:
+                    cli.print_status("Delete action cancelled.", "info")
+            elif action.lower() == "g":
+                result = generate_resume(analysis_id, database_manager, resume_builder, cli)
+                if not result:
+                    cli.print_status("Resume regeneration failed. Original resume is still intact.", "warning")
+                else:
+                    resume_id, resume = result
+                    cli.print_status("New resume generated, you are now viewing the new resume.", "info")
+                    
+            elif action.lower() == "b":
+                break
+            else:
+                cli.print_status("Invalid action. Please try again.", "warning")
+def manage_portfolios(cli: CLI, database_manager: DatabaseManager, portfolio_builder) -> None:
+    cli.print_header("Manage Portfolios")
+    while True:
+        analysis_id = _pick_analysis(cli, database_manager)
+        if not analysis_id:
+            # We assume no input means the user wants to return to main menu
+            return
+
+        # Sub menu for selecting the portfolio to proceed with
+        result = _pick_portfolio(cli, database_manager, analysis_id)
+        if not result:
+            generate = cli.get_input("Would you like to generate a portfolio? (Y/n): ").strip()
+            if generate.lower() == "n":
+                break
+            elif not generate or generate.lower() in ["y", "yes"]:
+                result = generate_portfolio(analysis_id, database_manager, portfolio_builder, cli)
+                if not result:
+                    break
+        if not result:
+            break
+
+        portfolio_id, portfolio = result
+
+        while True:
+            action = cli.get_input("Select an action:\n- 'V' View Portfolio\n- 'E' Edit Portfolio\n- 'D' Delete Portfolio\n- 'G' Generate New Portfolio\n- 'B' Back to Analysis Selection\n").strip()
+            if action.lower() == "v":
+                portfolio_builder.display_portfolio(portfolio, cli)
+            elif action.lower() == "e":
+                portfolio = PortfolioEditor(cli).edit_portfolio(portfolio)
+
+                # Update the portfolio in the database after editing
+                try:
+                    database_manager.update_portfolio(portfolio_id, portfolio)
+                    cli.print_status("Portfolio updated successfully!", "success")
+                except Exception as e:
+                    cli.print_status(f"Failed to update portfolio: {e}", "error")
+            elif action.lower() == "d":
+                confirm = cli.get_input("Are you sure you want to delete this portfolio? (y/N): ").strip()
+                if confirm.lower() in ["y", "yes"]:
+                    try:
+                        database_manager.delete_portfolio(portfolio_id)
+                        cli.print_status("Portfolio deleted successfully.", "success")
+                    except Exception as e:
+                        cli.print_status(f"Failed to delete portfolio: {e}", "error")
+                    break
+                else:
+                    cli.print_status("Delete action cancelled.", "info")
+            elif action.lower() == "g":
+                result = generate_portfolio(analysis_id, database_manager, portfolio_builder, cli)
+                if not result:
+                    cli.print_status("Portfolio regeneration failed. Original portfolio is still intact.", "warning")
+                else:
+                    portfolio_id, portfolio = result
+                    cli.print_status("New portfolio generated, you are now viewing the new portfolio.", "info")
+            elif action.lower() == "b":
+                break
+            else:
+                cli.print_status("Invalid action.", "warning")

@@ -10,23 +10,6 @@ class ResumeBuilder:
     """
     Main class for coordinating resume generation from analysis results.
     Handles resume building, database integration, and display.
-
-    DATABASE IMPLEMENTATION PLAN:
-    -----------------------------
-    Future database schema will have a 'resumes' table with columns:
-    - resume_id (PK, UUID)
-    - result_id (FK to results table, UUID)
-    - summary (TEXT or JSON)
-    - projects (JSON)
-    - skills (JSON)
-    - languages (JSON)
-    - full_resume (JSON) - complete resume object for easy retrieval
-    
-    Each column stores an individual component, plus full_resume stores
-    the entire resume dictionary. This allows:
-    1. Querying/updating individual sections
-    2. Fast retrieval of complete resume
-    3. Frontend can request specific sections or full resume
     
     Example future database methods:
     - database_manager.save_resume(resume) -> stores all columns
@@ -34,13 +17,13 @@ class ResumeBuilder:
     - database_manager.update_resume_section(resume_id, section_name, data)
     """
 
-    def create_resume_from_result_id(self, database_manager: DatabaseManager, cli: CLI, result_id: str) -> Optional[Dict[str, Any]]:
+    def create_resume_from_analysis_id(self, database_manager: DatabaseManager, cli: CLI, analysis_id: str) -> Optional[Dict[str, Any]]:
         """
         Builds the resume from a stored result by fetching from the database
 
         Args:
             database_manager: DatabaseManager instance
-            result_id: UUID of the result to generate resume from
+            analysis_id: UUID of the result to generate resume from
             cli: the CLI interface
         
         Returns:
@@ -48,10 +31,10 @@ class ResumeBuilder:
         """
 
         try:
-            cli.print_header(f"Retrieving result {result_id}...")
+            cli.print_header(f"Retrieving result {analysis_id}...")
 
             # Fetch the result data from the db
-            result_data = database_manager.get_analysis_data(result_id)
+            result_data = database_manager.get_analysis_data(analysis_id)
 
             if not result_data:
                 cli.print_status("Result not found in database.", "error")
@@ -60,7 +43,7 @@ class ResumeBuilder:
             cli.print_status("Generating resume...", "info")
 
             # Build the actual resume -> this resume contains all sections as separate Dict entries
-            resume = self._build_resume(result_data, result_id=result_id)
+            resume = self._build_resume(result_data, analysis_id=analysis_id)
 
             # Ensure resume has some content
             has_content = any([resume.get(section) for section in ['summary', 'projects', 'skills', 'languages']])
@@ -78,16 +61,16 @@ class ResumeBuilder:
             cli.print_status(f"Error creating resume: {e}", "error")
             return None
 
-    def _build_resume(self, result_data: Dict[str, Any], result_id: str) -> Dict[str, Any]:
+    def _build_resume(self, result_data: Dict[str, Any], analysis_id: str) -> Dict[str, Any]:
         """
         Internal method to build the resume dictionary from result data
 
         Args:
             result_data: Dictionary containing all analysis results
-            result_id: UUID of the result
+            analysis_id: UUID of the analysis
         
         Returns:
-            Resume dictionary with sections resume_id, result_id, summary, projects, skills, languages
+            Resume dictionary with sections resume_id, analysis_id, summary, projects, skills, languages
             This structure maps directly to the planned database schema.
         """
         try:
@@ -102,7 +85,7 @@ class ResumeBuilder:
             # Construct resume dictionary
             resume = {
                 "resume_id": str(uuid.uuid4()),
-                "result_id": result_id,
+                "analysis_id": analysis_id,
                 "summary": summary,
                 "projects": projects,
                 "skills": skills,
@@ -128,7 +111,7 @@ class ResumeBuilder:
             
             # Display resume metadata
             print(f"Resume ID: {resume.get('resume_id', 'Unknown')}")
-            print(f"Result ID: {resume.get('result_id', 'Unknown')}")
+            print(f"Analysis ID: {resume.get('analysis_id', 'Unknown')}")
             print("")
             
             # Display summary section
