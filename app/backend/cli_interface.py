@@ -8,16 +8,16 @@ class CLI:
         print(char * length)
 
     def print_header(self, title):
-        print("\n" + "┌" + "─" * 58 + "┐")
-        print(f"│  {title.upper():<56}│")
-        print("└" + "─" * 58 + "┘")
+        print("\n" + "=" * 60)
+        print(f" {title.upper()}")
+        print("=" * 60)
 
     def print_status(self, message, status="info"):
         symbols = {
-            "success": "✓",
-            "error":   "✗",
-            "warning": "⚠",
-            "info":    "→"
+            "success": "[+]",
+            "error":   "[-]",
+            "warning": "[!]",
+            "info":    "[*]"
         }
         symbol = symbols.get(status, "→")
         print(f"  {symbol}  {message}")
@@ -26,14 +26,14 @@ class CLI:
         return input(prompt)
 
     def print_privacy_notice(self):
-        print("\n" + "┌" + "─" * 58 + "┐")
-        print("│  PRIVACY NOTICE" + " " * 42 + "│")
-        print("└" + "─" * 58 + "┘")
-        print("  This app can use an online LLM to generate summaries.\n")
-        print("  ONLINE  — Sends processed vectors (no raw code) externally.")
-        print("            Faster, higher quality output.\n")
+        print("\n" + "*" * 60)
+        print(" PRIVACY NOTICE")
+        print("*" * 60)
+        print("  Summaries can be generated using an online or local LLM.\n")
+        print("  ONLINE  — Sends processed data (no raw code) to an external server.")
+        print("            Faster and higher quality, but data leaves your machine.\n")
         print("  LOCAL   — Runs entirely on your device.")
-        print("            100% private. Slower (up to 5 min), requires RAM.")
+        print("            Fully private, but slower (up to 5 min) and requires RAM.")
         print("─" * 60)
 
     def display_skill_selection_menu(self, detected_skills: list) -> list:
@@ -41,13 +41,13 @@ class CLI:
         selected_skills = []
         available_skills = list(detected_skills)
 
-        print("\n" + "┌" + "─" * 58 + "┐")
-        print("│  SKILL HIGHLIGHTING" + " " * 38 + "│")
-        print("└" + "─" * 58 + "┘")
-        print("  Select up to 3 skills to emphasise in your summary.\n")
+        print("\n" + "=" * 60)
+        print(" SKILL HIGHLIGHTING")
+        print("=" * 60)
+        print("  Choose up to 3 skills to highlight in your summary.\n")
         print("  Commands:")
-        print("    <number>      toggle a skill  (e.g. 0 2)")
-        print("    a <Skill>     add a custom skill")
+        print("    <number>      toggle a skill        (e.g. 0 2)")
+        print("    a <skill>     add a custom skill    (e.g. a Docker)")
         print("    [Enter]       confirm and continue")
         print("─" * 60)
 
@@ -55,9 +55,9 @@ class CLI:
             print(f"\n  Selected ({len(selected_skills)}/{MAX_SKILLS}): ", end="")
             print(", ".join(selected_skills) if selected_skills else "(none)")
 
-            print("\n  Detected Skills:")
+            print("\n  Available Skills:")
             for idx, skill in enumerate(available_skills):
-                marker = "[✓]" if skill in selected_skills else "[ ]"
+                marker = "[X]" if skill in selected_skills else "[ ]"
                 print(f"    {idx}.  {marker}  {skill}")
 
             user_input = self.get_input("\n> ").strip()
@@ -81,9 +81,9 @@ class CLI:
                         available_skills.append(add_skill)
                         if len(selected_skills) < MAX_SKILLS:
                             selected_skills.append(add_skill)
-                            self.print_status(f"Added and selected: {add_skill}", "success")
+                            self.print_status(f"Added and selected '{add_skill}'.", "success")
                         else:
-                            self.print_status(f"Added: {add_skill}  (limit reached — toggle to select)", "info")
+                            self.print_status(f"Added '{add_skill}' — selection limit reached, toggle to select.", "info")
                 continue
 
             try:
@@ -93,17 +93,17 @@ class CLI:
                         skill = available_skills[idx]
                         if skill in selected_skills:
                             selected_skills.remove(skill)
-                            self.print_status(f"Deselected: {skill}", "info")
+                            self.print_status(f"Deselected '{skill}'.", "info")
                         else:
                             if len(selected_skills) < MAX_SKILLS:
                                 selected_skills.append(skill)
-                                self.print_status(f"Selected: {skill}", "success")
+                                self.print_status(f"Selected '{skill}'.", "success")
                             else:
-                                self.print_status(f"Cannot select '{skill}' — maximum {MAX_SKILLS} skills allowed.", "warning")
+                                self.print_status(f"Cannot select '{skill}' — limit of {MAX_SKILLS} reached.", "warning")
                     else:
-                        self.print_status(f"Invalid index: {idx}", "error")
+                        self.print_status(f"No skill at index {idx}.", "error")
             except ValueError:
-                self.print_status("Invalid input. Enter numbers, 'a <Skill>', or [Enter] to finish.", "error")
+                self.print_status("Unrecognised input. Enter a number, 'a <skill>', or [Enter] to confirm.", "error")
 
         return selected_skills
 
@@ -115,11 +115,11 @@ class CLI:
         for topic in topic_keywords:
             topic_id = topic.get('topic_id', 'N/A')
             keywords = topic.get('keywords', [])
-            keywords_str = ', '.join(keywords) if keywords else '(no keywords)'
+            keywords_str = ', '.join(keywords) if keywords else '(none)'
             print(f"  {topic_id:<5}  {keywords_str}")
 
         print("  " + "─" * 56)
-        print("\n  These are the keywords extracted from your files.\n")
+        print("\n  These keywords were extracted from your files to guide the LLM.\n")
 
         while True:
             choice = self.get_input("  [E]dit,  [I]nfo,  or [Enter] to proceed\n> ").strip().lower()
@@ -128,26 +128,26 @@ class CLI:
             elif choice == 'e':
                 return 'E'
             elif choice == 'i':
-                print("\n" + "┌" + "─" * 58 + "┐")
-                print("│  TOPIC EXTRACTION INFO" + " " * 35 + "│")
-                print("└" + "─" * 58 + "┘")
-                print("  Keywords are extracted from your files to identify themes.\n")
+                print("\n" + "=" * 60)
+                print(" TOPIC EXTRACTION INFO")
+                print("=" * 60)
+                print("  Topics are themes identified across your files.\n")
                 print("  WHY IT MATTERS:")
-                print("    These topics guide the LLM on what your files are about.")
-                print("    Better topics produce more accurate, relevant summaries.")
+                print("    The LLM uses these topics to understand what your files are about.")
+                print("    More accurate topics lead to better, more relevant summaries.")
                 print("─" * 60)
             else:
-                self.print_status("Invalid choice. Press [Enter] to proceed, 'e' to edit, 'i' for info.", "warning")
+                self.print_status("Unrecognised input. Press [Enter] to proceed, 'e' to edit, or 'i' for info.", "warning")
 
     def get_topic_edit_action(self, topic_keywords):
         valid_ids = {topic['topic_id'] for topic in topic_keywords}
 
-        topic_id_input = self.get_input("\n  Enter the Topic ID to change:\n> ").strip()
+        topic_id_input = self.get_input("\n  Enter the Topic ID to edit:\n> ").strip()
 
         try:
             topic_id = int(topic_id_input)
         except ValueError:
-            self.print_status(f"'{topic_id_input}' is not a valid number.", "error")
+            self.print_status(f"'{topic_id_input}' is not a valid ID.", "error")
             return (None, None, None)
 
         if topic_id not in valid_ids:
@@ -155,17 +155,17 @@ class CLI:
             return (None, None, None)
 
         while True:
-            action = self.get_input("\n  [R]emove,  [M]odify,  or [Enter] to cancel\n> ").strip().lower()
+            action = self.get_input("\n  [R]emove topic,  [M]odify keywords,  or [Enter] to cancel\n> ").strip().lower()
             if action == '':
                 return (None, None, None)
             elif action in ['r', 'm']:
                 break
-            self.print_status("Invalid choice. 'r' to remove, 'm' to modify, or [Enter] to cancel.", "warning")
+            self.print_status("Unrecognised input. Enter 'r' to remove, 'm' to modify, or [Enter] to cancel.", "warning")
 
         if action == 'r':
             return (topic_id, 'remove', None)
         else:
-            new_keywords_input = self.get_input("\n  Enter new comma-separated keywords:\n> ").strip()
+            new_keywords_input = self.get_input("\n  Enter new keywords, comma-separated:\n> ").strip()
             new_keywords = [kw.strip() for kw in new_keywords_input.split(',') if kw.strip()]
             return (topic_id, 'replace', new_keywords)
 
@@ -174,23 +174,23 @@ class CLI:
         keywords = topic_dict.get('keywords', [])
 
         self.print_header(f"Editing Topic {topic_id}")
-        print("  Current Keywords:")
+        print("  Keywords:")
         print("  " + "─" * 40)
 
         if keywords:
             for idx, keyword in enumerate(keywords):
                 print(f"    {idx}:  {keyword}")
         else:
-            print("    (no keywords)")
+            print("    (none)")
 
         print("  " + "─" * 40)
         print("\n  Commands:")
-        print("    <#>       replace a keyword     (e.g. 0)")
-        print("    r <#>     remove a keyword      (e.g. r 2)")
+        print("    <#>       replace keyword at index    (e.g. 0)")
+        print("    r <#>     remove keyword at index     (e.g. r 2)")
         print("    a         add a new keyword")
-        print("    all       rewrite all keywords")
-        print("    d         delete this entire topic")
-        print("    b         confirm and go back")
+        print("    all       replace all keywords")
+        print("    d         delete this topic entirely")
+        print("    b         save and go back")
         print("  " + "─" * 40)
 
     def get_granular_input(self):
@@ -209,12 +209,12 @@ class CLI:
                 index = int(user_input[3:].strip() if user_input.startswith('rm ') else user_input[2:].strip())
                 return ('remove_one', index)
             except ValueError:
-                self.print_status("Invalid index — enter a number after 'r'.", "error")
+                self.print_status("Invalid index — enter a number after 'r' (e.g. r 2).", "error")
                 return ('invalid', None)
         else:
             try:
                 index = int(user_input)
                 return ('replace_one', index)
             except ValueError:
-                self.print_status(f"Unknown command: '{user_input}'.  Use #, r #, a, d, all, or b.", "error")
+                self.print_status(f"Unrecognised command: '{user_input}'.  Valid commands: #, r #, a, all, d, b.", "error")
                 return ('invalid', None)
