@@ -30,6 +30,7 @@ services:
         target: /app
     env_file:
       - ./database/db_conn.env
+      - .env
       
   backend_db:
     build:
