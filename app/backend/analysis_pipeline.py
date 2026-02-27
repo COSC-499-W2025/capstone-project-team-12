@@ -669,9 +669,9 @@ class AnalysisPipeline:
     def run_analysis(self, filepath: str,return_id = False, existing_analysis_id: Optional[str] = None, preloaded_tree: Optional[Node] = None, preloaded_binary: Optional[List[bytes]] = None) -> None|str:
         """
         Wrapper that orchestrates the full analysis pipeline via CLI.
-        Calls Phase 1 (extract), handles interactive CLI prompts, then calls Phase 2 (generate).
+        Calls Phase 1, handles interactive CLI prompts, then calls Phase 2.
         """
-        # Phase 1: Extract and analyze data
+        #Phase 1: Extract and analyze data
         extract_result = self.run_analysis_extract(filepath, existing_analysis_id, preloaded_tree, preloaded_binary)
         
         if extract_result is None:
@@ -679,7 +679,7 @@ class AnalysisPipeline:
         
         analysis_id, topic_vector_bundle, detected_skills, text_analysis_data = extract_result
         
-        # CLI interactive prompts: review topics and select skills
+        #CLI interactive prompts: review topics and select skills
         topic_vector_bundle = self.review_topic_bundle(topic_vector_bundle)
         
         user_highlights = []
@@ -688,5 +688,5 @@ class AnalysisPipeline:
         
         topic_vector_bundle['user_highlights'] = user_highlights
         
-        # Phase 2: Generate AI summary and save results
+        #Phase 2: Generate AI summary and save results
         return self.run_analysis_generate(analysis_id, topic_vector_bundle, text_analysis_data, return_id)
