@@ -1,5 +1,28 @@
 # Lexi Loudiadis (93546844) Personal Log
 
+## Term 2 - Week 6 - 8 (02/09/2026 - 03/01/2026)
+
+- Reworked the main pipeline output for Milestone 2. This included fixing wording for prompts, errors, and info displays, as well as removing database query info from pipeline output,     fixing the KeyboardInterrupt error upon pressing Ctrl+C, and other formatting improvements (PR #436)
+- Made the UI design on Canva (https://www.canva.com/design/DAHCP1PhB90/tNho66PWcGA96qGcMNVP5w/edit)
+- Portfolio UI code + tests (PR #426, #427)
+- Incorporating evidence of success of a project: "Deployment & Infrastructure" checks for CI/CD, containerization, and hosting/cloud platforms. "Version Control" checks average lines per commit across the whole project (not just for the user) and commit consistency (were the commits spaced out evenly over time, or were the majority of commits crammed into the last quarter of the entire project timeline - if crammed, this indicates rushing which can mean more mistakes) + tests (PR #392)
+- Adding online LLM API key setup instructions in our project README (PR #436)
+- Team meetings
+- Testing teammates' code
+- Preparing slides for M2
+- M2 presentation
+
+### In Progress
+- There is one page that I have yet to finish the UI design for, because I initially forgot to incorporate it. It is the "My Past Analyses" page, where users will be able to retrieve past analyses and manipulate them however they need. Everything else UI design-wise was finished. Additionally, our team will be completing the API documentation and video demo this weekend.
+  
+### What's Next
+- Getting the ball rolling on our frontend. Currently I am the only one with a frontend PR, but next week we will all be working on that. In our meeting next week we will be talking about who is doing which feature and how much we will each have to take on to be done by the Milestone 3 due date.
+
+### Reflection
+- All tasks that were planned for these three weeks was completed, plus more. Originally I hadn't planned on doing the UI design during Milestone 2 but felt like it was important to have that so we could get started on the frontend immediately in Milestone 3 and all be on the same page. Additionally, I did the UI code for the portfolio page since the main pipeline rework PR wasn't going to be super big and I wanted to contribute more to our progress. I did end up doing requirement 25 (project success) as mentioned in the last set of logs, due to our teammate being absent for an extended period of time. Our team
+
+![Type of tasks I worked on](imgs/Week%2018%20Lexi.png)
+
 ## Term 2 - Week 4 + 5 (01/26/2026 - 02/08/2026)
 
 - Implemented the portfolio feature. The portfolio generated showcases in-depth project information and compares projects with metrics like skills progression, collaboration evolution, and role progression. (PR #361)
