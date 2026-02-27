@@ -38,15 +38,8 @@ class TestGenerateResume:
         db_manager.save_resume.assert_called_once_with("aid-1", {"skills": ["Python"]})
 
     def test_builder_returns_none_should_return_none_not_tuple(self, db_manager, resume_builder, cli):
-        """
-        BUG: If builder returns a falsy value, the `if resume:` block is skipped
-        so save_resume is never called, but `return resume_id, resume` is still
-        reached — returning a tuple of (None/unbound, None) instead of None.
-        The function should return None when no resume was produced.
-        """
         resume_builder.create_resume_from_analysis_id.return_value = None
         result = self.fn("aid-1", db_manager, resume_builder, cli)
-        # BUG: currently returns (None, None) — should return None
         assert result is None
         db_manager.save_resume.assert_not_called()
 
@@ -54,7 +47,6 @@ class TestGenerateResume:
         """Empty dict is falsy — save_resume is skipped but a tuple is still returned."""
         resume_builder.create_resume_from_analysis_id.return_value = {}
         result = self.fn("aid-1", db_manager, resume_builder, cli)
-        # BUG: currently returns (None, {}) — should return None
         assert result is None
         db_manager.save_resume.assert_not_called()
 
@@ -85,14 +77,8 @@ class TestGeneratePortfolio:
         assert result == (3, {"projects": ["X"]})
 
     def test_builder_returns_none_should_return_none_not_tuple(self, db_manager, portfolio_builder, cli):
-        """
-        BUG: Same as generate_resume — if builder returns None, save_portfolio is
-        skipped but `return portfolio_id, portfolio` is still reached, producing
-        a tuple of (None, None) instead of returning None.
-        """
         portfolio_builder.create_portfolio_from_result_id.return_value = None
         result = self.fn("aid-1", db_manager, portfolio_builder, cli)
-        # BUG: currently returns (None, None) — should return None
         assert result is None
         db_manager.save_portfolio.assert_not_called()
 
@@ -161,12 +147,6 @@ class TestPickResume:
         assert result[0] == 2
 
     def test_empty_list_from_db_does_not_crash(self, cli, db_manager):
-        """
-        BUG: get_resumes_by_analysis_id returning [] (without raising LookupError)
-        causes len(resumes) == 1 to be False, falls through to the selection menu
-        with an empty list, then crashes on index access if user enters a number.
-        This test catches that.
-        """
         db_manager.get_resumes_by_analysis_id.return_value = []
         result = self.fn(cli, db_manager, "aid-1")
         assert result is None
@@ -200,7 +180,6 @@ class TestPickPortfolio:
         cli.get_input.assert_not_called()
 
     def test_empty_list_does_not_crash(self, cli, db_manager):
-        """Same empty-list bug as _pick_resume."""
         db_manager.get_portfolios_by_analysis_id.return_value = []
         result = self.fn(cli, db_manager, "aid-1")
         assert result is None
