@@ -78,6 +78,7 @@ This will open a new VS Code window connected to the container's file system.
 
 
 ### 5. Input your OpenRouter API Key for the Online LLM
+For best results, our project requires an [OpenRouter API Key](URL "(https://openrouter.ai/)") to connect to the Online LLM.
 
 In the terminal on Mac:
 ```
