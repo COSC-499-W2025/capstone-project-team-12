@@ -286,3 +286,46 @@ class TestSaveResultThumbnail:
         assert result is True
         call_args = mock_db_connector.execute_update.call_args
         assert 'UPDATE Analyses SET thumbnail_image' in call_args[0][0]
+
+class TestDeleteResume:
+    def test_delete_resume_success_calls_correct_sql(self, db_manager, mock_db_connector):
+        mock_db_connector.execute_update.return_value = None
+        result = db_manager.delete_resume(1)
+        assert result is True
+        sql = mock_db_connector.execute_update.call_args[0][0]
+        assert "DELETE FROM Resumes" in sql
+        assert mock_db_connector.execute_update.call_args[0][1] == (1,)
+
+    def test_delete_resume_raises_runtime_error_on_db_failure(self, db_manager, mock_db_connector):
+        mock_db_connector.execute_update.side_effect = Exception("constraint violation")
+        with pytest.raises(RuntimeError, match="Error deleting resume"):
+            db_manager.delete_resume(1)
+
+    def test_delete_resume_does_not_silently_swallow_error(self, db_manager, mock_db_connector):
+        """Ensure the error message surfaces the resume_id for traceability."""
+        mock_db_connector.execute_update.side_effect = Exception("db error")
+        with pytest.raises(RuntimeError) as exc_info:
+            db_manager.delete_resume(99)
+        assert "99" in str(exc_info.value)
+
+
+class TestDeletePortfolio:
+    def test_delete_portfolio_success_calls_correct_sql(self, db_manager, mock_db_connector):
+        mock_db_connector.execute_update.return_value = None
+        result = db_manager.delete_portfolio(5)
+        assert result is True
+        sql = mock_db_connector.execute_update.call_args[0][0]
+        assert "DELETE FROM Portfolios" in sql
+        assert mock_db_connector.execute_update.call_args[0][1] == (5,)
+
+    def test_delete_portfolio_raises_runtime_error_on_db_failure(self, db_manager, mock_db_connector):
+        mock_db_connector.execute_update.side_effect = Exception("foreign key violation")
+        with pytest.raises(RuntimeError, match="Error deleting portfolio"):
+            db_manager.delete_portfolio(5)
+
+    def test_delete_portfolio_does_not_silently_swallow_error(self, db_manager, mock_db_connector):
+        """Ensure the error message surfaces the portfolio_id for traceability."""
+        mock_db_connector.execute_update.side_effect = Exception("db error")
+        with pytest.raises(RuntimeError) as exc_info:
+            db_manager.delete_portfolio(42)
+        assert "42" in str(exc_info.value)

@@ -293,9 +293,11 @@ def _pick_portfolio(cli:CLI, database_manager:DatabaseManager, analysis_id:str) 
 def generate_resume(analysis_id: str, database_manager, resume_builder, cli) -> Optional[Tuple[int, Dict]]:
     try:
         resume = resume_builder.create_resume_from_analysis_id(database_manager, cli, analysis_id)
-        if resume:
-            resume_id = database_manager.save_resume(analysis_id, resume)
-            cli.print_status("Resume generated successfully.","success")
+        resume_id = None
+        if not resume:
+            return None
+        resume_id = database_manager.save_resume(analysis_id, resume)
+        cli.print_status("Resume generated successfully.","success")
         return resume_id, resume
     except Exception as e:
         cli.print_status(f"Resume generation failed: {e}", "warning")
@@ -304,9 +306,11 @@ def generate_resume(analysis_id: str, database_manager, resume_builder, cli) -> 
 def generate_portfolio(analysis_id: str, database_manager, portfolio_builder, cli) -> Optional[Dict]:
     try:
         portfolio = portfolio_builder.create_portfolio_from_result_id(database_manager, cli, analysis_id)
-        if portfolio:
-            portfolio_id = database_manager.save_portfolio(analysis_id, portfolio)
-            cli.print_status("Portfolio generated successfully.","success")
+        portfolio_id = None
+        if not portfolio:
+            return None
+        portfolio_id = database_manager.save_portfolio(analysis_id, portfolio)
+        cli.print_status("Portfolio generated successfully.","success")
         return portfolio_id, portfolio
     except Exception as e:
         cli.print_status(f"Portfolio generation failed: {e}", "warning")
