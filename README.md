@@ -89,6 +89,8 @@ In the terminal on Windows:
 $env:OPENROUTER_API_KEY="your_api_key_here"
 ```
 
+Alternatively, in `analysis_pipeline.py`, find `llm_client = OnlineLLMClient()` and input your API key: `llm_client = OnlineLLMClient(api_key="your-api-key-here")`
+
 
 ### 5. Run the Backend Pipeline
 
