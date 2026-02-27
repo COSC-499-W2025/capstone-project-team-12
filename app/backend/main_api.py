@@ -654,9 +654,10 @@ async def commit_update(
         # Phase 2: generate AI summary and save results
         pipeline = AnalysisPipeline(CLI(), ConfigManager(), db)
         summary = pipeline.run_analysis_generate(
-            analysis_id,
-            topic_vector_bundle,
-            cached_data["text_analysis_data"],
+            analysis_id=analysis_id,
+            topic_vector_bundle=topic_vector_bundle,
+            text_analysis_data=cached_data["text_analysis_data"],
+            selected_projects=request.selected_projects,
             return_id=False,
         )
 

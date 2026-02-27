@@ -410,7 +410,7 @@ class AnalysisPipeline:
                     if interactive:
                         selected_repos = choose_projects_for_analysis(processed_git_repos)
                     else:
-                        selected_repos = processed_git_repos  # Headless mode: take them all!
+                        selected_repos = processed_git_repos 
                     self.cli.print_status("Repositories processed successfully.", "success")
                     
                     analyzer = RepositoryAnalyzer(github_username, user_email)
@@ -620,7 +620,7 @@ class AnalysisPipeline:
 
         return (analysis_id, topic_vector_bundle, detected_skills, text_analysis_data)
 
-    def run_analysis_generate(self, analysis_id: str, topic_vector_bundle: dict, text_analysis_data: dict, return_id: bool = False):
+    def run_analysis_generate(self, analysis_id: str, topic_vector_bundle: dict, text_analysis_data: dict, selected_projects: Optional[List[str]] = None, return_id: bool = False):
         """
         Phase 2: AI summary generation and saving results to database.
         
@@ -628,6 +628,26 @@ class AnalysisPipeline:
             analysis_id if return_id is True, otherwise the generated medium_summary.
         """
         try:
+            # === FILTER AND RERANK PROJECTS ===
+            if selected_projects is not None and self.result_bundle.project_analysis_data:
+                cached_insights = self.result_bundle.project_analysis_data.get("analyzed_insights", [])
+
+                filtered_insights = []
+                # Loop through the frontend's array to preserve exact order
+                for project_name in selected_projects:
+                    for repo in cached_insights:
+                        if repo.get("repository_name") == project_name:
+                            filtered_insights.append(repo)
+                            break
+
+                # Overwrite the cache with the filtered/reordered list
+                self.result_bundle.project_analysis_data["analyzed_insights"] = filtered_insights
+
+                # Rebuild the timeline for only the selected projects
+                analyzer = RepositoryAnalyzer(None, None)
+                self.result_bundle.project_analysis_data["timeline"] = analyzer.create_chronological_project_list(filtered_insights)
+            # ==================================
+
             # AI Summary Generation
             self.cli.print_header("AI Summary Generation")
             
@@ -697,4 +717,4 @@ class AnalysisPipeline:
         )
         
         #Phase 2: Generate AI summary and save results
-        return self.run_analysis_generate(analysis_id, topic_vector_bundle, text_analysis_data, return_id)
+        return self.run_analysis_generate(analysis_id, topic_vector_bundle, text_analysis_data, return_id=return_id)
