@@ -73,6 +73,7 @@ def main() -> None:
                     except Exception as e:
                         cli.print_status(f"File path is not valid: {e}", "error")
                     
+                    analysis_id = None
                     try:
                         #analysis pipeline starting, moved to another file
                         pipeline = AnalysisPipeline(cli, config_manager, database_manager)
