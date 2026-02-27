@@ -536,6 +536,8 @@ async def extract_update(
             existing_analysis_id=analysis_id,
             preloaded_tree=merged_tree,
             preloaded_binary=merged_binary_list,
+            github_username=github_username,
+            github_email=github_email,
         )
 
         if extract_result is None:

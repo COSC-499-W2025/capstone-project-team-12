@@ -368,7 +368,7 @@ class AnalysisPipeline:
             return {},{}
         return metadata_results,metadata_analysis
     
-    def run_repo_analysis_pipeline(self,git_repos,binary_data):
+    def run_repo_analysis_pipeline(self,git_repos,binary_data,github_username: Optional[str] = None, github_email: Optional[str] = None, interactive: bool = True):
         processed_git_repos: List[Dict[str, Any]] = None
         analyzed_repos: List[Dict[str, Any]] = None
         
@@ -380,10 +380,12 @@ class AnalysisPipeline:
         
         print(f"Detected {len(git_repos)} git repositories.")
 
-        github_username: str = self.cli.get_input("Enter GitHub username to link (Press Enter to skip): \n> ").strip().lower()
+        #use provided credentials (API path) or fall back to CLI prompt
+        if not github_username:
+            github_username = self.cli.get_input("Enter GitHub username to link (Press Enter to skip): \n> ").strip().lower()
         
         if github_username:
-            user_email: str = self.cli.get_input("Enter GitHub email associated with the account: \n> ").strip().lower()
+            user_email: str = github_email if github_email else self.cli.get_input("Enter GitHub email associated with the account: \n> ").strip().lower()
 
             repo_processor = RepositoryProcessor(
                 username=github_username,
@@ -405,7 +407,10 @@ class AnalysisPipeline:
                         )
 
                     # Allow user to choose which projects to analyze
-                    selected_repos = choose_projects_for_analysis(processed_git_repos)
+                    if interactive:
+                        selected_repos = choose_projects_for_analysis(processed_git_repos)
+                    else:
+                        selected_repos = processed_git_repos  # Headless mode: take them all!
                     self.cli.print_status("Repositories processed successfully.", "success")
                     
                     analyzer = RepositoryAnalyzer(github_username, user_email)
@@ -441,8 +446,9 @@ class AnalysisPipeline:
                     else:
                         self.cli.print_status(f"Analyzed {len(analyzed_repos)} repositories.", "success")
                         # Allow user to rerank projects
-                        self.cli.print_status("Ready to rank/re-rank projects.\n", "info")
-                        analyzed_repos = rerank_projects(analyzed_repos)
+                        if interactive:
+                            self.cli.print_status("Ready to rank/re-rank projects.\n", "info")
+                            analyzed_repos = rerank_projects(analyzed_repos)
                         # Generate the project timeline
                         timeline = analyzer.create_chronological_project_list(analyzed_repos)
 
@@ -461,7 +467,7 @@ class AnalysisPipeline:
             self.cli.print_status("Skipping Git linking.", "info")
             return [],[],[],[]
 
-    def run_analysis_extract(self, filepath: str, existing_analysis_id: Optional[str] = None, preloaded_tree: Optional[Node] = None, preloaded_binary: Optional[List[bytes]] = None):
+    def run_analysis_extract(self, filepath: str, existing_analysis_id: Optional[str] = None, preloaded_tree: Optional[Node] = None, preloaded_binary: Optional[List[bytes]] = None, github_username: Optional[str] = None, github_email: Optional[str] = None):
         """
         Phase 1: Data loading, classification, metadata analysis, topic analysis, repo analysis,
         and data preparation for AI summary generation.
@@ -543,7 +549,7 @@ class AnalysisPipeline:
         timeline = None
         processed_git_repos = None
         try:    
-            git_repos,analyzed_repos,timeline,processed_git_repos = self.run_repo_analysis_pipeline(git_repos,binary_data)
+            git_repos,analyzed_repos,timeline,processed_git_repos = self.run_repo_analysis_pipeline(git_repos,binary_data,github_username=github_username,github_email=github_email,interactive=False)
         except Exception as e:
             self.cli.print_status(f"{e}","error")
             import traceback
