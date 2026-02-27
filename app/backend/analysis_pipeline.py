@@ -625,14 +625,8 @@ class AnalysisPipeline:
             # AI Summary Generation
             self.cli.print_header("AI Summary Generation")
             
-            self.cli.print_privacy_notice()
-
-            online_consent = self.config_manager.get_consent(
-                key="online_llm_consent",
-                prompt_text="Do you consent to using the ONLINE LLM?",
-                component="sending data to the Online LLM",
-                default=False # We default to NO for privacy reasons
-            )
+            #check preferences, api and wrapper should alr have them saved
+            online_consent = self.config_manager.preferences.get("online_llm_consent", False)
 
             if online_consent:
                 self.cli.print_status("Mode: Online LLM", "success")
@@ -687,6 +681,14 @@ class AnalysisPipeline:
             user_highlights = self.cli.display_skill_selection_menu(detected_skills)
         
         topic_vector_bundle['user_highlights'] = user_highlights
+        self.cli.print_privacy_notice()
+
+        online_consent = self.config_manager.get_consent(
+            key="online_llm_consent",
+            prompt_text="Do you consent to using the ONLINE LLM?",
+            component="sending data to the Online LLM",
+            default=False
+        )
         
         #Phase 2: Generate AI summary and save results
         return self.run_analysis_generate(analysis_id, topic_vector_bundle, text_analysis_data, return_id)
