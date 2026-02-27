@@ -48,7 +48,7 @@ class DatabaseManager:
             #we ar enot initializing fileset here
             #filesets are created only when files are actually uploaded via save_fileset.
 
-            print(f"Created new analysis chain with ID: {analysis_id}")
+            # print(f"Created new analysis chain with ID: {analysis_id}")
             return analysis_id
 
         except Exception as e:
@@ -137,11 +137,11 @@ class DatabaseManager:
             #just append new row here
             tree_query = "INSERT INTO Filetrees (fileset_id, filetree) VALUES (%s, %s) RETURNING filetree_id;"
             tree_res = self.db.execute_update(tree_query, (fileset_id, json.dumps(file_tree)),returning=True)
-            print(f"Saved fileset (path: {file_path}) and tree for analysis_id: {analysis_id}")
+            # print(f"Saved fileset (path: {file_path}) and tree for analysis_id: {analysis_id}")
             
             try:
                 if not fileset_id:
-                    print (f"Error associating new tree to updated fileset, defaulted to NULL: Invalid or Null fileset_id")
+                    print (f"Error associating new tree to updated fileset, defaulted to Null: Invalid or Null fileset_id")
                     raise ValueError
                 
                 new_tree_id = tree_res[0]['filetree_id']
@@ -172,7 +172,7 @@ class DatabaseManager:
             )
             
             #good till now
-            print(f"Saved metadata analysis for analysis_id: {analysis_id}")
+            # print(f"Saved metadata analysis for analysis_id: {analysis_id}")
             return True
             
         except Exception as e:
@@ -199,7 +199,7 @@ class DatabaseManager:
                 WHERE analysis_id = %s;
             """
             self.db.execute_update(query, (json.dumps(topic_data), uuid.UUID(analysis_id)))
-            print(f"Saved text analysis for analysis_id: {analysis_id}")
+            # print(f"Saved text analysis for analysis_id: {analysis_id}")
             return True
             
         except Exception as e:
@@ -214,7 +214,7 @@ class DatabaseManager:
                 WHERE analysis_id = %s;
             """
             self.db.execute_update(query, (json.dumps(points), uuid.UUID(analysis_id)))
-            print(f"Saved resume points for analysis_id: {analysis_id}")
+            # print(f"Saved resume points for analysis_id: {analysis_id}")
             return True
         except Exception as e:
             raise RuntimeError(f"Error saving resume points: {e}")
@@ -229,7 +229,7 @@ class DatabaseManager:
                 WHERE analysis_id = %s;
             """
             self.db.execute_update(query, (json.dumps(insights), uuid.UUID(analysis_id)))
-            print(f"Saved package insights for analysis_id: {analysis_id}")
+            # print(f"Saved package insights for analysis_id: {analysis_id}")
             return True
         except Exception as e:
             raise RuntimeError(f"Error saving package insights: {e}")
@@ -259,7 +259,7 @@ class DatabaseManager:
                 (json.dumps(project_analysis_data, default=str), uuid.UUID(analysis_id))
             )
             
-            print(f"Saved repository analysis for analysis_id: {analysis_id}")
+            # print(f"Saved repository analysis for analysis_id: {analysis_id}")
             return True
             
         except Exception as e:
@@ -294,7 +294,7 @@ class DatabaseManager:
                     uuid.UUID(analysis_id)
                 )
             )
-            print(f"Saved tracked data for analysis_id: {analysis_id}")
+            # print(f"Saved tracked data for analysis_id: {analysis_id}")
             return True
             
         except Exception as e:
@@ -317,7 +317,7 @@ class DatabaseManager:
         
             result = self.db.execute_update(query, (resume_title,analysis_id,resume_json),returning=True)
             resume_id = result[0]['resume_id'] #get returned new resume_id
-            print(f"Saved new resume with resume id:{resume_id} to db for analysis_id:{analysis_id}")
+            print(f"\n> Saved new resume with resume id:{resume_id} to db for analysis_id:{analysis_id}")
             return resume_id
         
         except Exception as e:
@@ -342,7 +342,7 @@ class DatabaseManager:
         
             result = self.db.execute_update(query, (resume_json,resume_title,resume_id))
             analysis_id = result[0] #get analysis_id of associated analysis
-            print(f"Successfully updated resume with resume_id:{resume_id} for analysis id:{analysis_id}")
+            print(f"\n> Successfully updated resume with resume_id:{resume_id} for analysis id:{analysis_id}")
             return True
         except Exception as e:
             raise RuntimeError(f"Error updating resume with resume_id{resume_id}: {e}")
@@ -353,7 +353,7 @@ class DatabaseManager:
                 DELETE FROM Resumes WHERE resume_id = %s;
             """
             self.db.execute_update(query, (resume_id,))
-            print(f"Successfully deleted resume with resume_id: {resume_id}")
+            print(f"\n> Successfully deleted resume with resume_id: {resume_id}")
             return True
         except Exception as e:
             raise RuntimeError(f"Error deleting resume with resume_id {resume_id}: {e}")
@@ -375,7 +375,7 @@ class DatabaseManager:
         
             result = self.db.execute_update(query, (portfolio_title,analysis_id,portfolio_json),returning=True)
             portfolio_id = result[0]['portfolio_id'] #get returned new resume_id
-            print(f"Saved new portfolio with portfolio_id:{portfolio_id} to db for analysis_id:{analysis_id}")
+            print(f"\n> Saved new portfolio with portfolio_id:{portfolio_id} to db for analysis_id:{analysis_id}")
             return portfolio_id
         
         except Exception as e:
@@ -400,7 +400,7 @@ class DatabaseManager:
         
             result = self.db.execute_update(query, (portfolio_json,portfolio_title,portfolio_id))
             analysis_id = result[0] #get analysis_id of associated analysis
-            print(f"Successfully updated portfolio with portfolio_id:{portfolio_id} for analysis id:{analysis_id}")
+            print(f"\n> Successfully updated portfolio with portfolio_id:{portfolio_id} for analysis id:{analysis_id}")
             return True
         except Exception as e:
             raise RuntimeError(f"Error updating portfolio with portfolio_id:{portfolio_id}: {e}")
@@ -411,7 +411,7 @@ class DatabaseManager:
                 DELETE FROM Portfolios WHERE portfolio_id = %s;
             """
             self.db.execute_update(query, (portfolio_id,))
-            print(f"Successfully deleted portfolio with portfolio_id: {portfolio_id}")
+            print(f"\n> Successfully deleted portfolio with portfolio_id: {portfolio_id}")
             return True
         except Exception as e:
             raise RuntimeError(f"Error deleting portfolio with portfolio_id {portfolio_id}: {e}")
@@ -584,7 +584,7 @@ class DatabaseManager:
             #kill parent
             self.db.execute_update("DELETE FROM Analyses WHERE analysis_id = %s;", (uid,))
             
-            print(f"Successfully deleted analysis: {analysis_id}")
+            print(f"\n> Successfully deleted analysis: {analysis_id}")
             return True
         except Exception as e:
             raise RuntimeError(f"Error deleting analysis: {e}")
@@ -594,7 +594,7 @@ class DatabaseManager:
         try:
             query = "TRUNCATE TABLE Analyses, Filesets, Filetrees, Results, Tracked_Data, Resumes, Portfolios RESTART IDENTITY CASCADE;"
             self.db.execute_update(query)
-            print("Successfully wiped all data.") 
+            print("\n> Successfully wiped all data.") 
             return True
         except Exception as e:
             raise RuntimeError(f"Error wiping database tables: {e}")
@@ -605,7 +605,7 @@ class DatabaseManager:
             query = "UPDATE Analyses SET thumbnail_image = %s WHERE analysis_id = %s;"
             self.db.execute_update(query, (data, uuid.UUID(analysis_id)))
             
-            print(f"Successfully added thumbnail image to analysis_id: {analysis_id}")
+            print("\n> Successfully added thumbnail image to analysis_id: {analysis_id}")
             return True
         except Exception as e:
             raise RuntimeError(f"Error inserting image: {e}")

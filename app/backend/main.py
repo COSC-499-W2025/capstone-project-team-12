@@ -25,10 +25,10 @@ def main() -> None:
     # Initialize CLI Interface
     cli = CLI()
     
-    config_manager = ConfigManager() # Initialize Config Manager
-    database_manager = DatabaseManager()  # Initialize Database Manager
-    resume_builder = ResumeBuilder()    # Initialize Resume Builder
-    portfolio_builder = PortfolioBuilder()  # Initialize Portfolio Builder
+    config_manager = ConfigManager()
+    database_manager = DatabaseManager()
+    resume_builder = ResumeBuilder()
+    portfolio_builder = PortfolioBuilder()
     file_manager = FileManager()
     tree_manager = TreeManager()
     importer = DictImporter()
@@ -39,53 +39,47 @@ def main() -> None:
     has_file_access = config_manager.get_consent(
         key="file_access_consent", 
         prompt_text="Do you provide permission to access your file system?",
-        component="accessing your local files" ,
-        default=True  # We default to YES to allow for basic app functionality, but users can easily revoke if they want 
+        component="accessing your local files",
+        default=True
     )
 
     if not has_file_access:
-        print("Access to files is required.")
+        cli.print_status("File system access is required to run this app.", "error")
         sys.exit(0)
 
-        #MAIN LOOP
     while True:
-        cli.print_separator("-")
+        cli.print_separator()
         operation: str = cli.get_input(
-            """Press: \n\t
-            -'N' to perform analysis on new filepath\n\t
-            -'A' to view all past analysis.\n\t
-            -'V' to view particular analysis.\n\t
-            -'R' to view and manage resumes\n\t
-            -'P' to view and manage portfolios\n\t
-            -'T' to edit or update thumbnail for past analysis\n\t
-            -'U' to update a past analysis.\n\t
-            -'D' to delete particular analysis.\n\t
-            -'X' to delete all past analysis.\n\t
-            -'Q' to quit app\n""").strip().lower() 
+            "\n  N  — analyse a new filepath"
+            "\n  A  — view all past analyses"
+            "\n  V  — view a particular analysis"
+            "\n  R  — manage resumes"
+            "\n  P  — manage portfolios"
+            "\n  T  — edit thumbnail for an analysis"
+            "\n  U  — update a past analysis"
+            "\n  D  — delete a particular analysis"
+            "\n  X  — delete all past analyses"
+            "\n  Q  — quit"
+            "\n\n> ").strip().lower()
         try:
             match(operation):
                 case 'n':
-                    #Analysis Filepath and analysis handling
-                    filepath: str = cli.get_input("Enter a file path to process: \n> ").strip()
+                    filepath: str = cli.get_input("\n  Enter a file path to process:\n> ").strip()
                     try:
                         path: Path = validate_analysis_path(filepath)
                         cli.print_status(f"Path valid: {path}", "success")
                     except Exception as e:
-                        cli.print_status(f"File path is not valid: {e}", "error")
+                        cli.print_status(f"Invalid file path: {e}", "error")
                     
                     analysis_id = None
                     try:
-                        #analysis pipeline starting, moved to another file
                         pipeline = AnalysisPipeline(cli, config_manager, database_manager)
-                        analysis_id = pipeline.run_analysis(str(path),return_id=True) #Return the new analysis id so it can be used to add image to analysis
+                        analysis_id = pipeline.run_analysis(str(path), return_id=True)
                     except Exception as e:
-                        cli.print_status(f"Analysis Pipeline Error: {e}", "error")
-                        
+                        cli.print_status(f"Analysis pipeline error: {e}", "error")
 
-
-                    # Auto generate resume and portfolio after analysis completion
                     if analysis_id:
-                        cli.print_status("Generating resume and portfolio for this analysis...", "info")
+                        cli.print_status("Generating resume and portfolio...", "info")
                         try: 
                             resume = generate_resume(analysis_id, database_manager, resume_builder, cli)
                         except Exception as e:
@@ -95,65 +89,63 @@ def main() -> None:
                         except Exception as e:
                             cli.print_status(f"Error generating portfolio: {e}", "error")
 
-                    #Thumbnail handling
-                    
-                    #Prompt to add thumbnail
-                    img_response = cli.get_input("Would you like to add a thumbnail to represent this analysis? (Y/n) \n")            
-                    if img_response.lower() not in ('n','no'):
-                        try:    
-                            #Receive image filepath
-                            img_path:str = cli.get_input(f"Accepted formats are: {accepted_formats} of maximum size 10MB.\n Please enter a filepath to a valid image (or press Enter to skip):\n")
+                    img_response = cli.get_input("\n  Add a thumbnail for this analysis? (Y/n)\n> ")
+                    if img_response.lower() not in ('n', 'no'):
+                        try:
+                            img_path: str = cli.get_input(
+                                f"\n  Accepted formats: {accepted_formats}  |  Max size: 10MB"
+                                "\n  Enter image filepath, or [Enter] to skip:\n> "
+                            )
                             
-                            # If user opts to skip thumbnail addition, continue to main menu
                             if not img_path.strip():
-                                cli.print_status("No thumbnail will be added for this analysis.", "info")
+                                cli.print_status("No thumbnail added.", "info")
                                 continue
 
-                            #Validate image filepath 
                             try:
-                                img_valid_path:Path = validate_thumbnail_path(img_path)
+                                img_valid_path: Path = validate_thumbnail_path(img_path)
                             except Exception as e:
-                                raise RuntimeError(f"Image filepath Error:{e}")
+                                raise RuntimeError(f"Image path error: {e}")
                             
-                            #Read image
                             try:
-                                img_data:BinaryIO = read_image(img_valid_path)
+                                img_data: BinaryIO = read_image(img_valid_path)
                             except Exception as e:
-                                raise RuntimeError(f"Error reading image:{e}")
-                            #Save Image to db
+                                raise RuntimeError(f"Error reading image: {e}")
+
                             try:
-                                insert_thumbnail(database_manager,cli,analysis_id,img_data)
-                                cli.print_status(f"Image added successfully!","success")
+                                insert_thumbnail(database_manager, cli, analysis_id, img_data)
+                                cli.print_status("Thumbnail added successfully.", "success")
                             except Exception as e:
-                                raise RuntimeError(f"Failed to add image to db:{e}")
+                                raise RuntimeError(f"Failed to save thumbnail: {e}")
+
                         except RuntimeError as e:
-                            cli.print_status(f"Thumbnail Association failed:{e}","warning")
+                            cli.print_status(f"Thumbnail error: {e}", "warning")
                         except Exception as e:
-                            cli.print_status(f"Unhandled Thumbnail Error:{e} \n Returning to main menu", "warning")
+                            cli.print_status(f"Unexpected thumbnail error: {e}", "warning")
                             continue
                     
-                            
                 case 'a':
-                    # View all saved insights from database
                     try:
-                        cli.print_header("All Stored Analysis Summary")
+                        cli.print_header("All Stored Analyses")
                         view_all_analyses(database_manager)
                     except Exception as e:
-                        cli.print_status(f"Error retrieving all analysis: {e}", "error")
+                        cli.print_status(f"Error retrieving analyses: {e}", "error")
+
                 case 'v':
-                    try:    
-                        analysis_id = cli.get_input("Enter Analysis ID: ").strip()
+                    try:
+                        analysis_id = cli.get_input("\n  Enter Analysis ID:\n> ").strip()
                         analysis_id = validate_uuid(analysis_id)
-                        view_analysis_by_id(database_manager,cli,analysis_id)        
+                        view_analysis_by_id(database_manager, cli, analysis_id)
                     except ValueError as e:
-                        cli.print_status(f"UUID Error:{e}", "error")
+                        cli.print_status(f"Invalid UUID: {e}", "error")
                     except Exception as e:
                         cli.print_status(f"Error retrieving analysis: {e}", "error")
+
                 case 'r':
                     try:
                         manage_resumes(cli, database_manager, resume_builder)
                     except Exception as e:
                         cli.print_status(f"Error managing resumes: {e}", "error")
+
                 case 'p':
                     try:
                         manage_portfolios(cli, database_manager, portfolio_builder)
@@ -161,77 +153,74 @@ def main() -> None:
                         cli.print_status(f"Error managing portfolios: {e}", "error")
                 
                 case 't':
-                    analysis_id:str = cli.get_input("Enter Analysis ID to add/edit the thumbnail of:")
-                    img_path:str = cli.get_input(f"Accepted formats are: {accepted_formats} of maximum size 10MB.\n Please enter a filepath to a valid image:\n")
-                    try:       
-                        #Validate image filepath 
+                    analysis_id: str = cli.get_input("\n  Enter Analysis ID:\n> ")
+                    img_path: str = cli.get_input(
+                        f"\n  Accepted formats: {accepted_formats}  |  Max size: 10MB"
+                        "\n  Enter image filepath:\n> "
+                    )
+                    try:
                         try:
-                            img_valid_path:Path = validate_thumbnail_path(img_path)
+                            img_valid_path: Path = validate_thumbnail_path(img_path)
                         except Exception as e:
-                            raise RuntimeError(f"Image filepath Error:{e}")
+                            raise RuntimeError(f"Image path error: {e}")
                         
-                        #Read image
                         try:
-                            img_data:BinaryIO = read_image(img_valid_path)
+                            img_data: BinaryIO = read_image(img_valid_path)
                         except Exception as e:
-                            raise RuntimeError(f"Error reading image:{e}")
-                        #Save Image to db
+                            raise RuntimeError(f"Error reading image: {e}")
+
                         try:
-                            insert_thumbnail(database_manager,cli,analysis_id,img_data)
-                            cli.print_status(f"Image added successfully!","success")
+                            insert_thumbnail(database_manager, cli, analysis_id, img_data)
+                            cli.print_status("Thumbnail added successfully.", "success")
                         except Exception as e:
-                            raise RuntimeError(f"Failed to add image to db:{e}")
+                            raise RuntimeError(f"Failed to save thumbnail: {e}")
+
                     except RuntimeError as e:
-                        cli.print_status(f"Thumbnail Association failed:{e}","error")
+                        cli.print_status(f"Thumbnail error: {e}", "error")
                     except Exception as e:
-                        cli.print_status(f"Unhandled Thumbnail Error:{e} \n Returning to main menu", "warning")
-                        continue   
+                        cli.print_status(f"Unexpected thumbnail error: {e}", "warning")
+                        continue
                 
                 case 'u':
-                    # TODO functionality to update past analysis (incremental requirment)
-                    print("\n--- Update Existing Analysis ---")
-                    analysis_id = cli.get_input("Enter Analysis ID to update: ").strip()
+                    cli.print_header("Update Existing Analysis")
+                    analysis_id = cli.get_input("\n  Enter Analysis ID to update:\n> ").strip()
                     
-                    # 1. Fetch info
                     try:
                         old_path = database_manager.get_analysis_filepath(analysis_id)
                         if not old_path:
-                            raise ValueError("Analysis ID not found or has no associated file path.")
+                            raise ValueError("Analysis not found or has no associated file path.")
                     except Exception as e:
-                        cli.print_status(f"{e}","error")
+                        cli.print_status(f"{e}", "error")
                         
-                    print(f"Current file path for this analysis: {old_path}")
+                    cli.print_status(f"Current path: {old_path}", "info")
                     
                     new_path = None
-                    # Loop until a valid, confirmed path is chosen or user explicitly backs out
                     while True:
-                        path_input = cli.get_input(f"Enter updated file path (Press Enter to use '{old_path}' or 'b' to go back to main menu): ").strip()
+                        path_input = cli.get_input(
+                            f"\n  Enter updated path, [Enter] to keep current, or 'b' to go back:\n> "
+                        ).strip()
                         
                         if path_input.lower() == 'b':
-                            new_path = None # Signal to abort
+                            new_path = None
                             break
                         
                         current_candidate = path_input if path_input else old_path
                             
                         if not os.path.exists(current_candidate):
-                            cli.print_status("Error: The specified path does not exist.", "error")
-                            continue # Ask again
+                            cli.print_status("Path does not exist.", "error")
+                            continue
 
-                        # USE EXTRACTED HELPER from main_utils
                         if not compare_path(old_path, current_candidate):
                             cli.print_status("Update cancelled. Please re-enter path.", "warning")
-                            continue # Loop back to ask for path again
+                            continue
                         
-                        # Valid path selected
                         new_path = current_candidate
                         break
 
-                    # If user aborted with 'b'
                     if new_path is None:
                         continue
 
-                    print("\nLoading new files...")
-                    # 4. Load NEW files
+                    cli.print_status("Loading files...", "info")
                     load_result = file_manager.load_from_filepath(new_path)
                     if load_result['status'] == 'error':
                         cli.print_status(f"Error loading files: {load_result['message']}", "error")
@@ -240,20 +229,18 @@ def main() -> None:
                     new_tree = load_result['tree']
                     new_binary_list = load_result['binary_data']
 
-                    # USE EXTRACTED HELPER for merging/db logic
                     try:
                         merged_tree, merged_binary_list = perform_update_merge(
                             analysis_id, new_tree, new_binary_list, database_manager, tree_manager, importer, exporter)
                         
                         if not merged_tree:
-                            raise LookupError("Error: Could not retrieve previous file data from database.")
+                            raise LookupError("Could not retrieve previous file data from database.")
                     
                     except Exception as e:
                         cli.print_status(f"{e}", "error")
                         continue
 
-                    # 7. Save merged result
-                    print("Saving updated state to database...")
+                    cli.print_status("Saving updated state...", "info")
                     merged_tree_dict = exporter.export(merged_tree)
                     merged_binary_blob = pickle.dumps(merged_binary_list)
                     
@@ -263,12 +250,10 @@ def main() -> None:
                         cli.print_status("Failed to save updates to database.", "error")
                         continue
                     
-                    cli.print_status("Update successful! Re-running analysis on updated files...", "success")         
+                    cli.print_status("Update saved. Re-running analysis on updated files...", "success")
                     
-                    # 8. Re-run analysis pipeline on the MERGED data
                     try:
                         pipeline = AnalysisPipeline(cli, config_manager, database_manager)
-                        # Call the updated run_analysis with the merged data
                         pipeline.run_analysis(
                             filepath=new_path, 
                             return_id=False,
@@ -278,45 +263,51 @@ def main() -> None:
                         )
                         cli.print_status("Analysis update complete.", "success")
                     except Exception as e:
-                        cli.print_status(f"Error re-running analysis pipeline: {e}", "error")
+                        cli.print_status(f"Error re-running analysis: {e}", "error")
 
                 case 'd':
-                    # Delete specific analysis from database
-                    delete_confirmation = cli.get_input("\nDelete a stored analysis? (y/n): ").lower()
+                    delete_confirmation = cli.get_input("\n  Delete a stored analysis? (y/n):\n> ").lower()
                     if delete_confirmation not in ('n', 'no'):
                         try:
-                            analysis_id = cli.get_input("Enter Analysis ID to delete: (or press Enter to cancel)").strip()
+                            analysis_id = cli.get_input("  Enter Analysis ID (or [Enter] to cancel):\n> ").strip()
                             if not analysis_id.strip():
                                 cli.print_status("Deletion cancelled.", "info")
                                 continue
                             analysis_id = validate_uuid(analysis_id)
-                            delete_analysis_by_id(database_manager,cli,analysis_id)
+                            delete_analysis_by_id(database_manager, cli, analysis_id)
                         except ValueError as e:
-                            cli.print_status(f"UUID Error:{e}","error")
+                            cli.print_status(f"Invalid UUID: {e}", "error")
                         except Exception as e:
-                            cli.print_status(f"Error deleting analysis with ID {analysis_id}: {e}", "error")
+                            cli.print_status(f"Error deleting analysis {analysis_id}: {e}", "error")
+
                 case 'x':
-                    # Delete analyses from database
                     try:
-                        delete_confirmation = cli.get_input("\nType 'CONFIRM DELETE' to erase of all past analyses in database (case-sensitive):")
+                        delete_confirmation = cli.get_input("\n  Type 'CONFIRM DELETE' to erase all analyses (case-sensitive):\n> ")
                         if delete_confirmation == "CONFIRM DELETE":
                             delete_all_analyses(database_manager)
-                            cli.print_status("All all analyses deleted from database.", "success")
+                            cli.print_status("All analyses deleted.", "success")
                         else:
-                            cli.print_status("Improper confirmation, No analyses deleted.","warning")
+                            cli.print_status("Confirmation not matched — nothing deleted.", "warning")
                     except Exception as e:
                         cli.print_status(f"Error deleting analyses: {e}", "error")
+
                 case 'q':
                     sys.exit(0)
+
                 case _:
-                    cli.print_status("Invalid operation input","error")
-            print("Press Enter key to return to main menu")
+                    cli.print_status("Unrecognised option.", "error")
+
+            print("\n  Press [Enter] to return to the main menu")
             input()
+
         except KeyboardInterrupt:
-            cli.print_status("Keyboard Interrupt detected, Aborting process", "warning")
+            cli.print_status("Operation cancelled.", "warning")
     
             
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n  Exiting...")

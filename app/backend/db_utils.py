@@ -80,7 +80,7 @@ class DB_connector:
                 with conn.cursor() as cursor:
                     cursor.execute(query, params)
                     results = cursor.fetchall()
-                    print(f"Query Successful: Result has {len(results)} rows")
+                    # print(f"Query Successful: Result has {len(results)} rows")
                     return results
         except Exception as e:
             print(f"Query execution failed: {e}")
@@ -109,7 +109,7 @@ class DB_connector:
                         return cur.fetchall()
                     else:
                         affected = cur.rowcount
-                        print(f"Query affected {affected} rows")
+                        # print(f"Query affected {affected} rows")
                         return affected
         except Exception as e:
             print(f"Update execution failed: {e}")
