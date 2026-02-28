@@ -177,7 +177,7 @@ def test_portfolio_handling_successes(db_manager, mock_db_connector):
     mock_db_connector.execute_update.return_value = [10]
     mock_db_connector.execute_query.return_value = [{"portfolio_id": 10}]
 
-    assert db_manager.save_portfolio("analysis-1", {"project": "X"}) is True
+    assert db_manager.save_portfolio("analysis-1", {"project": "X"}) is 10
     assert db_manager.update_portfolio("port-1", {"project": "Y"}) is True
     assert db_manager.get_all_portfolios() == [{"portfolio_id": 10}]
     assert db_manager.get_portfolios_by_analysis_id("analysis-1") == [{"portfolio_id": 10}]
