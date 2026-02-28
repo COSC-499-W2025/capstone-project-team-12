@@ -167,6 +167,78 @@ async def extract_upload(
         if os.path.exists(tmp_path):
             os.remove(tmp_path)
 
+
+@app.post("/projects/{analysis_id}/upload/commit")
+async def commit_upload(
+    analysis_id: str,
+    request: CommitUpdateRequest,
+    db: DatabaseManager = Depends(get_db),
+):
+    """
+    Phase 2 – Commit & Generate for a NEW upload.
+    Applies user edits (topic keywords, highlights, project selection)
+    to the cached extraction data from Phase 1, generates the AI summary,
+    and persists everything to the database.
+    """
+    cache_path = os.path.join("cache", f"pending_new_{analysis_id}.pkl")
+    if not os.path.exists(cache_path):
+        raise HTTPException(
+            status_code=404,
+            detail="No pending upload found – cache expired or invalid analysis ID",
+        )
+
+    # Load and immediately delete the cache file
+    with open(cache_path, "rb") as f:
+        cached_data = pickle.load(f)
+    os.remove(cache_path)
+
+    try:
+        config = ConfigManager()
+        config.save_prefs({"online_llm_consent": request.online_llm_consent})
+
+        #rReconstruct topic_vector_bundle with user edits
+        topic_vector_bundle = cached_data["topic_vector_bundle"]
+        topic_vector_bundle["topic_keywords"] = [
+            {"topic_id": tk.topic_id, "keywords": tk.keywords}
+            for tk in request.topic_keywords
+        ]
+        topic_vector_bundle["user_highlights"] = request.user_highlights
+
+        # Filter / order analyzed repos to match user selection
+        cached_repos = cached_data.get("analyzed_repos", [])
+        repo_lookup = {
+            repo.get("repository_name", repo.get("name", "")): repo
+            for repo in cached_repos
+        }
+        filtered_repos = [
+            repo_lookup[name]
+            for name in request.selected_projects
+            if name in repo_lookup
+        ]
+        cached_data["analyzed_repos"] = filtered_repos
+
+        # Phase 2: generate AI summary and save results
+        # NOTE: that db.save_fileset is NOT called here because run_analysis_extract already saved the fileset during Phase 1.
+        pipeline = AnalysisPipeline(CLI(), ConfigManager(), db)
+        summary = pipeline.run_analysis_generate(
+            analysis_id=analysis_id,
+            topic_vector_bundle=topic_vector_bundle,
+            text_analysis_data=cached_data["text_analysis_data"],
+            selected_projects=request.selected_projects,
+            return_id=False,
+        )
+
+        return JSONResponse(
+            status_code=200,
+            content={"status": "success", "summary": summary},
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/projects")
 async def get_projects(db: DatabaseManager = Depends(get_db)):
     """
