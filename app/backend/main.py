@@ -55,11 +55,12 @@ def main() -> None:
             -'N' to perform analysis on new filepath\n\t
             -'A' to view all past analysis.\n\t
             -'V' to view particular analysis.\n\t
-            -'G' to generate resume or portfolio from past analysis.\n\t
+            -'R' to view and manage resumes\n\t
+            -'P' to view and manage portfolios\n\t
             -'T' to edit or update thumbnail for past analysis\n\t
             -'U' to update a past analysis.\n\t
             -'D' to delete particular analysis.\n\t
-            -'R' to delete all past analysis.\n\t
+            -'X' to delete all past analysis.\n\t
             -'Q' to quit app\n""").strip().lower() 
         try:
             match(operation):
@@ -72,6 +73,7 @@ def main() -> None:
                     except Exception as e:
                         cli.print_status(f"File path is not valid: {e}", "error")
                     
+                    analysis_id = None
                     try:
                         #analysis pipeline starting, moved to another file
                         pipeline = AnalysisPipeline(cli, config_manager, database_manager)
@@ -79,10 +81,24 @@ def main() -> None:
                     except Exception as e:
                         cli.print_status(f"Analysis Pipeline Error: {e}", "error")
                         
+
+
+                    # Auto generate resume and portfolio after analysis completion
+                    if analysis_id:
+                        cli.print_status("Generating resume and portfolio for this analysis...", "info")
+                        try: 
+                            resume = generate_resume(analysis_id, database_manager, resume_builder, cli)
+                        except Exception as e:
+                            cli.print_status(f"Error generating resume: {e}", "error")
+                        try:
+                            portfolio = generate_portfolio(analysis_id, database_manager, portfolio_builder, cli)
+                        except Exception as e:
+                            cli.print_status(f"Error generating portfolio: {e}", "error")
+
                     #Thumbnail handling
                     
                     #Prompt to add thumbnail
-                    img_response = cli.get_input("Would you like to add a thumbnail to represent this analysis? (y/N) \n")            
+                    img_response = cli.get_input("Would you like to add a thumbnail to represent this analysis? (Y/n) \n")            
                     if img_response.lower() not in ('n','no'):
                         try:    
                             #Receive image filepath
@@ -115,6 +131,7 @@ def main() -> None:
                         except Exception as e:
                             cli.print_status(f"Unhandled Thumbnail Error:{e} \n Returning to main menu", "warning")
                             continue
+                    
                             
                 case 'a':
                     # View all saved insights from database
@@ -132,41 +149,16 @@ def main() -> None:
                         cli.print_status(f"UUID Error:{e}", "error")
                     except Exception as e:
                         cli.print_status(f"Error retrieving analysis: {e}", "error")
-                case 'g':
-                    # Generate new resume
+                case 'r':
                     try:
-                        analysis_id = cli.get_input("Enter Analysis ID to generate Portfolio or Resume from: ").strip()
-                        analysis_id = validate_uuid(analysis_id)
-
-                        generation_type = cli.get_input("Would you like to generate a Portfolio or a Resume? (P/R): ").strip().lower()
-
-                        if generation_type in ('r','resume'):
-                            resume = resume_builder.create_resume_from_result_id(database_manager, cli, analysis_id)
-                            if resume:
-                                resume_builder.display_resume(resume, cli)
-                                # Allow the user to edit the resume before saving
-                                edit_choice:str = cli.get_input("Would you like to edit the resume before saving? (y/n): ").strip().lower()
-                                if edit_choice not in ('n', 'no'):
-                                    editor = ResumeEditor(cli)
-                                    resume = editor.edit_resume(resume)
-
-                        elif generation_type in ('p','portfolio'):
-                            portfolio = portfolio_builder.create_portfolio_from_result_id(database_manager, cli, analysis_id)
-                            if portfolio:
-                                portfolio_builder.display_portfolio(portfolio, cli)
-
-                                edit_choice:str = cli.get_input("Would you like to edit the portfolio before saving? (y/n): ").strip().lower()
-                                if edit_choice not in ('n', 'no'):
-                                    portfolio_editor = PortfolioEditor(cli)
-                                    portfolio = portfolio_editor.edit_portfolio(portfolio)                     
-
-                        else:
-                            cli.print_status("Invalid generation type input","error")
-                            
-                    except ValueError as e:
-                        cli.print_status(f"UUID Error:{e}", "error")
-                    except Exception as e:              
-                        cli.print_status(f"Error generating portfolio or resume: {e}", "error")
+                        manage_resumes(cli, database_manager, resume_builder)
+                    except Exception as e:
+                        cli.print_status(f"Error managing resumes: {e}", "error")
+                case 'p':
+                    try:
+                        manage_portfolios(cli, database_manager, portfolio_builder)
+                    except Exception as e:
+                        cli.print_status(f"Error managing portfolios: {e}", "error")
                 
                 case 't':
                     analysis_id:str = cli.get_input("Enter Analysis ID to add/edit the thumbnail of:")
@@ -303,7 +295,7 @@ def main() -> None:
                             cli.print_status(f"UUID Error:{e}","error")
                         except Exception as e:
                             cli.print_status(f"Error deleting analysis with ID {analysis_id}: {e}", "error")
-                case'r':
+                case 'x':
                     # Delete analyses from database
                     try:
                         delete_confirmation = cli.get_input("\nType 'CONFIRM DELETE' to erase of all past analyses in database (case-sensitive):")
