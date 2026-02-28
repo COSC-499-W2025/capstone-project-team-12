@@ -170,38 +170,38 @@ class FileManager:
         return folder_node
 
 
-def _load_single_file(self, file_path: Path) -> Tuple[Dict[str, Any] | None, int | None]:
-    try:
-        with open(file_path, 'rb') as f:
-            binary_data: bytes = f.read()
-            
-            #generate hash of content
-            file_hash = hashlib.sha256(binary_data).hexdigest()
-            
-            #check if hash already exists
-            if file_hash in self.seen_hashes:
-                #duplicate found: return existing index
-                binary_index = self.seen_hashes[file_hash]
-            else:
-                #new content: add to array and registry
-                binary_index = len(self.binary_data_array)
-                self.binary_data_array.append(binary_data)
-                self.seen_hashes[file_hash] = binary_index
-            
-            last_modified = datetime.fromtimestamp(file_path.stat().st_mtime).isoformat()
+    def _load_single_file(self, file_path: Path) -> Tuple[Dict[str, Any] | None, int | None]:
+        try:
+            with open(file_path, 'rb') as f:
+                binary_data: bytes = f.read()
+                
+                #generate hash of content
+                file_hash = hashlib.sha256(binary_data).hexdigest()
+                
+                #check if hash already exists
+                if file_hash in self.seen_hashes:
+                    #duplicate found: return existing index
+                    binary_index = self.seen_hashes[file_hash]
+                else:
+                    #new content: add to array and registry
+                    binary_index = len(self.binary_data_array)
+                    self.binary_data_array.append(binary_data)
+                    self.seen_hashes[file_hash] = binary_index
+                
+                last_modified = datetime.fromtimestamp(file_path.stat().st_mtime).isoformat()
 
-            file_obj = {
-                'filename': file_path.name,
-                'filepath': str(file_path.absolute()),
-                'size_bytes': len(binary_data),
-                'extension': file_path.suffix.lower(),
-                'binary_index': binary_index, #points to either new or existing data
-                'last_modified': last_modified
-            }
-            return file_obj, binary_index
-    except Exception as e:
-        print(f"Warning: could not load {file_path}: {e}")
-        return None, None
+                file_obj = {
+                    'filename': file_path.name,
+                    'filepath': str(file_path.absolute()),
+                    'size_bytes': len(binary_data),
+                    'extension': file_path.suffix.lower(),
+                    'binary_index': binary_index, #points to either new or existing data
+                    'last_modified': last_modified
+                }
+                return file_obj, binary_index
+        except Exception as e:
+            print(f"Warning: could not load {file_path}: {e}")
+            return None, None
 
     def _extract_and_load_zip(self, zip_path: Path, parent_node: Node) -> None:
 
