@@ -202,6 +202,63 @@ def test_get_project_success(mock_backend,sample_analysis,placeholder_UUID):
     assert response.status_code == 200
     assert response.json() == sample_analysis
 
+# ---- Delete Endpoints Tests ----
+
+def test_delete_project_success(mock_backend, placeholder_UUID, sample_analysis):
+    """Test successful deletion of a specific project."""
+    
+    mock_backend["db"].get_analysis_data.return_value = sample_analysis
+    
+    mock_backend["db"].delete_analysis.return_value = True
+
+    response = client.delete(f"/projects/{placeholder_UUID}")
+    
+    #success returns 204 No Content
+    assert response.status_code == 204
+    mock_backend["db"].delete_analysis.assert_called_once_with(placeholder_UUID)
+
+def test_delete_project_failures(mock_backend, placeholder_UUID, sample_analysis):
+    """Test all failure modes for deleting a specific project."""
+    
+    #case 1: invalid UUID format
+    response = client.delete("/projects/invalid-uuid")
+    assert response.status_code == 400
+
+    #case 2: analysis not found in DB
+    #the endpoint calls get_analysis_data first to verify existence
+    mock_backend["db"].get_analysis_data.side_effect = LookupError("Analysis not found")
+    response = client.delete(f"/projects/{placeholder_UUID}")
+    assert response.status_code == 404
+    
+    #reset side effect for next case
+    mock_backend["db"].get_analysis_data.side_effect = None
+
+    #case 3: general DB error during the actual deletion
+    mock_backend["db"].get_analysis_data.return_value = sample_analysis
+    mock_backend["db"].delete_analysis.side_effect = Exception("DB deletion failed")
+    response = client.delete(f"/projects/{placeholder_UUID}")
+    assert response.status_code == 500
+
+
+def test_delete_all_projects_success(mock_backend):
+    """Test successful wipe of all projects from the database."""
+    
+    mock_backend["db"].wipe_all_data.return_value = True
+
+    response = client.delete("/projects")
+    
+    assert response.status_code == 204
+    mock_backend["db"].wipe_all_data.assert_called_once()
+
+def test_delete_all_projects_failures(mock_backend):
+    """Test failure modes for wiping all projects."""
+    
+    mock_backend["db"].wipe_all_data.side_effect = Exception("DB truncate failed")
+    
+    response = client.delete("/projects")
+    
+    assert response.status_code == 500
+
 # ---- Resume Tests ----#
 def test_generate_resume_success(mock_backend, sample_analysis,sample_resume,placeholder_UUID):
     """Test successful resume generation and save."""
@@ -352,6 +409,39 @@ def test_edit_resume_failures(mock_backend, sample_resume):
     # Case 3 : DB error
     mock_backend["db"].update_resume.side_effect = Exception("DB error")
     response = client.put("/resume/1", json={"resume_title": "title", "resume_data": sample_resume})
+    assert response.status_code == 500
+
+# ---- Resume Delete Tests ----
+
+def test_delete_resume_success(mock_backend, sample_resume):
+    """Test successful deletion of a specific resume."""
+    
+    mock_backend["db"].get_resume_by_resume_id.return_value = sample_resume
+    mock_backend["db"].delete_resume.return_value = True
+
+    response = client.delete("/resume/1")
+    
+    assert response.status_code == 204
+    mock_backend["db"].delete_resume.assert_called_once_with(1)
+
+def test_delete_resume_failures(mock_backend):
+    """Test all failure modes for deleting a resume."""
+    
+    # Case 1: type validation failure 
+    response = client.delete("/resume/not-an-int")
+    assert response.status_code == 422
+
+    #case 2: resume not found in DB
+    mock_backend["db"].get_resume_by_resume_id.side_effect = LookupError("Not found")
+    response = client.delete("/resume/999")
+    assert response.status_code == 404
+    
+    mock_backend["db"].get_resume_by_resume_id.side_effect = None
+
+    #case 3: general DB Error during deletion
+    mock_backend["db"].get_resume_by_resume_id.return_value = {"resume_id": 1}
+    mock_backend["db"].delete_resume.side_effect = Exception("DB error")
+    response = client.delete("/resume/1")
     assert response.status_code == 500
     
 # ---- Portfolio Tests ----
@@ -519,6 +609,39 @@ def test_edit_portfolio_failures(mock_backend, sample_portfolio):
     mock_backend["db"].update_portfolio.side_effect = Exception("DB error")
     response = client.put("/portfolio/1", json={"portfolio_title": "title", "portfolio_data": sample_portfolio})
     assert response.status_code == 500
+
+# ---- Portfolio Delete Tests ----
+
+def test_delete_portfolio_success(mock_backend, sample_portfolio):
+    """Test successful deletion of a specific portfolio."""
+    
+    mock_backend["db"].get_portfolio_by_portfolio_id.return_value = sample_portfolio
+    mock_backend["db"].delete_portfolio.return_value = True
+
+    response = client.delete("/portfolio/1")
+    
+    assert response.status_code == 204
+    mock_backend["db"].delete_portfolio.assert_called_once_with(1)
+
+def test_delete_portfolio_failures(mock_backend):
+    """Test all failure modes for deleting a portfolio."""
+    
+    #case 1: type validation failure
+    response = client.delete("/portfolio/not-an-int")
+    assert response.status_code == 422
+
+    #case 2: portfolio not found in DB
+    mock_backend["db"].get_portfolio_by_portfolio_id.side_effect = LookupError("Not found")
+    response = client.delete("/portfolio/999")
+    assert response.status_code == 404
+    
+    mock_backend["db"].get_portfolio_by_portfolio_id.side_effect = None
+
+    #case 3: general DB Error during deletion
+    mock_backend["db"].get_portfolio_by_portfolio_id.return_value = {"portfolio_id": 1}
+    mock_backend["db"].delete_portfolio.side_effect = Exception("DB error")
+    response = client.delete("/portfolio/1")
+    assert response.status_code == 500
     
 # --- Negative Tests ---
 
@@ -597,3 +720,106 @@ def test_get_skills_implementation_empty_db(mock_backend):
 
     assert res.status_code == 200
     assert res.json() == {"skills": {}}
+TEST_UUID = "123e4567-e89b-12d3-a456-426614174000"
+@patch("main_api.DictExporter")
+@patch("main_api.DictImporter")
+@patch("main_api.TreeManager")
+@patch("main_api.perform_update_merge")
+@patch("main_api.FileManager")
+@patch("main_api.AnalysisPipeline")
+@patch("main_api.CLI")
+@patch("main_api.ConfigManager")
+@patch("main_api.DatabaseManager")
+def test_extract_update_endpoint(
+    mock_db_cls, mock_config_cls, mock_cli_cls,
+    mock_pipeline_cls, mock_fm_cls, mock_merge,
+    mock_tm_cls, mock_importer_cls, mock_exporter_cls,
+):
+    """Test Phase 1: PUT /projects/{analysis_id}/update/extract"""
+    # Mock FileManager to return a valid tree structure
+    mock_tree = {"name": "root"}
+    mock_fm_cls.return_value.load_from_filepath.return_value = {
+        "status": "success",
+        "tree": mock_tree,
+        "binary_data": [],
+    }
+
+    mock_merge.return_value = (mock_tree, [])
+    mock_pipeline = mock_pipeline_cls.return_value
+    mock_pipeline.run_analysis_extract.return_value = (
+        TEST_UUID,
+        {"topic_keywords": [{"topic_id": 0, "keywords": ["test", "code"]}]},
+        ["Python", "React"],
+        {},
+    )
+    mock_pipeline.result_bundle.project_analysis_data = {"analyzed_insights": []}
+    mock_exporter_cls.return_value.export.return_value = {}
+
+    # Simulate dummy zip file and form-data credentials
+    files = {"file": ("test_repo.zip", b"dummy zip content", "application/zip")}
+    data = {
+        "github_username": "testuser",
+        "github_email": "test@example.com",
+    }
+    response = client.put(f"/projects/{TEST_UUID}/update/extract", files=files, data=data)
+
+    assert response.status_code == 200
+    json_response = response.json()
+    assert "topic_keywords" in json_response
+    assert "detected_skills" in json_response
+    assert json_response["detected_skills"] == ["Python", "React"]
+
+    mock_pipeline.run_analysis_extract.assert_called_once()
+    assert mock_pipeline.run_analysis_extract.call_args.kwargs["github_username"] == "testuser"
+
+    # Clean up the cache file created by the endpoint
+    cache_path = os.path.join("cache", f"pending_update_{TEST_UUID}.pkl")
+    if os.path.exists(cache_path):
+        os.remove(cache_path)
+@patch("main_api.AnalysisPipeline")
+@patch("main_api.CLI")
+@patch("main_api.ConfigManager")
+@patch("main_api.DatabaseManager")
+def test_commit_update_endpoint(mock_db_cls, mock_config_cls, mock_cli_cls, mock_pipeline_cls):
+    """Test Phase 2: POST /projects/{analysis_id}/update/commit"""
+    import pickle
+    cache_data = {
+        "merged_tree_dict": {},
+        "merged_binary_list": [],
+        "topic_vector_bundle": {"topic_keywords": []},
+        "text_analysis_data": {},
+        "analyzed_repos": [
+            {"repository_name": "capstone_repo", "importance_score": 5},
+            {"repository_name": "other_repo", "importance_score": 3},
+        ],
+    }
+    os.makedirs("cache", exist_ok=True)
+    cache_path = os.path.join("cache", f"pending_update_{TEST_UUID}.pkl")
+    with open(cache_path, "wb") as f:
+        pickle.dump(cache_data, f)
+    mock_pipeline = mock_pipeline_cls.return_value
+    mock_pipeline.run_analysis_generate.return_value = (
+        "This is a fake AI generated summary for testing."
+    )
+    payload = {
+        "topic_keywords": [
+            {"topic_id": 0, "keywords": ["result", "data", "code"]}
+        ],
+        "user_highlights": ["Python"],
+        "selected_projects": ["capstone_repo", "other_repo"],
+        "online_llm_consent": True,
+    }
+    try:
+        response = client.post(f"/projects/{TEST_UUID}/update/commit", json=payload)
+
+        assert response.status_code == 200
+        json_response = response.json()
+        assert json_response["status"] == "success"
+        assert json_response["summary"] == "This is a fake AI generated summary for testing."
+        mock_pipeline.run_analysis_generate.assert_called_once()
+        assert mock_pipeline.run_analysis_generate.call_args.kwargs["selected_projects"] == [
+            "capstone_repo", "other_repo"
+        ]
+    finally:
+        if os.path.exists(cache_path):
+            os.remove(cache_path)
