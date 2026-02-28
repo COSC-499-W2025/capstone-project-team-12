@@ -218,7 +218,7 @@ async def commit_upload(
         cached_data["analyzed_repos"] = filtered_repos
 
         # Phase 2: generate AI summary and save results
-        # NOTE: that db.save_fileset is NOT called here because run_analysis_extract already saved the fileset during Phase 1.
+        #db.save_fileset not called here because run_analysis_extract already saved the fileset during Phase 1.
         pipeline = AnalysisPipeline(CLI(), ConfigManager(), db)
         summary = pipeline.run_analysis_generate(
             analysis_id=analysis_id,
@@ -237,8 +237,7 @@ async def commit_upload(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
+    
 @app.get("/projects")
 async def get_projects(db: DatabaseManager = Depends(get_db)):
     """
