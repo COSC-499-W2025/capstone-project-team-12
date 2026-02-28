@@ -82,43 +82,85 @@ class CommitUpdateRequest(BaseModel):
 def health_check():
     return {"status": "active"}
 
-@app.post("/projects/upload")
-async def upload_project(
+@app.post("/projects/upload/extract")
+async def extract_upload(
     file: UploadFile = File(...),
     github_username: Optional[str] = Form(None),
     github_email: Optional[str] = Form(None),
-    # Removed frontend-generated result_id to enforce backend state management
-    db: DatabaseManager = Depends(get_db)
+    db: DatabaseManager = Depends(get_db),
 ):
-
     """
-    Pipeline from uploading filepath to returning back 
-    status along with the backend-generated result_id.
+    Phase 1 – Upload & Extract for a NEW project.
+    Saves the uploaded file, runs the extraction pipeline (which creates
+    a new analysis ID internally), caches heavy state for the commit step,
+    and returns lightweight results to the frontend.
     """
-
-    # 1. Save File
+    # Save uploaded file to a temporary path
     suffix = Path(file.filename).suffix
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         shutil.copyfileobj(file.file, tmp)
         tmp_path = tmp.name
 
     try:
-        # 2. Initialize Classes
+        # Initialize pipeline
         cli = CLI()
         config = ConfigManager()
-
-        # 3. Run Pipeline
-        # pipeline will call database_manager.create_new_result()
-        # internally, which generates and returns a new UUID.
         pipeline = AnalysisPipeline(cli, config, db)
-        
-        # return_id=True ensures we get the new UUID back to send to the frontend
-        analysis_id = pipeline.run_analysis(tmp_path, return_id=True)
 
-        # 4. Return success response
-        #JSONResponse does not include content as it too large, front end can query returned location if needed
-        return JSONResponse(status_code=201,headers=location_header(f"/projects/{analysis_id}"),content = None)
+        # Run extraction – no existing_analysis_id or preloaded data,
+        # so the pipeline creates a brand-new analysis ID and saves
+        # the initial fileset to the database automatically.
+        extract_result = pipeline.run_analysis_extract(
+            filepath=tmp_path,
+            github_username=github_username,
+            github_email=github_email,
+        )
 
+        if extract_result is None:
+            raise HTTPException(status_code=500, detail="Extraction phase failed")
+
+        analysis_id, topic_vector_bundle, detected_skills, text_analysis_data = extract_result
+
+        # Gather analyzed repos from pipeline result bundle
+        analyzed_repos = (
+            pipeline.result_bundle.project_analysis_data.get("analyzed_insights", [])
+            if pipeline.result_bundle.project_analysis_data
+            else []
+        )
+
+        # Cache heavy state for Phase 2 (commit)
+        cache_data = {
+            "topic_vector_bundle": topic_vector_bundle,
+            "text_analysis_data": text_analysis_data,
+            "analyzed_repos": analyzed_repos,
+        }
+
+        os.makedirs("cache", exist_ok=True)
+        cache_path = os.path.join("cache", f"pending_new_{analysis_id}.pkl")
+        with open(cache_path, "wb") as f:
+            pickle.dump(cache_data, f)
+
+        # Build JSON-friendly response
+        analyzed_projects = [
+            {
+                "repository_name": repo.get("repository_name", repo.get("name", "Unknown")),
+                "importance_score": repo.get("importance_score", 0),
+            }
+            for repo in analyzed_repos
+        ]
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "analysis_id": str(analysis_id),
+                "topic_keywords": topic_vector_bundle.get("topic_keywords", []),
+                "detected_skills": detected_skills,
+                "analyzed_projects": analyzed_projects,
+            },
+        )
+
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:
