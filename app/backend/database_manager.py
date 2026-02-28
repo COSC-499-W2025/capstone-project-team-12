@@ -316,7 +316,7 @@ class DatabaseManager:
             resume_json = json.dumps(resume_data)
         
             result = self.db.execute_update(query, (resume_title,analysis_id,resume_json),returning=True)
-            resume_id = result[0] #get returned new resume_id
+            resume_id = result[0]['resume_id'] #get returned new resume_id
             print(f"Saved new resume with resume id:{resume_id} to db for analysis_id:{analysis_id}")
             return resume_id
         
@@ -374,7 +374,7 @@ class DatabaseManager:
             portfolio_json = json.dumps(portfolio_data)
         
             result = self.db.execute_update(query, (portfolio_title,analysis_id,portfolio_json),returning=True)
-            portfolio_id = result[0] #get returned new resume_id
+            portfolio_id = result[0]['portfolio_id'] #get returned new resume_id
             print(f"Saved new portfolio with portfolio_id:{portfolio_id} to db for analysis_id:{analysis_id}")
             return portfolio_id
         
