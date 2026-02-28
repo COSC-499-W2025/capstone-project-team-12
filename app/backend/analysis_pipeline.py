@@ -368,7 +368,7 @@ class AnalysisPipeline:
             return {},{}
         return metadata_results,metadata_analysis
     
-    def run_repo_analysis_pipeline(self,git_repos,binary_data):
+    def run_repo_analysis_pipeline(self,git_repos,binary_data,github_username: Optional[str] = None, github_email: Optional[str] = None, interactive: bool = True):
         processed_git_repos: List[Dict[str, Any]] = None
         analyzed_repos: List[Dict[str, Any]] = None
         
@@ -380,10 +380,12 @@ class AnalysisPipeline:
         
         print(f"Detected {len(git_repos)} git repositories.")
 
-        github_username: str = self.cli.get_input("Enter GitHub username to link (Press Enter to skip): \n> ").strip().lower()
+        #use provided credentials (API path) or fall back to CLI prompt
+        if not github_username:
+            github_username = self.cli.get_input("Enter GitHub username to link (Press Enter to skip): \n> ").strip().lower()
         
         if github_username:
-            user_email: str = self.cli.get_input("Enter GitHub email associated with the account: \n> ").strip().lower()
+            user_email: str = github_email if github_email else self.cli.get_input("Enter GitHub email associated with the account: \n> ").strip().lower()
 
             repo_processor = RepositoryProcessor(
                 username=github_username,
@@ -405,7 +407,10 @@ class AnalysisPipeline:
                         )
 
                     # Allow user to choose which projects to analyze
-                    selected_repos = choose_projects_for_analysis(processed_git_repos)
+                    if interactive:
+                        selected_repos = choose_projects_for_analysis(processed_git_repos)
+                    else:
+                        selected_repos = processed_git_repos 
                     self.cli.print_status("Repositories processed successfully.", "success")
                     
                     analyzer = RepositoryAnalyzer(github_username, user_email)
@@ -441,8 +446,9 @@ class AnalysisPipeline:
                     else:
                         self.cli.print_status(f"Analyzed {len(analyzed_repos)} repositories.", "success")
                         # Allow user to rerank projects
-                        self.cli.print_status("Ready to rank/re-rank projects.\n", "info")
-                        analyzed_repos = rerank_projects(analyzed_repos)
+                        if interactive:
+                            self.cli.print_status("Ready to rank/re-rank projects.\n", "info")
+                            analyzed_repos = rerank_projects(analyzed_repos)
                         # Generate the project timeline
                         timeline = analyzer.create_chronological_project_list(analyzed_repos)
 
@@ -461,111 +467,14 @@ class AnalysisPipeline:
             self.cli.print_status("Skipping Git linking.", "info")
             return [],[],[],[]
 
-    def run_AI_NLG(self,data_bundle,result_bundle,text_analysis_data):
-        try:
-            #"AI Summary Generation" header was here 
-            #I moved it down to after the skill selection.
-            
-            self.cli.print_status("Collecting analysis statistics...", "info")
-            ai_data_bundle = collect_stats(
-                metadata_stats=data_bundle.metadata_results,
-                metadata_analysis=result_bundle.metadata_analysis,
-                text_analysis=text_analysis_data,
-                project_analysis=result_bundle.project_analysis_data
-            )
-            
-            topn_keywords = 10
-            topic_keywords = []
-            if data_bundle.lda_model is not None and data_bundle.dictionary is not None:
-                num_topics = len(result_bundle.topic_term_vectors) if result_bundle.topic_term_vectors else 0
-                for topic_id in range(num_topics):
-                    words = [w for (w, _) in data_bundle.lda_model.show_topic(topic_id, topn=topn_keywords)]
-                    topic_keywords.append({"topic_id": topic_id, "keywords": words})
-
-            doc_top_topics = []
-            for doc_idx, vec in enumerate(result_bundle.doc_topic_vectors or []):
-                if not vec:
-                    doc_top_topics.append({"doc_id": doc_idx, "top_topics": []})
-                    continue
-                top_pairs = sorted([(i, p) for i, p in enumerate(vec)], key=lambda x: x[1], reverse=True)[:2]
-                doc_top_topics.append({
-                    "doc_id": doc_idx,
-                    "top_topics": [{"topic_id": i, "prob": float(p)} for i, p in top_pairs]
-                })
-
-            topic_vector_bundle = {
-                "topic_keywords": topic_keywords,
-                "top_topics": doc_top_topics,
-            }
-            
-            topic_vector_bundle = self.review_topic_bundle(topic_vector_bundle)
-
-            #extract detected skills from metadata analysis
-            detected_skills = []
-            if result_bundle.metadata_analysis:
-                primary_languages = result_bundle.metadata_analysis.get('primary_languages', [])
-                primary_skills = result_bundle.metadata_analysis.get('primary_skills', [])
-                #combine languages and skills, we can let the user decide on the scope
-                seen = set()
-                for skill in primary_languages + primary_skills:
-                    if skill and skill not in seen:
-                        detected_skills.append(skill)
-                        seen.add(skill)
-            
-            user_highlights = []
-            if detected_skills:
-                user_highlights = self.cli.display_skill_selection_menu(detected_skills)
-            
-            #add the new highlights into the bundle
-            topic_vector_bundle['user_highlights'] = user_highlights
-            #allow user to review and edit topic keywords
-            #no db saving for edited topic words tho (for now)
-            
-            
-            # MOVED: AI Summary Generation Header is now here
-            self.cli.print_header("AI Summary Generation")
-            
-            self.cli.print_privacy_notice()
-
-            online_consent = self.config_manager.get_consent(
-                key="online_llm_consent",
-                prompt_text="Do you consent to using the ONLINE LLM?",
-                component="sending data to the Online LLM",
-                default=False # We default to NO for privacy reasons
-            )
-
-            if online_consent:
-                self.cli.print_status("Mode: Online LLM", "success")
-                try:
-                    llm_client = OnlineLLMClient()
-                except ValueError as e:
-                    self.cli.print_status(f"Online Init failed: {e}. Falling back to Local.", "error")
-                    llm_client = LocalLLMClient()
-            else:
-                self.cli.print_status("Mode: Local LLM", "success")
-                llm_client = LocalLLMClient()
-            
-            self.cli.print_status("Generating project summary (this may take a moment)...", "info")
-            
-            try:
-                result_bundle.medium_summary = llm_client.generate_summary(topic_vector_bundle)
-                self.cli.print_header("Standard Summary")
-                print(result_bundle.medium_summary)
-                print("=" * 60 + "\n")
-                return result_bundle.medium_summary
-                
-            except Exception as e:
-                raise RuntimeError(f"Error generating summary: {e}")
-        except Exception as e:
-            raise RuntimeError(f"Error collecting statistics: {e}")
-    
-    #main execution func
-    def run_analysis(self, filepath: str,return_id = False, existing_analysis_id: Optional[str] = None, preloaded_tree: Optional[Node] = None, preloaded_binary: Optional[List[bytes]] = None) -> None|str:
+    def run_analysis_extract(self, filepath: str, existing_analysis_id: Optional[str] = None, preloaded_tree: Optional[Node] = None, preloaded_binary: Optional[List[bytes]] = None, github_username: Optional[str] = None, github_email: Optional[str] = None):
         """
-        Runs the various analysis pipelines in sequence. 
-        Important Note: 
-            - Early steps common to all pipelines return from function when error is encountered
-            - When Pipelines encounter error, error is printed to console and next pipeline is executed.
+        Phase 1: Data loading, classification, metadata analysis, topic analysis, repo analysis,
+        and data preparation for AI summary generation.
+        
+        Returns:
+            Tuple of (analysis_id, topic_vector_bundle, detected_skills, text_analysis_data)
+            or None if an error occurs during early steps.
         """
         filetree: Node = None
         binary_data: List[bytes] = []
@@ -584,7 +493,7 @@ class AnalysisPipeline:
             except Exception as e:
                 # Updated error format to match the test expectation: "Load Error: fail"
                 self.cli.print_status(f"{e}","error")
-                return
+                return None
             
             #Load various parts of fm_result as vars for downstream use
             filetree = fm_result["tree"] #Extract Filetree from fm_result
@@ -593,7 +502,7 @@ class AnalysisPipeline:
             if not isinstance(binary_data, list):
                 self.cli.print_status("File Manager Error: Binary data not loaded. Aborting analysis.", " error") #changed because without any binary data cannot do any analysis
                 binary_data = []
-                return
+                return None
 
             #Create Analysis ID and Save Initial Fileset immediately for future updates
             try:
@@ -614,14 +523,14 @@ class AnalysisPipeline:
                 
             except Exception as e:
                 self.cli.print_status(f"Database Analysis Creation Error: {e}", "error")
-                return
+                return None
        
         #classify loaded files in text or code and extract git repos
         try:
             textfile_nodes,codefile_nodes,git_repos,binary_data = self.classify_files(filetree,binary_data)
         except Exception as e:
             self.cli.print_status(f"File Classifier Error, Aborting analysis:{e}")
-            return # Added return to prevent UnboundLocalError later
+            return None
             
         #run metadata analysis
         try:
@@ -636,8 +545,11 @@ class AnalysisPipeline:
             self.cli.print_status(f"Topic Analysis Error: {e}","error")
         
         #run git_repo_analysis
+        analyzed_repos = None
+        timeline = None
+        processed_git_repos = None
         try:    
-            git_repos,analyzed_repos,timeline,processed_git_repos = self.run_repo_analysis_pipeline(git_repos,binary_data)
+            git_repos,analyzed_repos,timeline,processed_git_repos = self.run_repo_analysis_pipeline(git_repos,binary_data,github_username=github_username,github_email=github_email,interactive=False)
         except Exception as e:
             self.cli.print_status(f"{e}","error")
             import traceback
@@ -657,11 +569,152 @@ class AnalysisPipeline:
         } if git_repos else {}
         self.data_bundle.processed_git_repos = processed_git_repos
         
-        #Run AI based Natural language generation
-        self.result_bundle.medium_summary = self.run_AI_NLG(self.data_bundle,self.result_bundle,text_analysis_data)
+        # Collect analysis statistics (moved from run_AI_NLG)
+        try:
+            self.cli.print_status("Collecting analysis statistics...", "info")
+            ai_data_bundle = collect_stats(
+                metadata_stats=self.data_bundle.metadata_results,
+                metadata_analysis=self.result_bundle.metadata_analysis,
+                text_analysis=text_analysis_data,
+                project_analysis=self.result_bundle.project_analysis_data
+            )
+        except Exception as e:
+            raise RuntimeError(f"Error collecting statistics: {e}")
         
-        #Save All relevent input data and results to DB
-        self.save_results(self.data_bundle,self.result_bundle,analysis_id,return_id)
+        # Build topic_vector_bundle (moved from run_AI_NLG)
+        topn_keywords = 10
+        topic_keywords = []
+        if self.data_bundle.lda_model is not None and self.data_bundle.dictionary is not None:
+            num_topics = len(self.result_bundle.topic_term_vectors) if self.result_bundle.topic_term_vectors else 0
+            for topic_id in range(num_topics):
+                words = [w for (w, _) in self.data_bundle.lda_model.show_topic(topic_id, topn=topn_keywords)]
+                topic_keywords.append({"topic_id": topic_id, "keywords": words})
+
+        doc_top_topics = []
+        for doc_idx, vec in enumerate(self.result_bundle.doc_topic_vectors or []):
+            if not vec:
+                doc_top_topics.append({"doc_id": doc_idx, "top_topics": []})
+                continue
+            top_pairs = sorted([(i, p) for i, p in enumerate(vec)], key=lambda x: x[1], reverse=True)[:2]
+            doc_top_topics.append({
+                "doc_id": doc_idx,
+                "top_topics": [{"topic_id": i, "prob": float(p)} for i, p in top_pairs]
+            })
+
+        topic_vector_bundle = {
+            "topic_keywords": topic_keywords,
+            "top_topics": doc_top_topics,
+        }
+
+        # Extract detected skills from metadata analysis (moved from run_AI_NLG)
+        detected_skills = []
+        if self.result_bundle.metadata_analysis:
+            primary_languages = self.result_bundle.metadata_analysis.get('primary_languages', [])
+            primary_skills = self.result_bundle.metadata_analysis.get('primary_skills', [])
+            #combine languages and skills, we can let the user decide on the scope
+            seen = set()
+            for skill in primary_languages + primary_skills:
+                if skill and skill not in seen:
+                    detected_skills.append(skill)
+                    seen.add(skill)
+
+        return (analysis_id, topic_vector_bundle, detected_skills, text_analysis_data)
+
+    def run_analysis_generate(self, analysis_id: str, topic_vector_bundle: dict, text_analysis_data: dict, selected_projects: Optional[List[str]] = None, return_id: bool = False):
+        """
+        Phase 2: AI summary generation and saving results to database.
+        
+        Returns:
+            analysis_id if return_id is True, otherwise the generated medium_summary.
+        """
+        try:
+            # === FILTER AND RERANK PROJECTS ===
+            if selected_projects is not None and self.result_bundle.project_analysis_data:
+                cached_insights = self.result_bundle.project_analysis_data.get("analyzed_insights", [])
+
+                filtered_insights = []
+                # Loop through the frontend's array to preserve exact order
+                for project_name in selected_projects:
+                    for repo in cached_insights:
+                        if repo.get("repository_name") == project_name:
+                            filtered_insights.append(repo)
+                            break
+
+                # Overwrite the cache with the filtered/reordered list
+                self.result_bundle.project_analysis_data["analyzed_insights"] = filtered_insights
+
+                # Rebuild the timeline for only the selected projects
+                analyzer = RepositoryAnalyzer(None, None)
+                self.result_bundle.project_analysis_data["timeline"] = analyzer.create_chronological_project_list(filtered_insights)
+            # ==================================
+
+            # AI Summary Generation
+            self.cli.print_header("AI Summary Generation")
+            
+            #check preferences, api and wrapper should alr have them saved
+            online_consent = self.config_manager.preferences.get("online_llm_consent", False)
+
+            if online_consent:
+                self.cli.print_status("Mode: Online LLM", "success")
+                try:
+                    llm_client = OnlineLLMClient()
+                except ValueError as e:
+                    self.cli.print_status(f"Online Init failed: {e}. Falling back to Local.", "error")
+                    llm_client = LocalLLMClient()
+            else:
+                self.cli.print_status("Mode: Local LLM", "success")
+                llm_client = LocalLLMClient()
+            
+            self.cli.print_status("Generating project summary (this may take a moment)...", "info")
+            
+            try:
+                self.result_bundle.medium_summary = llm_client.generate_summary(topic_vector_bundle)
+                self.cli.print_header("Standard Summary")
+                print(self.result_bundle.medium_summary)
+                print("=" * 60 + "\n")
+                
+            except Exception as e:
+                raise RuntimeError(f"Error generating summary: {e}")
+        except Exception as e:
+            raise RuntimeError(f"Error during AI summary generation: {e}")
+        
+        #Save All relevant input data and results to DB
+        self.save_results(self.data_bundle, self.result_bundle, analysis_id, return_id)
         
         if return_id:
             return analysis_id
+        return self.result_bundle.medium_summary
+
+    #main execution func (wrapper)
+    def run_analysis(self, filepath: str,return_id = False, existing_analysis_id: Optional[str] = None, preloaded_tree: Optional[Node] = None, preloaded_binary: Optional[List[bytes]] = None) -> None|str:
+        """
+        Wrapper that orchestrates the full analysis pipeline via CLI.
+        Calls Phase 1, handles interactive CLI prompts, then calls Phase 2.
+        """
+        #Phase 1: Extract and analyze data
+        extract_result = self.run_analysis_extract(filepath, existing_analysis_id, preloaded_tree, preloaded_binary)
+        
+        if extract_result is None:
+            return None
+        
+        analysis_id, topic_vector_bundle, detected_skills, text_analysis_data = extract_result
+        
+        #CLI interactive prompts: review topics and select skills
+        topic_vector_bundle = self.review_topic_bundle(topic_vector_bundle)
+        
+        user_highlights = []
+        if detected_skills:
+            user_highlights = self.cli.display_skill_selection_menu(detected_skills)
+        
+        topic_vector_bundle['user_highlights'] = user_highlights
+        self.cli.print_privacy_notice()
+
+        online_consent = self.config_manager.get_consent(
+            key="online_llm_consent",
+            prompt_text="Do you consent to using the ONLINE LLM?",
+            component="sending data to the Online LLM",
+            default=False
+        )
+        
+        #Phase 2: Generate AI summary and save results
+        return self.run_analysis_generate(analysis_id, topic_vector_bundle, text_analysis_data, return_id=return_id)

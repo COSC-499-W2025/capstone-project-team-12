@@ -2,6 +2,7 @@ import os
 import shutil
 import tempfile
 import json
+import pickle
 from typing import Optional, Dict, Any, List
 from pathlib import Path
 import uuid
@@ -19,6 +20,11 @@ from config_manager import ConfigManager
 from database_manager import DatabaseManager
 from llm.llm_clients import LocalLLMClient, OnlineLLMClient
 from portfolio_builder import PortfolioBuilder
+from main_utils import perform_update_merge
+from anytree.importer import DictImporter
+from anytree.exporter import DictExporter
+from tree_manager import TreeManager
+from file_manager import FileManager
 
 app = FastAPI(title="Artifact Mining API")
 
@@ -58,6 +64,18 @@ class ConsentRequest(BaseModel):
 
 class TopicEditRequest(BaseModel):
     topic_keywords: List[Dict[str, Any]] 
+
+class TopicKeyword(BaseModel):
+    topic_id: int
+    keywords: List[str]
+
+
+class CommitUpdateRequest(BaseModel):
+    topic_keywords: List[TopicKeyword]
+    user_highlights: List[str]
+    selected_projects: List[str]  # Ordered list of repo names
+    online_llm_consent: bool
+
 
 # --- Endpoints ---
 @app.get("/")
@@ -454,6 +472,206 @@ async def update_consent(req: ConsentRequest):
     cfg.save_prefs({req.consent_type: req.value})
     return {"status": "success"}
 
+@app.put("/projects/{analysis_id}/update/extract")
+async def extract_update(
+    analysis_id: str,
+    file: UploadFile = File(...),
+    github_username: Optional[str] = Form(None),
+    github_email: Optional[str] = Form(None),
+    db: DatabaseManager = Depends(get_db),
+):
+    """
+    Phase 1 – Upload & Extract.
+    Merges the uploaded file with the existing analysis, runs extraction,
+    and caches the heavy state for the subsequent commit step.
+    """
+    try:
+        validate_uuid(analysis_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid UUID format")
+
+    # Save uploaded file to a temporary path
+    suffix = Path(file.filename).suffix
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        shutil.copyfileobj(file.file, tmp)
+        tmp_path = tmp.name
+
+    try:
+        # Initialise helpers
+        file_manager = FileManager()
+        tree_manager = TreeManager()
+        importer = DictImporter()
+        exporter = DictExporter()
+
+        # Load the new file
+        fm_result = file_manager.load_from_filepath(tmp_path)
+        if fm_result.get("status") == "error":
+            raise HTTPException(
+                status_code=400,
+                detail=f"Load Error: {fm_result.get('message', 'Unknown error')}",
+            )
+
+        new_tree = fm_result["tree"]
+        new_binary_list = fm_result.get("binary_data", [])
+
+        # Merge with existing analysis data
+        try:
+            merged_tree, merged_binary_list = perform_update_merge(
+                analysis_id, new_tree, new_binary_list, db, tree_manager, importer, exporter
+            )
+        except LookupError:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No existing analysis found for ID {analysis_id}",
+            )
+
+        if merged_tree is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Merge failed – no existing analysis for ID {analysis_id}",
+            )
+
+        # Phase 1: run extraction
+        pipeline = AnalysisPipeline(CLI(), ConfigManager(), db)
+        extract_result = pipeline.run_analysis_extract(
+            filepath=tmp_path,
+            existing_analysis_id=analysis_id,
+            preloaded_tree=merged_tree,
+            preloaded_binary=merged_binary_list,
+            github_username=github_username,
+            github_email=github_email,
+        )
+
+        if extract_result is None:
+            raise HTTPException(status_code=500, detail="Extraction phase failed")
+
+        analysis_id_out, topic_vector_bundle, detected_skills, text_analysis_data = extract_result
+
+        # Gather analyzed repos from pipeline result bundle
+        analyzed_repos = (
+            pipeline.result_bundle.project_analysis_data.get("analyzed_insights", [])
+            if pipeline.result_bundle.project_analysis_data
+            else []
+        )
+
+        # Cache the heavy state for Phase 2
+        cache_data = {
+            "merged_tree_dict": exporter.export(merged_tree),
+            "merged_binary_list": merged_binary_list,
+            "topic_vector_bundle": topic_vector_bundle,
+            "text_analysis_data": text_analysis_data,
+            "analyzed_repos": analyzed_repos,
+        }
+
+        os.makedirs("cache", exist_ok=True)
+        cache_path = os.path.join("cache", f"pending_update_{analysis_id}.pkl")
+        with open(cache_path, "wb") as f:
+            pickle.dump(cache_data, f)
+
+        # Build JSON-friendly response
+        analyzed_projects = [
+            {
+                "repository_name": repo.get("repository_name", repo.get("name", "Unknown")),
+                "importance_score": repo.get("importance_score", 0),
+            }
+            for repo in analyzed_repos
+        ]
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "topic_keywords": topic_vector_bundle.get("topic_keywords", []),
+                "detected_skills": detected_skills,
+                "analyzed_projects": analyzed_projects,
+            },
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+
+
+@app.post("/projects/{analysis_id}/update/commit")
+async def commit_update(
+    analysis_id: str,
+    request: CommitUpdateRequest,
+    db: DatabaseManager = Depends(get_db),
+):
+    """
+    Phase 2 – Commit & Generate.
+    Applies user edits (topic keywords, highlights, project selection)
+    to the cached extraction data, generates the AI summary, and persists
+    everything to the database.
+    """
+    cache_path = os.path.join("cache", f"pending_update_{analysis_id}.pkl")
+    if not os.path.exists(cache_path):
+        raise HTTPException(
+            status_code=404,
+            detail="No pending update found – cache expired or invalid analysis ID",
+        )
+
+    # Load and immediately delete the cache file
+    with open(cache_path, "rb") as f:
+        cached_data = pickle.load(f)
+    os.remove(cache_path)
+
+    try:
+        # Set LLM consent
+        config = ConfigManager()
+        config.save_prefs({"online_llm_consent": request.online_llm_consent})
+
+        # Reconstruct topic_vector_bundle with user edits
+        topic_vector_bundle = cached_data["topic_vector_bundle"]
+        topic_vector_bundle["topic_keywords"] = [
+            {"topic_id": tk.topic_id, "keywords": tk.keywords}
+            for tk in request.topic_keywords
+        ]
+        topic_vector_bundle["user_highlights"] = request.user_highlights
+
+        # Filter / order analyzed repos to match user selection
+        cached_repos = cached_data.get("analyzed_repos", [])
+        repo_lookup = {
+            repo.get("repository_name", repo.get("name", "")): repo
+            for repo in cached_repos
+        }
+        filtered_repos = [
+            repo_lookup[name]
+            for name in request.selected_projects
+            if name in repo_lookup
+        ]
+        cached_data["analyzed_repos"] = filtered_repos
+
+        # Save merged files to DB
+        db.save_fileset(
+            analysis_id,
+            pickle.dumps(cached_data["merged_binary_list"]),
+            cached_data["merged_tree_dict"],
+            "Updated via API",
+        )
+
+        # Phase 2: generate AI summary and save results
+        pipeline = AnalysisPipeline(CLI(), ConfigManager(), db)
+        summary = pipeline.run_analysis_generate(
+            analysis_id=analysis_id,
+            topic_vector_bundle=topic_vector_bundle,
+            text_analysis_data=cached_data["text_analysis_data"],
+            selected_projects=request.selected_projects,
+            return_id=False,
+        )
+
+        return JSONResponse(
+            status_code=200,
+            content={"status": "success", "summary": summary},
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 @app.delete("/projects/{analysis_id}")
 async def delete_project(analysis_id: str, db: DatabaseManager = Depends(get_db)):
     """
