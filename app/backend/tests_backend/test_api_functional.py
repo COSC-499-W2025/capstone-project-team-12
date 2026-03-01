@@ -118,14 +118,14 @@ def mock_backend(mocker,sample_analysis,sample_resume, sample_portfolio,placehol
     # mock db_manager returns for resume functions
     db_instance.get_all_resumes.return_value = [sample_resume, sample_resume]
     db_instance.get_resumes_by_analysis_id.return_value = [sample_resume]
-    db_instance.get_resume_by_resume_id.return_value = sample_resume
+    db_instance.get_resume_by_resume_id.return_value = [sample_resume]
     db_instance.save_resume.return_value = 1  # integer resume_id
     
     
     # mock porfolio_manager returns for portfolio functions
     db_instance.get_all_portfolios.return_value = [sample_portfolio, sample_portfolio]
     db_instance.get_portfolios_by_analysis_id.return_value = [sample_portfolio]
-    db_instance.get_portfolio_by_portfolio_id.return_value = sample_portfolio
+    db_instance.get_portfolio_by_portfolio_id.return_value = [sample_portfolio]
     db_instance.save_portfolio.return_value = 1  # integer portfolio_id
     
     # Funny note because this needs to go somewhere:
@@ -297,7 +297,7 @@ def test_get_resumes_by_analysis_success(mock_backend, sample_resume,placeholder
 def test_get_resume_success(mock_backend, sample_resume):
     """Test fetching a single resume by id."""
     
-    mock_backend["db"].get_resume_by_resume_id.return_value = sample_resume
+    mock_backend["db"].get_resume_by_resume_id.return_value = [sample_resume]
     
     response = client.get("/resume/1")
     assert response.status_code == 200
@@ -485,7 +485,7 @@ def test_get_portfolios_by_analysis_success(mock_backend, sample_portfolio,place
 
 def test_get_portfolio_success(mock_backend, sample_portfolio):
     """Test fetching a single portfolio by id."""
-    mock_backend["db"].get_portfolio_by_portfolio_id.return_value = sample_portfolio
+    mock_backend["db"].get_portfolio_by_portfolio_id.return_value = [sample_portfolio]
     response = client.get("/portfolio/1")
     assert response.status_code == 200
     assert response.json() == sample_portfolio
