@@ -10,10 +10,9 @@ class ConfigManager:
         self.preferences = self._load_prefs()
 
     def _load_prefs(self) -> Dict[str, Any]:
-        #Load preferences from JSON, or return empty dict if not found.
+        """Load preferences from JSON, or return empty dict if not found."""
         if not self.config_path.exists():
             return {}
-        
         try:
             with open(self.config_path, 'r') as f:
                 return json.load(f)
@@ -21,28 +20,22 @@ class ConfigManager:
             return {}
 
     def save_prefs(self, new_prefs: Dict[str, Any]) -> None:
-        #Update internal state and write to JSON file.
+        """Update internal state and write to JSON file."""
         self.preferences.update(new_prefs)
         self.config_dir.mkdir(parents=True, exist_ok=True)
         try:
             with open(self.config_path, 'w') as f:
                 json.dump(self.preferences, f, indent=4)
         except IOError as e:
-            print(f"Warning: Could not save preferences: {e}")
+            print(f"[!] Warning: Could not save preferences: {e}")
 
     def get_consent(self, key: str, prompt_text: str, component: str = "this feature", default: bool = True) -> bool:
-        #Asks for consent, acknowledging previous choices with specific component context.
-        
+        """Ask for consent, acknowledging previous choices with specific component context."""
         previous_val = self.preferences.get(key)
-        
-        #SCENARIO 1: No History (First Run) 
-        if previous_val is None:
 
-            # checks if default is True, and informs user of the default consent status
-            if default:
-                prompt_display = f"{prompt_text} (Y/n) \n> "
-            else:
-                prompt_display = f"{prompt_text} (y/N) \n> "
+        # SCENARIO 1: No history (first run)
+        if previous_val is None:
+            prompt_display = f"{prompt_text} ({'Y/n' if default else 'y/N'}) \n> "
 
             while True:
                 user_input = input(prompt_display).strip().lower()
@@ -56,17 +49,12 @@ class ConfigManager:
                 elif user_input in ("n", "no"):
                     self.save_prefs({key: False})
                     return False
-                print("Invalid input. Please enter 'y' or 'n'.")
+                print("[!] Unrecognised input. Please enter 'y' or 'n'.")
 
-        #SCENARIO 2: Previously Consented 
+        # SCENARIO 2: Previously consented
         elif previous_val is True:
-            print(f"\n[!] HISTORY: You previously provided consent for {component}.")
-            
-            if default:
-                confirm_prompt = f"Do you STILL consent to {component}? (Y/n) \n> "
-            else:
-                confirm_prompt = f"Do you STILL consent to {component}? (y/N) \n> "
-
+            print(f"\n[*] You previously consented to {component}.")
+            confirm_prompt = f"    Do you still consent? ({'Y/n' if default else 'y/N'}) \n> "
             confirm = input(confirm_prompt).strip().lower()
 
             if confirm == "" and default is not None:
@@ -81,18 +69,13 @@ class ConfigManager:
             elif confirm in ("y", "yes"):
                 return True
             else:
-                print("Invalid input. Defaulting to previous consent value.")
+                print("[!] Unrecognised input. Keeping previous consent.")
                 return previous_val
 
-        # SCENARIO 3: Previously Denied 
+        # SCENARIO 3: Previously denied
         elif previous_val is False:
-            print(f"\n[*] HISTORY: You previously denied consent for {component}.")
-            
-            if default:
-                confirm_prompt = f"Do you want to change your mind and consent to {component}? (Y/n) \n> "
-            else:
-                confirm_prompt = f"Do you want to change your mind and consent to {component}? (y/N) \n> "
-            
+            print(f"\n[*] You previously denied consent for {component}.")
+            confirm_prompt = f"    Do you want to grant consent now? ({'Y/n' if default else 'y/N'}) \n> "
             change = input(confirm_prompt).strip().lower()
 
             if change in ("y", "yes"):
@@ -107,10 +90,9 @@ class ConfigManager:
                 else:
                     print("[-] Consent remains revoked.")
                     return False
-                return default
             elif change in ("n", "no"):
                 print("[-] Consent remains revoked.")
                 return False
             else:
-                print("Invalid input. Defaulting to previous consent value.")
+                print("[!] Unrecognised input. Keeping previous consent.")
                 return previous_val

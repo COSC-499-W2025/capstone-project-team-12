@@ -240,7 +240,7 @@ class TestRunRepoAnalysisPipeline:
         
         result = pipeline.run_repo_analysis_pipeline(git_repos, [])
         
-        pipeline.cli.print_status.assert_called_with("Skipping Git linking.", "info")
+        pipeline.cli.print_status.assert_called_with("Skipping GitHub linking.", "info")
         assert result == ([], [], [], [])
 
     @patch('analysis_pipeline.RepositoryProcessor')
@@ -291,9 +291,7 @@ class TestRunRepoAnalysisPipeline:
         
         pipeline.run_repo_analysis_pipeline(git_repos, [])
         
-        pipeline.cli.print_status.assert_any_call(
-            "No repositores to process.", "error"
-        )
+        pipeline.cli.print_status.assert_any_call('No repositories could be processed.', "error")
 
     
     #Primary test for the entire repo analysis pipeline
