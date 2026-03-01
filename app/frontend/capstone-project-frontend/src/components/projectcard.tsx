@@ -6,7 +6,18 @@ import { type Project } from "../types";
 
 const ProjectCard: React.FC<{ project: Project; index: number }> = ({ project, index }) => {
   const [open, setOpen] = useState(false);
-  const levelColor = project.contribution.level === "Top Contributor" ? "#e8ff47" : "#47d9ff";
+
+  const levelColors: Record<string, string> = {
+    "Sole Contributor":        "#e8ff47",  
+    "Top Contributor":         "#FFD700",  
+    "Major Contributor":       "#a78bfa",
+    "Significant Contributor": "#47d9ff",  
+    "Contributor":             "#8899bb",  
+  };
+
+  const levelColor = levelColors[project.contribution.level] ?? "#8899bb";
+
+//   const levelColor = project.contribution.level === "Top Contributor" ? "#e8ff47" : "#47d9ff";
 
   return (
     <div className="bg-[#111318] border border-[#1e2330] rounded-md mb-4 overflow-hidden fade-in-card" style={{ animationDelay: `${index * 150}ms` }}>
@@ -50,13 +61,15 @@ const ProjectCard: React.FC<{ project: Project; index: number }> = ({ project, i
             <Counter value={project.totals.net}     label="net lines" forceStart={open} />
           </div>
 
-          <div className="text-[0.6rem] tracking-[0.18em] text-[#556070] mb-3 mt-5 uppercase">CONTRIBUTION SHARE</div>
-          <div className="h-6 bg-[#1a1d26] rounded overflow-hidden relative">
-            <div className="h-full rounded transition-[width] duration-1000 ease-out" style={{ width: open ? `${project.contribution.share}%` : "0%", background: "linear-gradient(90deg,#e8ff47,#a8e030)" }} />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[0.65rem] font-bold text-[#111318] pointer-events-none mix-blend-multiply">
-              {project.contribution.share}% of commits
-            </span>
-          </div>
+        <div className="text-[0.6rem] tracking-[0.18em] text-[#556070] mb-3 mt-5 uppercase">CONTRIBUTION SHARE</div>
+            <div className="relative">
+                <div className="h-6 bg-[#1a1d26] rounded overflow-hidden">
+                    <div className="h-full rounded transition-[width] duration-1000 ease-out" style={{ width: open ? `${project.contribution.share}%` : "0%", background: "linear-gradient(90deg,#e8ff47,#a8e030)" }} />
+                </div>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[0.65rem] font-bold text-white pointer-events-none">
+                    {project.contribution.share}% of total commits
+                </span>
+            </div>
 
           {project.technologies.length > 0 && (
             <>
