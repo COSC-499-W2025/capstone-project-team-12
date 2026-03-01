@@ -253,3 +253,13 @@ class TestAPIIntegration:
         
         verify_response = client.get(f"/projects/{gl_analysis_id}")
         assert verify_response.status_code == 404
+
+    def test_delete_all_projects(self):
+        """Test wiping all projects and associated data via endpoint"""
+        response = client.delete("/projects")
+        assert response.status_code == 204
+        
+        # Verify the database returns an empty list for projects
+        verify_response = client.get("/projects")
+        assert verify_response.status_code == 200
+        assert len(verify_response.json()) == 0
