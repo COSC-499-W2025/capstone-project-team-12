@@ -118,6 +118,11 @@ Follow the on-screen prompts to:
 - Explore different features
 
 ---
+## System API:
+
+For an indepth understanding of the API endpoints for this system, please [view our API Documentation here](docs/plan/API%20Documentation.md)
+
+---
 
 ## Troubleshooting
 
