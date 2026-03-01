@@ -1,5 +1,25 @@
 # Madelyn DeGruchy Personal Log (85064962 - maddydeg)
 
+## Term 2 Weeks 6 - 8 (02/09/2026 - 03/01/2026)
+- Updated the flow of the prompts from the system to make the default response default to yes for everything except for LLM online consent and deletion (anything that was destructive or would allow for a security risk).
+  - These defaults take place when the user enters an empty or invalid input, which allows the user to quickly go through the process when they are prompted to make decisions about their analysis. I added a default parameter to the config manager so that we can specify if we want the system to allow or deny consent.  
+- Added missing testing for config manager, as well as for changes to default prompt flows
+- Added the generation of resumes and portfolios to take place after the first run of analysis, and changed the menu to now have "Manage Resumes" and "Manage Portfolios" instead of the "Generate" option we used to have
+  - When a user chooses to manage portfolios or resumes, they choose which analysis they want to view (given that both will be generated once analysis is complete, and the user can create multiple resumes and portfolios for each analysis), and then can choose which resume/portfolio they want to manage. From there, they can choose if they want to view, edit, delete, or generate a new resume.
+  - Added deletion of resumes and portfolios to the database manager to support the deletion functionality.
+  - Added the testing for all changes and new functionalities added from this work
+- Created the API Documentation for all endpoints, including all possible responses
+- Took part in all team meetings for planning the end of Milestone 2, took minutes for task assignments
+- Collaborated on team slides for our presentation, and presented our Milestone 2 changes.
+
+## Next Week
+- We will be distributing tasks to be completed as we begin the implementation of our front-end at our meeting on Monday. The main tasks I have noted for completion are continuing to ensure we have decoupled the CLI from the flow of the system (though a lot of that work was completed by Devin this week), as well as looking into exactly how to set up and move forward with the React web app we are creating. We are fairly certain that the requirements for Milestone 3 will not change significantly moving forward, so we are planning to use those and our responses from peer testing as our structure to plan the next 4 weeks of implementation.
+
+## Reflection
+We have wrapped up Milestone 2 and are feeling optimistic about how it will translate to the creation of our front-end. Given that the final weeks of any term are full of many deadlines, we will need to ensure we are keeping on top of our weekly tasks to meet the tight turnaround of the next 4 weeks. As a team, we will need to make sure we have considered all of the tasks we will need to complete by the end of Milestone 3 so that we are able to schedule them accordingly. 
+
+![Peer Evaluation Term 2 Weeks 6-8](imgs/Madelyn%20DeGruchy%20T2%20Week%208.png)
+
 ## Term 2 Weeks 4 & 5 (01/26/2026 - 02/08/2026)
 - Changed how contributors in a GitHub project are counted
   -  The way that git logs (which the library PyDriller is built on) extracts the information about a given author varies from project to project and person to person. For example, I have one project where the author name is stored under my GitHub username for some of my commits, and under the full name attached to my GitHub account for others. The email attached to a commit also varies, and sometimes is my account email and sometimes is a privatized version that contains my GitHub username. Which version of both the username and email varies, and was also not consistent from project to project. While we were able to count the actual user accurately since they provide both their username and GitHub email, we needed better logic to count other contributors to the project without needing to explicitly tell the system the name, username, and emails of everyone the user ever collaborated with. We now map every instance to whichever username the system encounters first, and check for similar usernames or emails between all other commits.
