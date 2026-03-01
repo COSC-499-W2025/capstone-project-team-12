@@ -17,3 +17,4 @@ __pycache__/
 
 #ignore api cache files
 /app/backend/cache
+/app/backend/tests_backend/log.txt

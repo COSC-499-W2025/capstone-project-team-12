@@ -84,7 +84,6 @@ class ResumeBuilder:
 
             # Construct resume dictionary
             resume = {
-                "resume_id": str(uuid.uuid4()),
                 "analysis_id": analysis_id,
                 "summary": summary,
                 "projects": projects,

@@ -115,7 +115,6 @@ class PortfolioBuilder:
             
             # Construct portfolio dictionary - ready for JSON serialization
             portfolio = {
-                "portfolio_id": str(uuid.uuid4()),
                 "result_id": result_id,
                 "projects_detail": projects_detail,
                 "skill_timeline": skill_timeline,
