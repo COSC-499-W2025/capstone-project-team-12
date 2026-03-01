@@ -179,7 +179,6 @@ class TestAPIIntegration:
     
     def test_get_resume_by_resume_id(self):
         global gl_resume_id
-        gl_resume_id = gl_resume_id['resume_id']
         response = client.get(f"/resume/{gl_resume_id}")
         assert response.status_code == 200
         result = response.json()

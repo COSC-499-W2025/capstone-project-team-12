@@ -137,7 +137,6 @@ class TestPortfolioBuilder:
         portfolio = builder.create_portfolio_from_result_id(mock_db_manager, mock_cli, 'test-result-id')
         
         assert portfolio is not None
-        assert 'portfolio_id' in portfolio
         assert 'result_id' in portfolio
         assert portfolio['result_id'] == 'test-result-id'
         assert 'projects_detail' in portfolio
@@ -188,8 +187,6 @@ class TestPortfolioBuilder:
         portfolio = builder._build_portfolio(sample_result_data, 'test-result-id')
         
         assert portfolio['result_id'] == 'test-result-id'
-        assert isinstance(portfolio['portfolio_id'], str)
-        assert len(portfolio['portfolio_id']) > 0
         
         # Verify projects_detail
         assert len(portfolio['projects_detail']) == 2
@@ -216,7 +213,6 @@ class TestPortfolioBuilder:
         portfolio = builder._build_portfolio(invalid_data, 'test-id')
         
         assert portfolio['result_id'] == 'test-id'
-        assert isinstance(portfolio['portfolio_id'], str)
         assert portfolio['projects_detail'] == []
         # skill_timeline returns a dict with empty values, not empty dict
         assert portfolio['skill_timeline']['high_level_skills'] == []

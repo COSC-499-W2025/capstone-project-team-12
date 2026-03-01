@@ -23,9 +23,13 @@ API Testing methodology:
 
 # path to import backend code
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from main_api import app
+from main_api import app,get_db
 
 client = TestClient(app)
+
+@pytest.fixture
+def placeholder_UUID():
+    return "00000000-0000-0000-0000-000000000000"
 
 @pytest.fixture
 def sample_analysis(placeholder_UUID):
@@ -51,7 +55,7 @@ def sample_analysis(placeholder_UUID):
 def sample_resume(placeholder_UUID):
     return {
             "resume_id": 1,
-            "result_id": placeholder_UUID,
+            "analysis_id": placeholder_UUID,
             "summary": "Test summary",
             "projects": [],
             "skills": [],
@@ -61,15 +65,13 @@ def sample_resume(placeholder_UUID):
 def sample_portfolio(placeholder_UUID):
     return {
         "portfolio_id": 1,
-        "result_id": placeholder_UUID,
+        "analysis_id": placeholder_UUID,
         "projects_detail": [],
         "skill_timeline": {},
         "growth_metrics": {}
     }
 
-@pytest.fixture
-def placeholder_UUID():
-    return "00000000-0000-0000-0000-000000000000"
+
 
 @pytest.fixture
 def mock_backend(mocker,sample_analysis,sample_resume, sample_portfolio,placeholder_UUID):
@@ -143,7 +145,12 @@ def mock_backend(mocker,sample_analysis,sample_resume, sample_portfolio,placehol
     # The API now expects run_analysis to return a UUID string.
     pipeline_instance.run_analysis.return_value = placeholder_UUID
 
-    return {
+    def override_get_db():
+        yield db_instance
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    yield {                          # <-- change return to yield
         "db": db_instance,
         "pipeline": pipeline_instance,
         "local_llm": local_llm_instance,
@@ -151,6 +158,8 @@ def mock_backend(mocker,sample_analysis,sample_resume, sample_portfolio,placehol
         "config": config_instance
     }
 
+    app.dependency_overrides.clear()  # teardown runs after each test
+    
 # ---- Generalized tests ----
 
 def test_health_check():
