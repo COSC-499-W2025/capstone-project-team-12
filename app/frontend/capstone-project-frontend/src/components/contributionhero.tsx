@@ -5,7 +5,14 @@ const ContributionHero: React.FC<{ contribution: Contribution }> = ({ contributi
   const { rank, teamSize, share, level } = contribution;
   const medalColors = ["#FFD700", "#C0C0C0", "#CD7F32"];
   const rankColor = medalColors[rank - 1] || "#8899aa";
-  const levelColor = level === "Top Contributor" ? "#e8ff47" : "#47d9ff";
+  const levelColors: Record<string, string> = {
+    "Sole Contributor":        "#e8ff47",
+    "Top Contributor":         "#FFD700",
+    "Major Contributor":       "#a78bfa",
+    "Significant Contributor": "#47d9ff",
+    "Contributor":             "#8899bb",
+  };
+  const levelColor = levelColors[level] ?? "#8899bb";
 
   return (
     <div className="grid grid-cols-3 border-t border-[#1e2330]">
