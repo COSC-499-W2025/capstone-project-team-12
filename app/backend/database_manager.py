@@ -453,7 +453,7 @@ class DatabaseManager:
             
             query = """Select * from Resumes res WHERE res.resume_id = %s"""
             
-            result = self.db.execute_query(query,(resume_id,))    
+            result = self.db.execute_query(query,(int(resume_id),))    
 
             if not result:
                 raise LookupError(f"A resume with if {resume_id} does not exist")

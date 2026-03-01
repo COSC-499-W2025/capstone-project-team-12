@@ -333,6 +333,11 @@ async def get_all_resumes(db:DatabaseManager = Depends(get_db)):
     """
     try:
         result = db.get_all_resumes()
+        
+        # Convert UUID objects to strings for JSON serialization
+        for row in result:
+            row['analysis_id'] = str(row.pop('analysis_id'))
+        
         return JSONResponse(status_code=200,content=result)
 
     except LookupError as e: #redundant catch case it is here for consistency with other getters for resumes
@@ -353,6 +358,11 @@ async def get_resumes(analysis_id: str, db: DatabaseManager = Depends(get_db)):
         # Validate UUID format
         
         result = db.get_resumes_by_analysis_id(analysis_id)    
+        
+        # Convert UUID objects to strings for JSON serialization
+        for row in result:
+            row['analysis_id'] = str(row.pop('analysis_id'))
+        
         return JSONResponse(status_code=200,content=result)
     
     except HTTPException as e:
@@ -370,7 +380,12 @@ async def get_resume(resume_id: int, db: DatabaseManager = Depends(get_db)):
         Returns a particular resume with given id.
     """
     try:
+        
         result = db.get_resume_by_resume_id(resume_id)
+        result = result[0]
+        # Convert UUID objects to strings for JSON serialization
+        
+        result['analysis_id'] = str(result.pop('analysis_id'))
         return JSONResponse(status_code=200,content=result)
     
     except HTTPException as e:
@@ -430,9 +445,9 @@ async def generate_resume(analysis_id: str, db: DatabaseManager = Depends(get_db
         #Save new resume to database
         try:
             resume_id = db.save_resume(analysis_id,resume,resume_title)
+            resume['resume_id'] = resume_id #add to match actual return since return by build resume doesnt have field
         except Exception as e:
             raise RuntimeError("Failed to save new resume")
-        
         return JSONResponse(status_code=201,headers=location_header(f"/resume/{resume_id}"),content = resume)
     except HTTPException as e:
         raise e
@@ -459,6 +474,11 @@ async def get_all_portfolios(db:DatabaseManager = Depends(get_db)):
     """
     try:
         result = db.get_all_portfolios()
+        
+        # Convert UUID objects to strings for JSON serialization
+        for row in result:
+            row['analysis_id'] = str(row.pop('analysis_id'))
+        
         return JSONResponse(status_code=200,content=result)
     
     except LookupError as e: #redundant catch case it is here for consistency with other getters for portfolios
@@ -479,6 +499,11 @@ async def get_portfolios(analysis_id: str, db: DatabaseManager = Depends(get_db)
         # Validate UUID format
         
         result = db.get_portfolios_by_analysis_id(analysis_id)    
+        
+        # Convert UUID objects to strings for JSON serialization
+        for row in result:
+            row['analysis_id'] = str(row.pop('analysis_id'))
+        
         return JSONResponse(status_code=200,content=result)
     
     except HTTPException as e:
@@ -497,6 +522,8 @@ async def get_portfolio(portfolio_id: int, db: DatabaseManager = Depends(get_db)
     """
     try:
         result = db.get_portfolio_by_portfolio_id(portfolio_id)
+        result = result[0]
+        result['analysis_id'] = str(result.pop('analysis_id'))
         return JSONResponse(status_code=200,content=result)
     
     except HTTPException as e:
@@ -547,7 +574,7 @@ async def generate_portfolio(analysis_id: str, db: DatabaseManager = Depends(get
             portfolio = portfolio_builder._build_portfolio(analysis_data,analysis_id)
             if not portfolio:
                 raise RuntimeError("portfolio builder returned empty portfolio")
-        
+            
         except LookupError as e:
             raise HTTPException(status_code=404,detail =f"No Analysis with {analysis_id} found:")
         except Exception as e:
@@ -558,7 +585,7 @@ async def generate_portfolio(analysis_id: str, db: DatabaseManager = Depends(get
             portfolio_id = db.save_portfolio(analysis_id,portfolio,portfolio_title)
         except Exception as e:
             raise RuntimeError("Failed to save new portfolio")
-        
+        portfolio['portfolio_id'] = portfolio_id # Save new portfolio id to object
         return JSONResponse(status_code=201,headers=location_header(f"/portfolio/{portfolio_id}"),content = portfolio)
     except HTTPException as e:
         raise e

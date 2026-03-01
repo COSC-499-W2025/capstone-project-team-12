@@ -54,7 +54,6 @@ class TestResumeBuilder:
         resume = builder.create_resume_from_analysis_id(mock_db_manager, mock_cli, 'test-result-id')
         
         assert resume is not None
-        assert 'resume_id' in resume
         assert 'analysis_id' in resume
         assert resume['analysis_id'] == 'test-result-id'
         assert 'summary' in resume
@@ -107,8 +106,6 @@ class TestResumeBuilder:
         resume = builder._build_resume(sample_result_data, 'test-result-id')
         
         assert resume['analysis_id'] == 'test-result-id'
-        assert isinstance(resume['resume_id'], str)
-        assert len(resume['resume_id']) > 0
         assert resume['summary'] == sample_result_data['resume_points']
         assert len(resume['skills']) == 3
         assert len(resume['projects']) > 0
@@ -121,7 +118,6 @@ class TestResumeBuilder:
         resume = builder._build_resume(invalid_data, 'test-id')
         
         assert resume['analysis_id'] == 'test-id'
-        assert isinstance(resume['resume_id'], str)
         assert resume['summary'] is None
         assert resume['projects'] == []
         assert resume['skills'] == []
