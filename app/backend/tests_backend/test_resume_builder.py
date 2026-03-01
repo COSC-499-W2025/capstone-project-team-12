@@ -46,17 +46,17 @@ class TestResumeBuilder:
             }
         }
     
-    def test_create_resume_from_result_id_success(self, mock_db_manager, mock_cli, sample_result_data):
+    def test_create_resume_from_analysis_id_success(self, mock_db_manager, mock_cli, sample_result_data):
         """Test successful resume creation from result ID"""
         builder = ResumeBuilder()
         mock_db_manager.get_analysis_data.return_value = sample_result_data
         
-        resume = builder.create_resume_from_result_id(mock_db_manager, mock_cli, 'test-result-id')
+        resume = builder.create_resume_from_analysis_id(mock_db_manager, mock_cli, 'test-result-id')
         
         assert resume is not None
         assert 'resume_id' in resume
-        assert 'result_id' in resume
-        assert resume['result_id'] == 'test-result-id'
+        assert 'analysis_id' in resume
+        assert resume['analysis_id'] == 'test-result-id'
         assert 'summary' in resume
         assert 'projects' in resume
         assert 'skills' in resume
@@ -68,7 +68,7 @@ class TestResumeBuilder:
         builder = ResumeBuilder()
         mock_db_manager.get_analysis_data.return_value = None
         
-        resume = builder.create_resume_from_result_id(mock_db_manager, mock_cli, 'invalid-id')
+        resume = builder.create_resume_from_analysis_id(mock_db_manager, mock_cli, 'invalid-id')
         
         assert resume is None
         mock_cli.print_status.assert_called_with("Result not found in database.", "error")
@@ -83,7 +83,7 @@ class TestResumeBuilder:
         }
         mock_db_manager.get_analysis_data.return_value = empty_data
         
-        resume = builder.create_resume_from_result_id(mock_db_manager, mock_cli, 'test-id')
+        resume = builder.create_resume_from_analysis_id(mock_db_manager, mock_cli, 'test-id')
         
         assert resume is None
         mock_cli.print_status.assert_called_with(
@@ -95,7 +95,7 @@ class TestResumeBuilder:
         builder = ResumeBuilder()
         mock_db_manager.get_analysis_data.side_effect = Exception("Database error")
         
-        resume = builder.create_resume_from_result_id(mock_db_manager, mock_cli, 'test-id')
+        resume = builder.create_resume_from_analysis_id(mock_db_manager, mock_cli, 'test-id')
         
         assert resume is None
         assert mock_cli.print_status.call_count > 0
@@ -106,7 +106,7 @@ class TestResumeBuilder:
         
         resume = builder._build_resume(sample_result_data, 'test-result-id')
         
-        assert resume['result_id'] == 'test-result-id'
+        assert resume['analysis_id'] == 'test-result-id'
         assert isinstance(resume['resume_id'], str)
         assert len(resume['resume_id']) > 0
         assert resume['summary'] == sample_result_data['resume_points']
@@ -120,7 +120,7 @@ class TestResumeBuilder:
         
         resume = builder._build_resume(invalid_data, 'test-id')
         
-        assert resume['result_id'] == 'test-id'
+        assert resume['analysis_id'] == 'test-id'
         assert isinstance(resume['resume_id'], str)
         assert resume['summary'] is None
         assert resume['projects'] == []
