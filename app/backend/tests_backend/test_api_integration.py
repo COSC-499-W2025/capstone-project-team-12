@@ -244,4 +244,12 @@ class TestAPIIntegration:
         verify_response = client.get(f"/resume/{gl_resume_id}")
         assert verify_response.status_code == 404
 
-    
+    def test_delete_project_by_analysis_id(self):
+        """Test deleting a specific project analysis via endpoint"""
+        global gl_analysis_id
+        
+        response = client.delete(f"/projects/{gl_analysis_id}")
+        assert response.status_code == 204
+        
+        verify_response = client.get(f"/projects/{gl_analysis_id}")
+        assert verify_response.status_code == 404
