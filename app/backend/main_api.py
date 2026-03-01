@@ -380,9 +380,11 @@ async def get_resume(resume_id: int, db: DatabaseManager = Depends(get_db)):
         Returns a particular resume with given id.
     """
     try:
-        result = db.get_resume_by_resume_id(resume_id)
         
+        result = db.get_resume_by_resume_id(resume_id)
+        result = result[0]
         # Convert UUID objects to strings for JSON serialization
+        
         result['analysis_id'] = str(result.pop('analysis_id'))
         return JSONResponse(status_code=200,content=result)
     
@@ -472,6 +474,11 @@ async def get_all_portfolios(db:DatabaseManager = Depends(get_db)):
     """
     try:
         result = db.get_all_portfolios()
+        
+        # Convert UUID objects to strings for JSON serialization
+        for row in result:
+            row['analysis_id'] = str(row.pop('analysis_id'))
+        
         return JSONResponse(status_code=200,content=result)
     
     except LookupError as e: #redundant catch case it is here for consistency with other getters for portfolios
@@ -492,6 +499,11 @@ async def get_portfolios(analysis_id: str, db: DatabaseManager = Depends(get_db)
         # Validate UUID format
         
         result = db.get_portfolios_by_analysis_id(analysis_id)    
+        
+        # Convert UUID objects to strings for JSON serialization
+        for row in result:
+            row['analysis_id'] = str(row.pop('analysis_id'))
+        
         return JSONResponse(status_code=200,content=result)
     
     except HTTPException as e:
@@ -510,6 +522,7 @@ async def get_portfolio(portfolio_id: int, db: DatabaseManager = Depends(get_db)
     """
     try:
         result = db.get_portfolio_by_portfolio_id(portfolio_id)
+        result = result[0]
         result['analysis_id'] = str(result.pop('analysis_id'))
         return JSONResponse(status_code=200,content=result)
     

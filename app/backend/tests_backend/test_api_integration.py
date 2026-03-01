@@ -157,7 +157,7 @@ class TestAPIIntegration:
         assert 'resume_id' in response.json()
         
         global gl_resume_id
-        gl_resume_id = response.json()['resume_id']
+        gl_resume_id = int(response.json()['resume_id'])
        
     def test_get_resumes(self):
         """Test get all resumes endpoint"""
@@ -179,13 +179,46 @@ class TestAPIIntegration:
     
     def test_get_resume_by_resume_id(self):
         global gl_resume_id
+        print(f"/resume/{gl_resume_id}")
         response = client.get(f"/resume/{gl_resume_id}")
+        assert response.status_code == 200
+        assert isinstance(response.json(),dict)
+        assert 'resume_id' in response.json()
+
+    def test_post_generate_portfolio(self):
+            global gl_analysis_id
+            response = client.post(f'portfolio/generate/{gl_analysis_id}')
+            
+            assert response.status_code == 201
+            assert 'location' in response.headers
+            assert 'portfolio_id' in response.json()
+            
+            global gl_portfolio_id
+            gl_portfolio_id = int(response.json()['portfolio_id'])
+       
+    def test_get_portfolios(self):
+        """Test get all portfolios endpoint"""
+        response = client.get("/portfolios")
+        print(response.json())
+        assert response.status_code == 200
+        for result_entry in response.json():
+            assert isinstance(result_entry,dict)
+            assert 'portfolio_id' in result_entry
+    
+    def test_get_portfolios_by_analysis_id(self):
+        """Test get all portfolios of an analysis endpoint"""
+        global gl_analysis_id
+        response = client.get(f"/portfolios/{gl_analysis_id}")
         assert response.status_code == 200
         result = response.json()
         for result_entry in response.json():
             assert isinstance(result_entry,dict)
-            assert 'resume_id' in result_entry
+            assert 'portfolio_id' in result_entry
     
-    
-
-
+    def test_get_portfolio_by_portfolio_id(self):
+        global gl_portfolio_id
+        print(f"/portfolio/{gl_portfolio_id}")
+        response = client.get(f"/portfolio/{gl_portfolio_id}")
+        assert response.status_code == 200
+        assert isinstance(response.json(),dict)
+        assert 'portfolio_id' in response.json()
