@@ -159,34 +159,6 @@ def test_health_check():
     assert res.status_code == 200
     assert res.json()["status"] == "active"
 
-def test_upload_project_success(mock_backend,placeholder_UUID):
-    """Test successful upload."""
-    files = {'file': ('test.zip', b'content', 'application/zip')}
-    
-    # We no longer pass 'result_id' in the form data
-    response = client.post("/projects/upload", files=files)
-        
-    #check success
-    assert response.status_code == 201
-    
-    # Verify Analysis ID of new entry is returned
-    assert response.headers["location"] == f"/projects/{placeholder_UUID}"
-
-    # Check if the pipeline instance was called correctly
-    # We use ANY for the path since it's a random temp file
-    mock_backend["pipeline"].run_analysis.assert_called_once_with(ANY, return_id=True)
-
-def test_upload_project_pipeline_failure(mock_backend):
-    """Test handling of pipeline crashes."""
-    # Force the pipeline instance to raise an error
-    mock_backend["pipeline"].run_analysis.side_effect = Exception("Analysis Failed")
-    
-    files = {'file': ('test.zip', b'content', 'application/zip')}
-    res = client.post("/projects/upload", files=files)
-    
-    assert res.status_code == 500
-    assert "Analysis Failed" in res.json()["detail"]
-
 # ---- Project/ Analysis end point tests ----
 def test_get_projects_success(mock_backend):
     """Test fetching project list."""
@@ -720,4 +692,214 @@ def test_get_skills_implementation_empty_db(mock_backend):
 
     assert res.status_code == 200
     assert res.json() == {"skills": {}}
+TEST_UUID = "123e4567-e89b-12d3-a456-426614174000"
+@patch("main_api.DictExporter")
+@patch("main_api.DictImporter")
+@patch("main_api.TreeManager")
+@patch("main_api.perform_update_merge")
+@patch("main_api.FileManager")
+@patch("main_api.AnalysisPipeline")
+@patch("main_api.CLI")
+@patch("main_api.ConfigManager")
+@patch("main_api.DatabaseManager")
+def test_extract_update_endpoint(
+    mock_db_cls, mock_config_cls, mock_cli_cls,
+    mock_pipeline_cls, mock_fm_cls, mock_merge,
+    mock_tm_cls, mock_importer_cls, mock_exporter_cls,
+):
+    """Test Phase 1: PUT /projects/{analysis_id}/update/extract"""
+    # Mock FileManager to return a valid tree structure
+    mock_tree = {"name": "root"}
+    mock_fm_cls.return_value.load_from_filepath.return_value = {
+        "status": "success",
+        "tree": mock_tree,
+        "binary_data": [],
+    }
 
+    mock_merge.return_value = (mock_tree, [])
+    mock_pipeline = mock_pipeline_cls.return_value
+    mock_pipeline.run_analysis_extract.return_value = (
+        TEST_UUID,
+        {"topic_keywords": [{"topic_id": 0, "keywords": ["test", "code"]}]},
+        ["Python", "React"],
+        {},
+    )
+    mock_pipeline.result_bundle.project_analysis_data = {"analyzed_insights": []}
+    mock_exporter_cls.return_value.export.return_value = {}
+
+    # Simulate dummy zip file and form-data credentials
+    files = {"file": ("test_repo.zip", b"dummy zip content", "application/zip")}
+    data = {
+        "github_username": "testuser",
+        "github_email": "test@example.com",
+    }
+    response = client.put(f"/projects/{TEST_UUID}/update/extract", files=files, data=data)
+
+    assert response.status_code == 200
+    json_response = response.json()
+    assert "topic_keywords" in json_response
+    assert "detected_skills" in json_response
+    assert json_response["detected_skills"] == ["Python", "React"]
+
+    mock_pipeline.run_analysis_extract.assert_called_once()
+    assert mock_pipeline.run_analysis_extract.call_args.kwargs["github_username"] == "testuser"
+
+    # Clean up the cache file created by the endpoint
+    cache_path = os.path.join("cache", f"pending_update_{TEST_UUID}.pkl")
+    if os.path.exists(cache_path):
+        os.remove(cache_path)
+@patch("main_api.AnalysisPipeline")
+@patch("main_api.CLI")
+@patch("main_api.ConfigManager")
+@patch("main_api.DatabaseManager")
+def test_commit_update_endpoint(mock_db_cls, mock_config_cls, mock_cli_cls, mock_pipeline_cls):
+    """Test Phase 2: POST /projects/{analysis_id}/update/commit"""
+    import pickle
+    cache_data = {
+        "merged_tree_dict": {},
+        "merged_binary_list": [],
+        "topic_vector_bundle": {"topic_keywords": []},
+        "text_analysis_data": {},
+        "analyzed_repos": [
+            {"repository_name": "capstone_repo", "importance_score": 5},
+            {"repository_name": "other_repo", "importance_score": 3},
+        ],
+    }
+    os.makedirs("cache", exist_ok=True)
+    cache_path = os.path.join("cache", f"pending_update_{TEST_UUID}.pkl")
+    with open(cache_path, "wb") as f:
+        pickle.dump(cache_data, f)
+    mock_pipeline = mock_pipeline_cls.return_value
+    mock_pipeline.run_analysis_generate.return_value = (
+        "This is a fake AI generated summary for testing."
+    )
+    payload = {
+        "topic_keywords": [
+            {"topic_id": 0, "keywords": ["result", "data", "code"]}
+        ],
+        "user_highlights": ["Python"],
+        "selected_projects": ["capstone_repo", "other_repo"],
+        "online_llm_consent": True,
+    }
+    try:
+        response = client.post(f"/projects/{TEST_UUID}/update/commit", json=payload)
+
+        assert response.status_code == 200
+        json_response = response.json()
+        assert json_response["status"] == "success"
+        assert json_response["summary"] == "This is a fake AI generated summary for testing."
+        mock_pipeline.run_analysis_generate.assert_called_once()
+        assert mock_pipeline.run_analysis_generate.call_args.kwargs["selected_projects"] == [
+            "capstone_repo", "other_repo"
+        ]
+    finally:
+        if os.path.exists(cache_path):
+            os.remove(cache_path)
+            
+UPLOAD_MOCK_UUID = "mock-uuid-1234"
+
+UPLOAD_DUMMY_CACHE = {
+    "topic_vector_bundle": {"topic_keywords": []},
+    "text_analysis_data": {},
+    "analyzed_repos": [{"repository_name": "Repo1", "importance_score": 10}],
+}
+
+
+@patch("main_api.os.makedirs")
+@patch("main_api.pickle.dump")
+@patch("main_api.AnalysisPipeline")
+@patch("main_api.CLI")
+@patch("main_api.ConfigManager")
+@patch("main_api.DatabaseManager")
+def test_extract_upload_success(
+    mock_db_cls, mock_config_cls, mock_cli_cls,
+    mock_pipeline_cls, mock_pickle_dump, mock_makedirs,
+):
+    """Test Case 1 (Success): POST /projects/upload/extract returns 200 with expected fields."""
+    mock_pipeline = mock_pipeline_cls.return_value
+    mock_pipeline.run_analysis_extract.return_value = (
+        UPLOAD_MOCK_UUID,
+        {"topic_keywords": []},
+        ["Python"],
+        {},
+    )
+    mock_pipeline.result_bundle.project_analysis_data = {"analyzed_insights": []}
+
+    files = {"file": ("test.zip", b"dummy zip content", "application/zip")}
+    response = client.post("/projects/upload/extract", files=files)
+
+    assert response.status_code == 200
+    json_response = response.json()
+    assert json_response["analysis_id"] == UPLOAD_MOCK_UUID
+    assert "topic_keywords" in json_response
+    assert "detected_skills" in json_response
+    assert "analyzed_projects" in json_response
+    assert json_response["detected_skills"] == ["Python"]
+
+
+@patch("main_api.AnalysisPipeline")
+@patch("main_api.CLI")
+@patch("main_api.ConfigManager")
+@patch("main_api.DatabaseManager")
+def test_extract_upload_pipeline_failure(
+    mock_db_cls, mock_config_cls, mock_cli_cls, mock_pipeline_cls,
+):
+    """Test Case 2 (Failure): POST /projects/upload/extract returns 500 when pipeline returns None."""
+    mock_pipeline = mock_pipeline_cls.return_value
+    mock_pipeline.run_analysis_extract.return_value = None
+
+    files = {"file": ("test.zip", b"dummy zip content", "application/zip")}
+    response = client.post("/projects/upload/extract", files=files)
+
+    assert response.status_code == 500
+
+
+@patch("main_api.AnalysisPipeline")
+@patch("main_api.CLI")
+@patch("main_api.ConfigManager")
+@patch("main_api.os.remove")
+@patch("main_api.pickle.load")
+@patch("builtins.open")
+@patch("main_api.os.path.exists")
+@patch("main_api.DatabaseManager")
+def test_commit_upload_success(
+    mock_db_cls, mock_exists, mock_open_call, mock_pickle_load,
+    mock_os_remove, mock_config_cls, mock_cli_cls, mock_pipeline_cls,
+):
+    """Test Case 3 (Success): POST /projects/{analysis_id}/upload/commit returns 200."""
+    mock_exists.return_value = True
+    mock_pickle_load.return_value = UPLOAD_DUMMY_CACHE
+
+    mock_pipeline = mock_pipeline_cls.return_value
+    mock_pipeline.run_analysis_generate.return_value = "Mocked AI Summary"
+
+    payload = {
+        "topic_keywords": [{"topic_id": 1, "keywords": ["ai", "python"]}],
+        "user_highlights": ["highlight1"],
+        "selected_projects": ["Repo1"],
+        "online_llm_consent": True,
+    }
+    response = client.post(f"/projects/{UPLOAD_MOCK_UUID}/upload/commit", json=payload)
+
+    assert response.status_code == 200
+    json_response = response.json()
+    assert json_response["status"] == "success"
+    assert json_response["summary"] == "Mocked AI Summary"
+
+
+@patch("main_api.os.path.exists")
+@patch("main_api.DatabaseManager")
+def test_commit_upload_cache_expired(mock_db_cls, mock_exists):
+    """Test Case 4 (Failure): POST /projects/{analysis_id}/upload/commit returns 404 when cache is missing."""
+    mock_exists.return_value = False
+
+    payload = {
+        "topic_keywords": [{"topic_id": 1, "keywords": ["ai", "python"]}],
+        "user_highlights": ["highlight1"],
+        "selected_projects": ["Repo1"],
+        "online_llm_consent": True,
+    }
+    response = client.post(f"/projects/{UPLOAD_MOCK_UUID}/upload/commit", json=payload)
+
+    assert response.status_code == 404
+    assert "pending upload found" in response.json()["detail"]
