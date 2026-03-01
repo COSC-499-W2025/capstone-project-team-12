@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from file_manager import FileManager
+import time
 
 # Defining directory paths
 BASE_DIR = Path(__file__).parent
@@ -122,7 +123,8 @@ def test_nested_zip():
     # Expect success and the correct total number of extracted files
     assert result["status"] == "success"
     assert len(fm.file_objects) == 9
-    assert len(fm.binary_data_array) == 9
+    #UPDATE: with deduplication logic we now only have 6 unique files
+    assert len(fm.binary_data_array) == 6
 
 
 def test_get_binary_array():
@@ -165,3 +167,88 @@ def test_tree_metadata_timestamps():
     file_node = tree.children[0]
     assert hasattr(file_node, "last_modified")
     assert isinstance(file_node.last_modified, str)
+
+def test_file_manager_deduplication(tmp_path):
+    fm = FileManager()
+    
+    # Create two different files with identical content
+    file1 = tmp_path / "file1.txt"
+    file2 = tmp_path / "file2.txt"
+    content = b"identical content"
+    file1.write_bytes(content)
+    file2.write_bytes(content)
+    
+    #load from the directory containing both
+    result = fm.load_from_filepath(str(tmp_path))
+    
+    assert result['status'] == 'success'
+    
+    #check that we have exactly one unique entry in the binary data array
+    assert len(fm.get_binary_array()) == 1
+    assert fm.get_binary_array()[0] == content
+    
+    #verify that both files point to the same binary index
+    file_nodes = [node for node in fm.file_tree.descendants if node.type == "file"]
+    assert len(file_nodes) == 2
+    
+    idx1 = file_nodes[0].file_data['binary_index']
+    idx2 = file_nodes[1].file_data['binary_index']
+    
+    assert idx1 == 0
+    assert idx2 == 0
+
+def test_deduplication_zero_byte_files(tmp_path):
+    """
+    Test that the FileManager correctly deduplicates multiple 
+    zero-byte (empty) files into a single binary entry.
+    """
+    fm = FileManager()
+    
+    #create multiple empty files
+    file1 = tmp_path / "empty1.txt"
+    file2 = tmp_path / "empty2.log"
+    file1.touch()
+    file2.touch()
+    
+    result = fm.load_from_filepath(str(tmp_path))
+    
+    assert result['status'] == 'success'
+    
+    #verify that the system combined the empty content to a single binary entry
+    # (The hash of an empty string is consistent)
+    assert len(fm.get_binary_array()) == 1
+    assert fm.get_binary_array()[0] == b""
+    
+    #verify both files are represented in the tree
+    nodes = [n for n in fm.file_tree.descendants if n.type == "file"]
+    assert len(nodes) == 2
+    
+    #both should point to the same binary index
+    assert nodes[0].file_data['binary_index'] == nodes[1].file_data['binary_index']
+
+
+def test_deduplication_different_metadata(tmp_path):
+    """
+    Files with same content but different metadata should
+    be relfected in file tree accordingly
+    """
+    fm = FileManager()
+    
+    #create two files with same content
+    file1 = tmp_path / "file1.txt"
+    file2 = tmp_path / "file2.txt"
+    content = b"content"
+    file1.write_bytes(content)
+    file2.write_bytes(content)
+    
+    #change metadata (timestamps)
+    os.utime(file2, (time.time() - 1000, time.time() - 1000))
+    
+    fm.load_from_filepath(str(tmp_path))
+    
+    #content should be deduplicated
+    assert len(fm.get_binary_array()) == 1
+    
+    #both nodes should still exist with different last_modified timestamps
+    nodes = [n for n in fm.file_tree.descendants if n.type == "file"]
+    assert nodes[0].file_data['last_modified'] != nodes[1].file_data['last_modified']
