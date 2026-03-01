@@ -1,6 +1,6 @@
 ## Devin Huang Personal Log (86828886)
 
-[Term 2 Week 6 - 8](t2-week6-8)  
+[Term 2 Week 6 - 8](#t2-week6-8)  
 [Term 2 Week 4](#t2-week-4)  
 [Term 2 Week 3](#t2-week-3)  
 [Term 2 Week 2](#t2-week-2)  
