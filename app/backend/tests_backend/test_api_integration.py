@@ -222,3 +222,14 @@ class TestAPIIntegration:
         assert response.status_code == 200
         assert isinstance(response.json(),dict)
         assert 'portfolio_id' in response.json()
+
+    def test_delete_portfolio_by_portfolio_id(self):
+        """Test deleting a specific portfolio via endpoint"""
+        global gl_portfolio_id
+        
+        response = client.delete(f"/portfolio/{gl_portfolio_id}")
+        assert response.status_code == 204
+        
+        # verify it was actually removed (should return 404 Not Found)
+        verify_response = client.get(f"/portfolio/{gl_portfolio_id}")
+        assert verify_response.status_code == 404
