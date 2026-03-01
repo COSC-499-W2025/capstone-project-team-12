@@ -233,3 +233,15 @@ class TestAPIIntegration:
         # verify it was actually removed (should return 404 Not Found)
         verify_response = client.get(f"/portfolio/{gl_portfolio_id}")
         assert verify_response.status_code == 404
+
+    def test_delete_resume_by_resume_id(self):
+        """Test deleting a specific resume via endpoint"""
+        global gl_resume_id
+        
+        response = client.delete(f"/resume/{gl_resume_id}")
+        assert response.status_code == 204
+        
+        verify_response = client.get(f"/resume/{gl_resume_id}")
+        assert verify_response.status_code == 404
+
+    
