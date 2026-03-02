@@ -98,9 +98,17 @@
 
 
 ### In Progress
-
+- The remaining UI work involves finalizing one page that was not included in the initial design plan. This page will allow users to access and manage previously generated analyses. All other UI components have been completed.
 
 ### Upcoming plans
-
+- The team will continue progressing on the frontend setup and design while addressing any API-related integration issues that arise.
+- Frontend implementation will become a shared focus next week. During the upcoming meeting, responsibilities will be assigned by feature area to ensure balanced workload distribution and alignment with the Milestone 3 deadline.
+- At Monday’s meeting, tasks for frontend implementation will be formally distributed. Key priorities include maintaining the decoupling of the CLI from the system workflow and finalizing the setup and development approach for the React web application. The team will use the Milestone 3 requirements and peer testing feedback to guide planning for the next phase of development.
+- With the current progress, the team is well-positioned to advance frontend development. Next week’s discussions will focus on refining the frontend architecture and determining an improved deployment strategy to replace the current preliminary setup.
 
 ### Reflections
+Over the past few weeks, the team’s primary focus was API integration. Because there were multiple possible implementation approaches and the work was divided among members, a few minor integration conflicts arose, which were resolved collaboratively.
+
+All planned objectives for this period were completed, along with additional progress beyond the original scope. To support a smooth transition into Milestone 3, the UI design was finalized earlier than initially scheduled so frontend development could begin immediately with a shared vision. Additional implementation work was also taken on where capacity allowed, and certain responsibilities were redistributed to maintain momentum during a temporary team member absence.
+
+With Milestone 2 complete, the team is well-positioned to transition into frontend development. Given the compressed timeline of the remaining weeks, careful planning and consistent progress tracking will be essential to ensure all Milestone 3 deliverables are identified, scheduled appropriately, and completed on time.
