@@ -222,3 +222,44 @@ class TestAPIIntegration:
         assert response.status_code == 200
         assert isinstance(response.json(),dict)
         assert 'portfolio_id' in response.json()
+
+    def test_delete_portfolio_by_portfolio_id(self):
+        """Test deleting a specific portfolio via endpoint"""
+        global gl_portfolio_id
+        
+        response = client.delete(f"/portfolio/{gl_portfolio_id}")
+        assert response.status_code == 204
+        
+        # verify it was actually removed (should return 404 Not Found)
+        verify_response = client.get(f"/portfolio/{gl_portfolio_id}")
+        assert verify_response.status_code == 404
+
+    def test_delete_resume_by_resume_id(self):
+        """Test deleting a specific resume via endpoint"""
+        global gl_resume_id
+        
+        response = client.delete(f"/resume/{gl_resume_id}")
+        assert response.status_code == 204
+        
+        verify_response = client.get(f"/resume/{gl_resume_id}")
+        assert verify_response.status_code == 404
+
+    def test_delete_project_by_analysis_id(self):
+        """Test deleting a specific project analysis via endpoint"""
+        global gl_analysis_id
+        
+        response = client.delete(f"/projects/{gl_analysis_id}")
+        assert response.status_code == 204
+        
+        verify_response = client.get(f"/projects/{gl_analysis_id}")
+        assert verify_response.status_code == 404
+
+    def test_delete_all_projects(self):
+        """Test wiping all projects and associated data via endpoint"""
+        response = client.delete("/projects")
+        assert response.status_code == 204
+        
+        # Verify the database returns an empty list for projects
+        verify_response = client.get("/projects")
+        assert verify_response.status_code == 200
+        assert len(verify_response.json()) == 0
