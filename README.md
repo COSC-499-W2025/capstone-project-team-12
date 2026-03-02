@@ -55,7 +55,7 @@ cp .env.example .env
 - Zip files
 - Documents
 
-This path should lead to the repos folder that contains all of our test files, and can be downloaded from this Drive link: https://drive.google.com/drive/folders/1Ux2LKxgMKQ5I-CcQgWqhw6lKLy0IOwkP?usp=drive_link
+This path should lead to the repos folder that contains all of our test files, and can be downloaded from this Drive link: https://drive.google.com/drive/folders/1eEMyr1wQC3RZCKBvMEIblr8b4RKu4Tv5?usp=drive_link
 
 Use the format provided in the `.env.example` file as a template.
 
@@ -87,22 +87,6 @@ This command will build the container in detached mode.
 This will open a new VS Code window connected to the container's file system.
 
 
-### 5. Input your OpenRouter API Key for the Online LLM
-For best results, our project requires an [OpenRouter API Key](URL "(https://openrouter.ai/)") to connect to the Online LLM.
-
-In the terminal on Mac:
-```
-set OPENROUTER_API_KEY=your_api_key_here
-```
-
-In the terminal on Windows:
-```
-$env:OPENROUTER_API_KEY="your_api_key_here"
-```
-
-Alternatively, in `analysis_pipeline.py`, find `llm_client = OnlineLLMClient()` and input your API key: `llm_client = OnlineLLMClient(api_key="your-api-key-here")`
-
-
 ### 5. Run the Backend Pipeline
 
 In the attached container's terminal, execute:
@@ -114,9 +98,12 @@ python main.py
 ### 6. Select File Path for Analysis
 
 When prompted to select the file path:
+- If you wish to test project ranking features and other user interactions:
+    - Enter: `/app/repos/multiple_projects` 
+- If you wish to test incremental analysis:  
+    - First enter: `/app/repos/capstone_snapshot_feb7.zip`
+    - Then when updating analysis: `/app/repos/capstone_updated_sanpshot.zip`
 
-- Enter: `/app/repos`
-- Or copy the `repos` folder path
 
 **Note:** The files are accessible at this path because they were volume-mounted into the container during the Docker build process.
 
@@ -126,6 +113,11 @@ Follow the on-screen prompts to:
 - Test the system's functionality
 - Run analysis on uploaded files
 - Explore different features
+- When prompted to enter git username:
+    - Enter: sitharachari
+- When prompted to enter associated email: 
+    - Enter: sithara12.chari@gmail.com
+
 
 ---
 ## System API:
