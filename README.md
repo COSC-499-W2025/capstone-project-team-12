@@ -55,8 +55,18 @@ cp .env.example .env
 - Zip files
 - Documents
 
+This path should lead to the repos folder that contains all of our test files, and can be downloaded from this Drive link: https://drive.google.com/drive/folders/1Ux2LKxgMKQ5I-CcQgWqhw6lKLy0IOwkP?usp=drive_link
+
 Use the format provided in the `.env.example` file as a template.
 
+Another emvironment variable you should set up is the API key for the online LLM. Set it up as such: 
+    `OPENROUTER_API_KEY=sk-....`
+
+The overall content of the .env file should be: 
+ ```
+REPOS_PATH="somepath"
+OPENROUTER_API_KEY=sk-....
+```
 ### 3. Build and Run the Docker Container
 
 From the `app` directory, build and start the container:
