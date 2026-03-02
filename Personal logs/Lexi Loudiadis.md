@@ -21,7 +21,7 @@
 ### Reflection
 - All tasks that were planned for these three weeks was completed, plus more. Originally I hadn't planned on doing the UI design during Milestone 2 but felt like it was important to have that so we could get started on the frontend immediately in Milestone 3 and all be on the same page. Additionally, I did the UI code for the portfolio page since the main pipeline rework PR wasn't going to be super big and I wanted to contribute more to our progress. I did end up doing requirement 25 (project success) as mentioned in the last set of logs, due to our teammate being absent for an extended period of time. Our team
 
-![Type of tasks I worked on](imgs/Week%2018%20Lexi.png)
+![Type of tasks I worked on](imgs/Week%2019%20Lexi.png)
 
 ## Term 2 - Week 4 + 5 (01/26/2026 - 02/08/2026)
 
