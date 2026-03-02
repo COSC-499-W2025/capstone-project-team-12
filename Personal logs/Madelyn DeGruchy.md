@@ -11,6 +11,7 @@
 - Created the API Documentation for all endpoints, including all possible responses
 - Took part in all team meetings for planning the end of Milestone 2, took minutes for task assignments
 - Collaborated on team slides for our presentation, and presented our Milestone 2 changes.
+- Recorded the video for our Milestone 2 presentation for Sithara to record the voice over for
 
 ## Next Week
 - We will be distributing tasks to be completed as we begin the implementation of our front-end at our meeting on Monday. The main tasks I have noted for completion are continuing to ensure we have decoupled the CLI from the flow of the system (though a lot of that work was completed by Devin this week), as well as looking into exactly how to set up and move forward with the React web app we are creating. We are fairly certain that the requirements for Milestone 3 will not change significantly moving forward, so we are planning to use those and our responses from peer testing as our structure to plan the next 4 weeks of implementation.
