@@ -83,14 +83,33 @@
 
 * Prepared and presented Milestone 2 presentation
 
+* Improved incremental upload handling
+
+  * Reworked filepath comparison logic to ensure consistent detection of updated analyses
+  * Prevented incorrect duplication during incremental file uploads
+
+* Expanded database deletion capabilities
+
+  * Implemented endpoints for deleting resumes and portfolios
+  * Added corresponding integration tests to validate new functionality
+
+* Implemented duplicate file detection
+
+  * Added logic to recognize duplicate uploads
+  * Ensured the system maintains a single instance of identical files
+
+* Updated project documentation
+
+  * Added links to evaluation test files in the README
+  * Included clear setup and execution instructions for running the application
+
 
 
 ### Burnup chart & Task Table
-<img width="1109" height="574" alt="image" src="https://github.com/user-attachments/assets/452e3852-29d4-4509-be8a-dcd20bf72572" />
+<img width="908" height="469" alt="image" src="https://github.com/user-attachments/assets/66ad7008-f681-499b-bef1-1d32c0163ed5" />
 
+<img width="1362" height="570" alt="image" src="https://github.com/user-attachments/assets/d48e3dd3-2201-44ae-aab1-2148ab4bc797" />
 
-
-<img width="1408" height="606" alt="image" src="https://github.com/user-attachments/assets/7e2c5531-86ad-4eae-9f13-6c1fceb277fd" />
 
 
 ### Test Report
@@ -107,8 +126,8 @@
 - With the current progress, the team is well-positioned to advance frontend development. Next week’s discussions will focus on refining the frontend architecture and determining an improved deployment strategy to replace the current preliminary setup.
 
 ### Reflections
-Over the past few weeks, the team’s primary focus was API integration. Because there were multiple possible implementation approaches and the work was divided among members, a few minor integration conflicts arose, which were resolved collaboratively.
+In addition to the previously noted API integration work, the team completed several backend refinements during this period. Improvements were made to filepath comparison logic for incremental uploads to ensure consistent handling of updated analyses. Additional database endpoints were implemented to support deletion of portfolios and resumes, along with corresponding integration tests. The milestone requirement for detecting and consolidating duplicate files was also completed. Documentation was updated to provide clear instructions and test files for system evaluation.
 
-All planned objectives for this period were completed, along with additional progress beyond the original scope. To support a smooth transition into Milestone 3, the UI design was finalized earlier than initially scheduled so frontend development could begin immediately with a shared vision. Additional implementation work was also taken on where capacity allowed, and certain responsibilities were redistributed to maintain momentum during a temporary team member absence.
+This phase was compressed due to presentation preparation and the Milestone 2 deadline, which required concentrated effort near the end of the cycle. Several tasks emerged as implementation progressed, leading to a higher volume of pull requests than usual. Despite the time pressure, the team collaborated effectively to complete all required objectives and stabilize the backend before transitioning to frontend development.
 
-With Milestone 2 complete, the team is well-positioned to transition into frontend development. Given the compressed timeline of the remaining weeks, careful planning and consistent progress tracking will be essential to ensure all Milestone 3 deliverables are identified, scheduled appropriately, and completed on time.
+With Milestone 2 finalized, the team is in a strong position to shift focus toward frontend implementation while maintaining backend stability. Careful coordination and steady progress will be essential as development continues under a tight timeline.
