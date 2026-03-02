@@ -218,3 +218,101 @@ class CLI:
             except ValueError:
                 self.print_status(f"Unrecognised command: '{user_input}'.  Valid commands: #, r #, a, all, d, b.", "error")
                 return ('invalid', None)
+
+    def review_topic_bundle(self, bundle: dict) -> dict:
+        """
+        provides a way for the user to edit the extracted topics before sending it to the llm
+        allows users to view, edit (remove or replace) and confirm the extracted topics
+        
+        Args:
+            bundle: Dictionary containing 'topic_keywords' (list of dicts with 'topic_id' and 'keywords')
+            
+        Returns:
+            The modified bundle with updated topic_keywords.
+        """
+        
+        topic_keywords = bundle.get('topic_keywords', [])
+
+        if not topic_keywords:
+            self.print_status("No topics to review.", "warning")
+            return bundle
+
+        while True:
+            choice = self.display_topic_review_menu(topic_keywords)
+
+            if choice == 'P':
+                self.print_status("Proceeding with current topics.", "success")
+                break
+
+            elif choice == 'E':
+                valid_ids = {topic['topic_id'] for topic in topic_keywords}
+                topic_id_input = self.get_input("\n  Enter the Topic ID to edit:\n> ").strip()
+
+                try:
+                    topic_id = int(topic_id_input)
+                except ValueError:
+                    self.print_status(f"'{topic_id_input}' is not a valid ID.", "error")
+                    continue
+
+                if topic_id not in valid_ids:
+                    self.print_status(f"Topic ID {topic_id} not found.  Valid IDs: {sorted(valid_ids)}", "error")
+                    continue
+
+                topic_dict = None
+                for t in topic_keywords:
+                    if t['topic_id'] == topic_id:
+                        topic_dict = t
+                        break
+
+                while True:
+                    self.display_topic_edit_details(topic_dict)
+                    action_type, index = self.get_granular_input()
+
+                    if action_type == 'back':
+                        break
+
+                    elif action_type == 'del':
+                        topic_keywords = [t for t in topic_keywords if t['topic_id'] != topic_id]
+                        self.print_status(f"Topic {topic_id} deleted.", "success")
+                        break
+
+                    elif action_type == 'all':
+                        new_keywords_input = self.get_input("\n  Enter new keywords, comma-separated:\n> ").strip()
+                        new_keywords = [kw.strip() for kw in new_keywords_input.split(',') if kw.strip()]
+                        topic_dict['keywords'] = new_keywords
+                        self.print_status(f"All keywords for Topic {topic_id} replaced.", "success")
+
+                    elif action_type == 'add':
+                        new_word = self.get_input("\n  Enter keyword to add:\n> ").strip()
+                        if new_word:
+                            topic_dict['keywords'].append(new_word)
+                            self.print_status(f"Added '{new_word}' to Topic {topic_id}.", "success")
+                        else:
+                            self.print_status("No keyword entered — nothing added.", "warning")
+
+                    elif action_type == 'replace_one':
+                        keywords = topic_dict.get('keywords', [])
+                        if index < 0 or index >= len(keywords):
+                            self.print_status(f"Index {index} is out of range.  Valid range: 0–{len(keywords) - 1}.", "error")
+                        else:
+                            old_word = keywords[index]
+                            new_word = self.get_input(f"\n  Replace '{old_word}' with:\n> ").strip()
+                            if new_word:
+                                keywords[index] = new_word
+                                self.print_status(f"Replaced '{old_word}' → '{new_word}'.", "success")
+                            else:
+                                self.print_status("No keyword entered — nothing replaced.", "warning")
+
+                    elif action_type == 'remove_one':
+                        keywords = topic_dict.get('keywords', [])
+                        if index < 0 or index >= len(keywords):
+                            self.print_status(f"Index {index} is out of range.  Valid range: 0–{len(keywords) - 1}.", "error")
+                        else:
+                            removed_word = keywords.pop(index)
+                            self.print_status(f"Removed '{removed_word}' from Topic {topic_id}.", "success")
+
+                    elif action_type == 'invalid':
+                        continue
+
+        bundle['topic_keywords'] = topic_keywords
+        return bundle

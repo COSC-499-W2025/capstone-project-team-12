@@ -172,7 +172,7 @@ class test_topic_vector_editing:
         #user inputs p
         pipeline.cli.display_topic_review_menu.return_value = 'P'
 
-        result = pipeline.review_topic_bundle(initial_bundle)
+        result = pipeline.cli.review_topic_bundle(initial_bundle)
 
         assert result == initial_bundle
         pipeline.cli.print_status.assert_called_with("Proceeding with current topics.", "success")
@@ -192,7 +192,7 @@ class test_topic_vector_editing:
         pipeline.cli.get_input.return_value = '1'  #topic to delete
         pipeline.cli.get_granular_input.return_value = ('del', None)
 
-        result = pipeline.review_topic_bundle(initial_bundle)
+        result = pipeline.cli.review_topic_bundle(initial_bundle)
         final_topics = result['topic_keywords']
         assert len(final_topics) == 1
         assert final_topics[0]['topic_id'] == 0
@@ -216,7 +216,7 @@ class test_topic_vector_editing:
             ('back', None)
         ]
 
-        result = pipeline.review_topic_bundle(initial_bundle)
+        result = pipeline.cli.review_topic_bundle(initial_bundle)
 
         keywords = result['topic_keywords'][0]['keywords']
         assert keywords[0] == 'better'  #replaced
