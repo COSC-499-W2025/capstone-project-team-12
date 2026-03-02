@@ -212,12 +212,6 @@ class AnalysisPipeline:
                     f"Generated {len(topic_term_vectors)} topic(s) from {len(doc_topic_vectors)} document(s).", "success"
                 )
 
-                self.cli.print_header("Top Topics Identified")
-                for i in range(min(5, len(topic_term_vectors))):
-                    top_words = lda_model.show_topic(i, topn=5)
-                    words_str = ", ".join([word for word, prob in top_words])
-                    print(f"  Topic {i}:  {words_str}")
-
                 return lda_model, dictionary, doc_topic_vectors, topic_term_vectors, final_bow
 
             else:
@@ -239,12 +233,6 @@ class AnalysisPipeline:
         metadata_analysis = metadata_analyzer.analyze_all()
 
         if metadata_analysis and metadata_analysis != {}:
-            print("\n--- File Extension Statistics ---")
-            print(f"{'Extension':<10} | {'Count':<8} | {'Size':<15} | {'Percentage':<8} | {'Category'}")
-            print("-" * 70)
-            for ext, stats in metadata_analysis['extension_stats'].items():
-                print(f"{ext:<10} | {stats['count']:<8} | {stats['total_size']:<15} | {stats['percentage']:<8}% | {stats['category']}")
-            print()
             self.cli.print_status(f"Primary languages: {', '.join(metadata_analysis['primary_languages'])}", "info")
         else:
             self.cli.print_status("Error during metadata analysis: Empty analysis result.","error")
@@ -417,8 +405,6 @@ class AnalysisPipeline:
             git_repos,analyzed_repos,timeline,processed_git_repos = self.run_repo_analysis_pipeline(git_repos,binary_data,github_username=github_username,github_email=github_email,interactive=False)
         except Exception as e:
             self.cli.print_status(f"Repository analysis failed: {e}", "error")
-            import traceback
-            traceback.print_exc()
 
         text_analysis_data = {
             "num_documents": len(self.result_bundle.doc_topic_vectors),
@@ -533,9 +519,6 @@ class AnalysisPipeline:
             
             try:
                 self.result_bundle.medium_summary = llm_client.generate_summary(topic_vector_bundle)
-                self.cli.print_header("Standard Summary")
-                print(self.result_bundle.medium_summary)
-                print("=" * 60 + "\n")
                 
             except Exception as e:
                 raise RuntimeError(f"Error generating summary: {e}")
@@ -575,6 +558,10 @@ class AnalysisPipeline:
         
         analysis_id, topic_vector_bundle, detected_skills, text_analysis_data = extract_result
         
+        #Display extracted data for CLI users
+        self.cli.display_metadata_stats(self.result_bundle.metadata_analysis)
+        self.cli.display_topics(self.data_bundle.lda_model, self.result_bundle.topic_term_vectors)
+
         #CLI interactive prompts: review topics and select skills
         topic_vector_bundle = self.cli.review_topic_bundle(topic_vector_bundle)
         
@@ -593,4 +580,10 @@ class AnalysisPipeline:
         )
         
         #Phase 2: Generate AI summary and save results
-        return self.run_analysis_generate(analysis_id, topic_vector_bundle, text_analysis_data, return_id=return_id)
+        result = self.run_analysis_generate(analysis_id, topic_vector_bundle, text_analysis_data, return_id=return_id)
+
+        #Display the generated summary CLI
+        if not return_id and result:
+            self.cli.display_summary(result)
+
+        return result

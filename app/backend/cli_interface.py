@@ -316,3 +316,39 @@ class CLI:
 
         bundle['topic_keywords'] = topic_keywords
         return bundle
+
+    # ── Display helpers (called from the CLI orchestrator) ───────────
+
+    def display_metadata_stats(self, metadata_analysis: dict) -> None:
+        """Print the file-extension statistics table."""
+        if not metadata_analysis:
+            return
+        ext_stats = metadata_analysis.get("extension_stats", {})
+        if not ext_stats:
+            return
+
+        print("\n--- File Extension Statistics ---")
+        print(f"{'Extension':<10} | {'Count':<8} | {'Size':<15} | {'Percentage':<8} | {'Category'}")
+        print("-" * 70)
+        for ext, stats in ext_stats.items():
+            print(f"{ext:<10} | {stats['count']:<8} | {stats['total_size']:<15} | {stats['percentage']:<8}% | {stats['category']}")
+        print()
+
+    def display_topics(self, lda_model, topic_term_vectors: list, top_n: int = 5) -> None:
+        """Print the top N topics extracted by the LDA model."""
+        if lda_model is None or not topic_term_vectors:
+            return
+
+        self.print_header("Top Topics Identified")
+        for i in range(min(top_n, len(topic_term_vectors))):
+            top_words = lda_model.show_topic(i, topn=5)
+            words_str = ", ".join([word for word, _prob in top_words])
+            print(f"  Topic {i}:  {words_str}")
+
+    def display_summary(self, summary: str) -> None:
+        """Print the generated AI summary."""
+        if not summary:
+            return
+        self.print_header("Standard Summary")
+        print(summary)
+        print("=" * 60 + "\n")
