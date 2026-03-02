@@ -94,7 +94,8 @@
 
 
 ### Test Report
-![Term 2 Weeks 4 & 5 Test Report](/imgs/T2%20Week%204%20&%205%20Test%20Report.png)
+<img width="1184" height="743" alt="image" src="https://github.com/user-attachments/assets/1fa71282-b5c0-437a-a039-bbc9f6fbd858" />
+
 
 ### In Progress
 
