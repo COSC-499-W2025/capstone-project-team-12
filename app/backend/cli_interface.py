@@ -317,7 +317,7 @@ class CLI:
         bundle['topic_keywords'] = topic_keywords
         return bundle
 
-    # ── Display helpers (called from the CLI orchestrator) ───────────
+    #Display helpers
 
     def display_metadata_stats(self, metadata_analysis: dict) -> None:
         """Print the file-extension statistics table."""
