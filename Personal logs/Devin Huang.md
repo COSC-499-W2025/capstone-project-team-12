@@ -1,5 +1,6 @@
 ## Devin Huang Personal Log (86828886)
 
+[Term 2 Week 6 - 8](#t2-week6-8)  
 [Term 2 Week 4](#t2-week-4)  
 [Term 2 Week 3](#t2-week-3)  
 [Term 2 Week 2](#t2-week-2)  
@@ -15,6 +16,30 @@
 [Week 5](#week-5)  
 [Week 4](#week-4)  
 [Week 3](#week-3)
+
+### T2 Week 6-8
+- Implement portfolio result and skills endpoints (https://github.com/COSC-499-W2025/capstone-project-team-12/pull/394)
+  - Implemented GET /portfolio/{result_id} by hooking up the PortfolioBuilder to generate and return detailed portfolio data.
+  - Implemented GET /skills to properly aggregate and count languages and frameworks across all analyzed projects.
+  - Associated interface/implementation tests have been added
+  - Updated docker-compose.yaml to run the Uvicorn server (allows the API to be accessible on localhost:8080 for local development and Postman testing)
+- Implemented incremental update API endpoint (https://github.com/COSC-499-W2025/capstone-project-team-12/pull/435)
+  - Split the pipeline into extract and commit endpoints to enable user-interactive updates
+  - Extract endpoint merges new data and returns raw metrics
+  - commit endpoint trusts frontend ranking, generates the LLM summary, and saves state.
+  - Setup OpenRouter API key
+- Updated the upload endpoint (https://github.com/COSC-499-W2025/capstone-project-team-12/pull/440)
+  - Refactored the upload architecture to fully decouple it from the CLI and fix the EOF crash.
+  - Split the original upload endpoint into separate extract and commit-style endpoints for upload/extraction and edited data/summary generation.
+  - Updated tests for the new endpoints and removed obsolete tests tied to the old upload endpoint.
+#### Next week
+- We will be working towards further setting up and designing the front end and resolve any issues that arises with the API.
+
+#### Reflection
+- The few weeks work were mainly related to the API integration, since there are multiple ways to implement that, the fact that we split up the work created some minor conflicts.
+- I was sick for most of the reading break until now :(
+
+<img width="962" height="491" alt="image" src="https://github.com/user-attachments/assets/383cbd96-55f0-46cf-b900-df03c92f8c26" />
 
 ### T2 Week 4
 - Refactored LLM clients

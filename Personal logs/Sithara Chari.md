@@ -1,5 +1,28 @@
 # Sithara Chari Personal Log (22066401)
 
+## Term 2 Week 6, and 8 (2/9/2026 - 3/1/2026)
+
+### Week 6 work done:
+- Reworked how filepaths were being compared when an incremental file was being uploaded (when an anaylsis was being updated) 
+    - Issue 401 https://github.com/COSC-499-W2025/capstone-project-team-12/issues/401
+
+### Week 8 work done: 
+- Implemented additional endpoints for deleting items from the database such as protfolios and resumes and added intergration tests for them 
+    - issue 430 https://github.com/COSC-499-W2025/capstone-project-team-12/issues/430
+    - issue  445 https://github.com/COSC-499-W2025/capstone-project-team-12/issues/445
+- completed the milstone requirement of recognising duplkicate files and only maintaining one in the system 
+    - issue 437 https://github.com/COSC-499-W2025/capstone-project-team-12/issues/437
+- updated the readme file with link to the test files TAs can use to test our system and added specific instructions for when they run the app.
+    - isseu 447 https://github.com/COSC-499-W2025/capstone-project-team-12/issues/447
+
+### Next week: 
+- Start working on frontend, possibly edit backend some more if anything we hadn't thought of completely comes up 
+
+Reflection: 
+- this week was very rushed, with the presentation on Wednesday, and me only starting to code after that. It felt like taks just kept getting added, which is why I had 4 PRs this week alone (which is more than I usually have), but we were all rushing to finish things up for milestone 2 so it makes sense. 
+
+![alt text](<imgs/Sithara Chari T2 Week 8 Logs.png>)
+
 ## Term 2 Week 4 and 5 (01/26/2026 - 02/08/2026)
 ### TODOs:
 - Refactor API setup that was done in week 2 to be in accordance with SRP 

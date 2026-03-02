@@ -1,5 +1,34 @@
 # Sara Srinivasan Personal Log (10801751)
 
+## Term 2 Week 6,7 and 8
+
+### Work Done
+
+- Finished up Analysis pipeline test re-writes (Integration testing for app)
+- Made a slew of upstream changes to facilitate API Implementation. See PR [#402](https://github.com/COSC-499-W2025/capstone-project-team-12/pull/402)
+  - Adjust database config to cascade automatically
+  - Added DB_Manager functions to handle resumes and portfolios
+  - Testing for new DB Manager functions
+  - Rework DB_Manager to use Error raises instead of return None
+  - Make numerous adjustments to codebase for above rework
+  - Adjust tests to also match both DB_Manager changes and downstream changes
+- Implemented a large chunk of API and Functional testing to match. See PR [#407](https://github.com/COSC-499-W2025/capstone-project-team-12/pull/407)
+- Implemented Integration testing for API using test_db. See PR [#444](https://github.com/COSC-499-W2025/capstone-project-team-12/pull/444)
+- Made Slide Templates for Milestone 2 presentation
+- Made personal slides, presented and also provided feed back to other team presentations
+- Reviewed ~10+ prs with detailed comments and feedback
+- Provided insight and explanations for teammate questions regarding codebase.
+
+### Quiz Response
+
+![Term 2 Week 6,7 and 8 Quiz Response](imgs/Sara%20Srinivasan%20T2%20Week%206-8.png)
+
+### Review and Plans
+
+Having Implemented Most of the API and associated testing I am quite proud of my work.Unfortunately E2E tests had to be pushed to next week.
+Having finished Milestone 2 (except E2E API testing). We're in a good place to work on the frontend.
+For Next week we need to discuss our frontend architecture and deployment strategy since the current preliminary setup is quite suboptimal.
+
 ## Term 2 Week 4 and Week 5
 
 ### Work Done
