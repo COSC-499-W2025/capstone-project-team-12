@@ -360,14 +360,12 @@ class AnalysisPipeline:
 
         self.cli.print_status(f"Found {len(git_repos)} git repo(s).  Attempting to link with GitHub...", "info")
 
-        github_username: str = self.cli.get_input("\n  Enter GitHub username to link repos (or [Enter] to skip):\n> ").strip().lower()
-
-        #use provided credentials (API path) or fall back to CLI prompt
         if not github_username:
-            github_username = self.cli.get_input("Enter GitHub username to link (Press Enter to skip): \n> ").strip().lower()
-        
+            self.cli.print_status("Skipping GitHub linking (no username provided).", "info")
+            return [], [], [], []
+
         if github_username:
-            user_email: str = github_email if github_email else self.cli.get_input("Enter GitHub email associated with the account: \n> ").strip().lower()
+            user_email: str = github_email if github_email else None
 
             repo_processor = RepositoryProcessor(
                 username=github_username,
@@ -655,8 +653,20 @@ class AnalysisPipeline:
         Wrapper that orchestrates the full analysis pipeline via CLI.
         Calls Phase 1, handles interactive CLI prompts, then calls Phase 2.
         """
+        github_username = self.cli.get_input("\n  Enter GitHub username to link repos (or [Enter] to skip):\n> ").strip().lower()
+        github_email = None
+        if github_username:
+            github_email = self.cli.get_input("  Enter GitHub email associated with the account (or [Enter] to skip):\n> ").strip().lower() or None
+
         #Phase 1: Extract and analyze data
-        extract_result = self.run_analysis_extract(filepath, existing_analysis_id, preloaded_tree, preloaded_binary)
+        extract_result = self.run_analysis_extract(
+            filepath,
+            existing_analysis_id,
+            preloaded_tree,
+            preloaded_binary,
+            github_username=github_username if github_username else None,
+            github_email=github_email,
+        )
         
         if extract_result is None:
             return None
