@@ -246,7 +246,7 @@ class TestRunRepoAnalysisPipeline:
         
         result = pipeline.run_repo_analysis_pipeline(git_repos, [])
         
-        pipeline.status_callback.assert_called_with("Skipping GitHub linking.", "info")
+        pipeline.status_callback.assert_called_with("Skipping GitHub linking (no username provided).", "info")
         assert result == ([], [], [], [])
 
     @patch('analysis_pipeline.RepositoryProcessor')
