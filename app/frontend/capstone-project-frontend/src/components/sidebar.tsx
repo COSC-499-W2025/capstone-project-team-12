@@ -59,7 +59,7 @@ const Sidebar = ({ currentStep = 1, onStepChange }: { currentStep?: number; onSt
             fontWeight: "700",
             fontSize: "15px",
             letterSpacing: "0.02em",
-          }}>project name</span>
+          }}>Capstone Project</span>
         </div>
       </div>
 
