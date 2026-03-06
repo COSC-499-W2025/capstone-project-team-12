@@ -9,8 +9,18 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   const [githubUsername, setGithubUsername] = useState('');
   const [email, setEmail] = useState('');
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [showConsentPopup, setShowConsentPopup] = useState(false);
 
   const isValid = githubUsername.trim() !== '' && email.trim() !== '';
+
+  const handleContinue = () => {
+    if (!isValid) return;
+    if (llmMode === 'online') {
+      setShowConsentPopup(true);
+    } else {
+      onComplete?.({ llmMode, githubUsername, email });
+    }
+  };
 
   return (
     <div style={{
@@ -121,7 +131,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
         {/* CTA */}
         <button
-          onClick={() => isValid && onComplete?.({ llmMode, githubUsername, email })}
+          onClick={handleContinue}
           style={{
             width: '100%', padding: '13px', borderRadius: '10px', border: 'none',
             cursor: isValid ? 'pointer' : 'not-allowed',
@@ -141,6 +151,58 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         <p style={{ textAlign: 'center', fontSize: '11px', color: '#c4c9d4', marginTop: '16px' }}>
         </p>
       </div>
+
+      {/* Online LLM Consent Popup */}
+      {showConsentPopup && (
+        <div style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000,
+        }}>
+          <div style={{
+            background: 'white', borderRadius: '14px', padding: '28px 32px',
+            maxWidth: '380px', width: '90%',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+            fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
+          }}>
+            <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#0f1629', margin: '0 0 10px' }}>
+              Use Online LLM?
+            </h2>
+            <p style={{ fontSize: '13px', color: '#6b7280', lineHeight: 1.6, margin: '0 0 22px' }}>
+              Some of your extracted data will be sent to an external API for summary generation. Do you consent to proceed?
+            </p>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => setShowConsentPopup(false)}
+                style={{
+                  flex: 1, padding: '10px', borderRadius: '8px',
+                  border: '1px solid rgba(0,0,0,0.12)', background: '#f3f4f8',
+                  color: '#4b5563', fontSize: '13px', fontWeight: '600',
+                  cursor: 'pointer', fontFamily: 'inherit',
+                }}
+              >
+                No
+              </button>
+              <button
+                onClick={() => {
+                  setShowConsentPopup(false);
+                  onComplete?.({ llmMode, githubUsername, email });
+                }}
+                style={{
+                  flex: 1, padding: '10px', borderRadius: '8px', border: 'none',
+                  background: 'linear-gradient(135deg, #6378ff)',
+                  color: 'white', fontSize: '13px', fontWeight: '600',
+                  cursor: 'pointer', fontFamily: 'inherit',
+                  boxShadow: '0 2px 10px rgba(99,120,255,0.3)',
+                }}
+              >
+                Yes, continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`input::placeholder { color: #c4c9d4 !important; }`}</style>
     </div>
