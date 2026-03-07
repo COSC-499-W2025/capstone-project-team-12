@@ -76,15 +76,20 @@ const ProgressPage: React.FC<ProgressPageProps> = ({ onComplete }) => {
           </div>
         </div>
 
-        {/* the next Button only renders when progress is 100 */}
-        {progress >= 100 && (
+        {/* The Next Button - Always rendered, conditionally styled/disabled */}
         <button
           onClick={onComplete}
-          className="w-full bg-transparent border border-gray-700 shadow-md text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 mt-2 hover:border-green-500 hover:shadow-[0_0_15px_rgba(34,197,94,0.2)]"
+          disabled={progress < 100}
+          className={`w-full font-semibold py-3 px-6 rounded-lg transition-all duration-300 mt-2 border bg-transparent
+            ${
+              progress >= 100
+                ? "border-gray-700 shadow-md text-white hover:border-green-500 hover:shadow-[0_0_15px_rgba(34,197,94,0.2)] cursor-pointer"
+                : "border-gray-800 text-gray-600 opacity-50 cursor-not-allowed"
+            }
+          `}
         >
           View Results
         </button>
-        )}
 
       </div>
     </div>
