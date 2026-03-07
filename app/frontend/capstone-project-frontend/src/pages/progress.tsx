@@ -52,7 +52,7 @@ const ProgressPage: React.FC<ProgressPageProps> = ({ onComplete }) => {
         </div>
 
         <div className="relative flex items-center justify-center w-24 h-24">
-          {/* Change to a solid border when done, spin while loading */}
+          {/*change to a solid border when done, spin while loading */}
           {progress >= 100 ? (
             <div className="absolute inset-0 border-4 border-green-500 rounded-full"></div>
           ) : (
@@ -76,7 +76,7 @@ const ProgressPage: React.FC<ProgressPageProps> = ({ onComplete }) => {
           </div>
         </div>
 
-        {/* The Next Button - Only renders when progress is 100 */}
+        {/* the next Button only renders when progress is 100 */}
         {progress >= 100 && (
           <button
             onClick={onComplete}
