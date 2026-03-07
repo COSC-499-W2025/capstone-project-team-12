@@ -8,7 +8,7 @@ const ProgressPage: React.FC<ProgressPageProps> = ({ onComplete }) => {
   const [progress, setProgress] = useState<number>(0);
   const [statusText, setStatusText] = useState<string>("Initializing pipeline...");
 
-  //Effect 1: Just handle the counting
+  //Effect 1: just handle the counting
   useEffect(() => {
     const interval = setInterval(() => {
       setProgress((prev) => {
@@ -28,7 +28,7 @@ const ProgressPage: React.FC<ProgressPageProps> = ({ onComplete }) => {
     if (progress >= 100) {
       setStatusText("Analysis complete! Redirecting...");
       
-      // Trigger the redirect safely outside the state updater
+      //trigger the redirect safely outside the state updater
       const timer = setTimeout(() => {
         onComplete();
       }, 1000);
@@ -36,7 +36,7 @@ const ProgressPage: React.FC<ProgressPageProps> = ({ onComplete }) => {
       return () => clearTimeout(timer);
     } 
     
-    // Update text based on the current progress
+    //update text based on the current progress
     if (progress > 20 && progress < 50) {
       setStatusText("Extracting metadata & code...");
     } else if (progress >= 50 && progress < 80) {
