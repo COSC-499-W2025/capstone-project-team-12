@@ -78,12 +78,12 @@ const ProgressPage: React.FC<ProgressPageProps> = ({ onComplete }) => {
 
         {/* the next Button only renders when progress is 100 */}
         {progress >= 100 && (
-          <button
-            onClick={onComplete}
-            className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 mt-2"
-          >
-            View Results
-          </button>
+        <button
+          onClick={onComplete}
+          className="w-full bg-transparent border border-gray-700 shadow-md text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 mt-2 hover:border-green-500 hover:shadow-[0_0_15px_rgba(34,197,94,0.2)]"
+        >
+          View Results
+        </button>
         )}
 
       </div>
