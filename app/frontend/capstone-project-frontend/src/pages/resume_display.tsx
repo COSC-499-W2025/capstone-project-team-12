@@ -378,7 +378,7 @@ export default function ResumeDisplay() {
     <div className="min-h-screen bg-slate-50 font-sans">
       <div className="max-w-4xl mx-auto px-6 py-10">
         <div className="mb-6">
-          <p className="text-xs font-semibold uppercase tracking-widest text-indigo-500 mb-1">Skills &amp; Visualizations</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-indigo-500 mb-1">Resume Display &amp; Editor</p>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <h1 className="text-3xl font-bold text-slate-800">Your generated résumé.</h1>
             <DownloadButton />
