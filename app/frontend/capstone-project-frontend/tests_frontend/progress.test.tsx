@@ -1,6 +1,7 @@
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import ProgressPage from "../src/pages/progress";
+import React, { useState, useEffect } from "react";
 
 // MOCK TIMERS & RANDOM 
 //progress page relies on setInterval and Math.random to simulate progress
