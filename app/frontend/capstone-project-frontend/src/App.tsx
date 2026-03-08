@@ -1,14 +1,14 @@
+import { useState } from 'react';
+import ResumeDisplay from './pages/resume_display';
 
-import DevPortfolio from "./pages/portfolio";
-
-
-//  ROOT 
-export default function App() {
+function App() {
   return (
-    <div>
-      <DevPortfolio />
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#f0f2f8' }}>
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <ResumeDisplay />
+      </main>
     </div>
-  )
-
+  );
 }
 
+export default App;
