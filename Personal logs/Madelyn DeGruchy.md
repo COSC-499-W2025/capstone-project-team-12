@@ -1,5 +1,23 @@
 # Madelyn DeGruchy Personal Log (85064962 - maddydeg)
 
+## Term 2 Week 9 (03/02/2026 - 03/08/2026)
+- Dockerized our front-end so we are able to use the container for development
+    - Container is live-mounted like backend so changes made copy straight to files on local machine
+    - Used vite's dev server, in the container the system has trouble using the Hot Module Replacement (HMR). Currently I have added polling for the system to continually check for changes so that we are able to view the changes in the browser during development
+- Added the static UI page to view the content of a resume, and set up how the user will be able to edit this content. This page is more to display what would be going on the resume so it is easy for the user to be able to edit it, we will need some further planning to structure how we want to display the resume in the format that they will be exporting it in.
+    - Also added testing for this static page using Vitest
+ 
+## Next Week
+- Confirm which overall style to proceed with
+- Begin implementing API calls between front-end and backend
+- Decide on how we want to display the preview of the resume, and how we want to allow the user to export
+    - We will also need to plan on how we will enforce a single page for this resume. 
+
+## Reflection
+ We had some confusion on which overall style we were going to move forward with. Once we have it nailed down we will be able to do some refactoring to ensure the whole system looks the same, but I think having some different options will help us plan how to best move forward.
+
+![Peer Evaluation Term 2 Week 9](imgs/Madelyn%20DeGruchy%20T2%20Week%209.png)
+
 ## Term 2 Weeks 6 - 8 (02/09/2026 - 03/01/2026)
 - Updated the flow of the prompts from the system to make the default response default to yes for everything except for LLM online consent and deletion (anything that was destructive or would allow for a security risk).
   - These defaults take place when the user enters an empty or invalid input, which allows the user to quickly go through the process when they are prompted to make decisions about their analysis. I added a default parameter to the config manager so that we can specify if we want the system to allow or deny consent.  
