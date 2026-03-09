@@ -3,7 +3,7 @@ import Sidebar from './components/Sidebar';
 import Portfolio from './pages/portfolio';
 import Onboarding from './pages/onboarding';
 import DevPortfolio from "./pages/portfolio";
-import ProjectInsights from "./ProjectInsights";
+import ProjectInsights from "./pages/ProjectInsights";
 
 
 function App() {
