@@ -34,15 +34,15 @@ Frontend updates:
 
 ### Burnup chart & Task Table
 
-![T2 Week 1 Burn Up](/imgs/T2Week1%20Burnup%20chart.png)
+![T2 Week 9 Burn Up](/imgs/T2%20Week%209%20Burnup%20Chart.png)
 
-![Week 14 Tasks Table](/imgs/T2%20Week%201%20Task%20Table.png)
+![T2 Week 9 Tasks Table](/imgs/T2%20Week%209%20Task%20Table.png)
 Filtered to only show Tasks with changes this week.
 
 ### Test Report
 
-One failing test is trivial testing logic issue that wasnt fixed in time.
-![Week 14 Test Report](/imgs/T2%20Week%201%20Test%20Report.png)
+![ T2 Week 9 Test Report Frontend](/imgs/T2%20Week%209%20Frontend%20Test%20Report.png)
+![ T2 Week 9 Test Report Backend](/imgs/T2%20Week%209%20Backend%20Test%20Report.png)
 
 ### In Progress
 
