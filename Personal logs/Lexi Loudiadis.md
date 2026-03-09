@@ -1,5 +1,24 @@
 # Lexi Loudiadis (93546844) Personal Log
 
+## Term 2 - Week 9 (03/02/2026 - 03/08/2026)
+
+- Implemented the Project Insights UI (PR #460)
+- Testing for the Project Inishgts UI: 12 tests, all passing (PR #467)
+- Preparing for Quiz 3
+- Testing teammates' code
+- Team meetings
+
+### In Progress
+- Some of us are ending of with slightly different design styles for the UI, so we are in the process of communicating to ensure that our UI is uniform across the board.
+  
+### What's Next
+- Finishing our static UI and then starting to add logic. I imagine some of us will continue implementing UI components and some of us will move onto the frontend logic.
+
+### Reflection
+- All tasks that were planned for this week were completed. I decided to take on the Project Insights page from my design mock, as it was the thing that I was the least sure about design-wise, so I wanted to be the one to work on it and play around with the UI until I was happy. I decided on a three-tab design that maps nicely to our data and separates it cleanly. 
+
+![Type of tasks I worked on](imgs/Week%2020%20Lexi.png)
+
 ## Term 2 - Week 6 - 8 (02/09/2026 - 03/01/2026)
 
 - Reworked the main pipeline output for Milestone 2. This included fixing wording for prompts, errors, and info displays, as well as removing database query info from pipeline output,     fixing the KeyboardInterrupt error upon pressing Ctrl+C, and other formatting improvements (PR #436)
@@ -19,7 +38,7 @@
 - Getting the ball rolling on our frontend. Currently I am the only one with a frontend PR, but next week we will all be working on that. In our meeting next week we will be talking about who is doing which feature and how much we will each have to take on to be done by the Milestone 3 due date.
 
 ### Reflection
-- All tasks that were planned for these three weeks was completed, plus more. Originally I hadn't planned on doing the UI design during Milestone 2 but felt like it was important to have that so we could get started on the frontend immediately in Milestone 3 and all be on the same page. Additionally, I did the UI code for the portfolio page since the main pipeline rework PR wasn't going to be super big and I wanted to contribute more to our progress. I did end up doing requirement 25 (project success) as mentioned in the last set of logs, due to our teammate being absent for an extended period of time. Our team
+- All tasks that were planned for these three weeks was completed, plus more. Originally I hadn't planned on doing the UI design during Milestone 2 but felt like it was important to have that so we could get started on the frontend immediately in Milestone 3 and all be on the same page. Additionally, I did the UI code for the portfolio page since the main pipeline rework PR wasn't going to be super big and I wanted to contribute more to our progress. I did end up doing requirement 25 (project success) as mentioned in the last set of logs, due to our teammate being absent for an extended period of time.
 
 ![Type of tasks I worked on](imgs/Week%2019%20Lexi.png)
 
