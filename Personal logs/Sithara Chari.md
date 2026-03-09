@@ -1,5 +1,26 @@
 # Sithara Chari Personal Log (22066401)
 
+## Term 2 Week 9 (03/01/2026 - 03/08/2026)
+### TODOs:
+- Start working on a static progress page 
+    - issue 458 https://github.com/COSC-499-W2025/capstone-project-team-12/issues/458
+- address reviews on deduplication PR from last week concerning persistence of file set hashes
+    - PR 438 link: https://github.com/COSC-499-W2025/capstone-project-team-12/pull/438 
+### Work Done
+- finished coding and testing for the progress page
+
+### What's next
+- finish and make PR for deduplication refactor
+- work on more pages for frontend 
+- start to connect API to frontend 
+
+### Relfection
+- This week I had not much work to do, both my tasks were relatively small, but I wasn't able to finish both my tasks, so I just focused on finishing the page that I had to. There were some miscommunications and inconsistencies with the UI color scheme, mainly if we were doing light mode or dark mode, but we will get that sorted out in our meeting on monday. 
+
+![alt text](<imgs/Sithara Chari T2Week9.png>)
+
+
+
 ## Term 2 Week 6, and 8 (2/9/2026 - 3/1/2026)
 
 ### Week 6 work done:
