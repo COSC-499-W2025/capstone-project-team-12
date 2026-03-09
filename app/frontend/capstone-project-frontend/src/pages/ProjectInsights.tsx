@@ -1,9 +1,9 @@
 import { useState } from "react";
-import OverviewTab from "./components/OverviewTab";
-import TestingTab from "./components/TestingTab";
-import DeploymentTab from "./components/DeploymentTab";
-import PacingTab from "./components/PacingTab";
-import type { Project, Technology, FileExtension } from "./insightTypes";
+import OverviewTab from "../components/OverviewTab";
+import TestingTab from "../components/TestingTab";
+import DeploymentTab from "../components/DeploymentTab";
+import PacingTab from "../components/PacingTab";
+import type { Project, Technology, FileExtension } from "../insightTypes";
 
 const projects: Project[] = [
   {
