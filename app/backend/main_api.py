@@ -15,7 +15,6 @@ from pydantic import BaseModel
 from resume_builder import ResumeBuilder
 
 from analysis_pipeline import AnalysisPipeline
-from cli_interface import CLI
 from config_manager import ConfigManager
 from database_manager import DatabaseManager
 from llm.llm_clients import LocalLLMClient, OnlineLLMClient
@@ -103,9 +102,8 @@ async def extract_upload(
 
     try:
         # Initialize pipeline
-        cli = CLI()
         config = ConfigManager()
-        pipeline = AnalysisPipeline(cli, config, db)
+        pipeline = AnalysisPipeline(config, db)
 
         # Run extraction – no existing_analysis_id or preloaded data,
         # so the pipeline creates a brand-new analysis ID and saves
@@ -219,7 +217,7 @@ async def commit_upload(
 
         # Phase 2: generate AI summary and save results
         #db.save_fileset not called here because run_analysis_extract already saved the fileset during Phase 1.
-        pipeline = AnalysisPipeline(CLI(), ConfigManager(), db)
+        pipeline = AnalysisPipeline(ConfigManager(), db)
         summary = pipeline.run_analysis_generate(
             analysis_id=analysis_id,
             topic_vector_bundle=topic_vector_bundle,
@@ -672,7 +670,7 @@ async def extract_update(
             )
 
         # Phase 1: run extraction
-        pipeline = AnalysisPipeline(CLI(), ConfigManager(), db)
+        pipeline = AnalysisPipeline(ConfigManager(), db)
         extract_result = pipeline.run_analysis_extract(
             filepath=tmp_path,
             existing_analysis_id=analysis_id,
@@ -794,7 +792,7 @@ async def commit_update(
         )
 
         # Phase 2: generate AI summary and save results
-        pipeline = AnalysisPipeline(CLI(), ConfigManager(), db)
+        pipeline = AnalysisPipeline(ConfigManager(), db)
         summary = pipeline.run_analysis_generate(
             analysis_id=analysis_id,
             topic_vector_bundle=topic_vector_bundle,

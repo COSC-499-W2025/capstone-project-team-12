@@ -1,27 +1,20 @@
 import { useState } from 'react';
-import ProgressPage from './pages/progress';
-import DevPortfolio from './pages/portfolio'; 
+import Sidebar from './components/sidebar';
+import Portfolio from './pages/portfolio';
+import Onboarding from './pages/onboarding';
+import DevPortfolio from "./pages/portfolio";
+import ProjectInsights from "./pages/ProjectInsights";
+
 
 function App() {
-  //start the app on Step 1 (the progress page)
   const [currentStep, setCurrentStep] = useState(1);
-
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#000000' }}>
-      
-      {/* The main container taking up the full screen */}
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#f0f2f8' }}>
+      <Sidebar currentStep={currentStep} onStepChange={setCurrentStep} />
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        
-        {/*step 1: show the loading progress */}
-        {currentStep === 1 && (
-          <ProgressPage onComplete={() => setCurrentStep(2)} />
-        )}
-        
-        {/*step 2: show the results (portfolio) once loading finishes */}
-        {currentStep === 2 && (
-          <DevPortfolio />
-        )}
-        
+        {currentStep === 1 && <Onboarding onComplete={() => setCurrentStep(2)} />}
+        {currentStep === 6 && <Portfolio />}
+        {/* add other pages/components for other steps */}
       </main>
     </div>
   );
