@@ -56,7 +56,7 @@ function Chip({ label, onRemove, colorClass = "bg-indigo-100 text-indigo-700" }:
   return (
     <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${colorClass}`}>
       {label}
-      {onRemove && <button onClick={onRemove} className="opacity-50 hover:opacity-100 text-sm ml-0.5">×</button>}
+      {onRemove && <button onClick={onRemove} className="!bg-transparent !border-none text-red-300 hover:text-red-400 text-xl ml-0.5">×</button>}
     </span>
   );
 }
@@ -332,7 +332,7 @@ function LanguagesSection({ languages, onChange }: { languages: Language[]; onCh
                 {lang.file_count > 0 ? `${lang.file_count} file${lang.file_count !== 1 ? "s" : ""}` : "—"}
               </span>
             </div>
-            {editing && <button onClick={() => setDraft(d => d.filter(l => l.name !== lang.name))} className="text-red-300 hover:text-red-400 text-sm shrink-0">×</button>}
+            {editing && <button onClick={() => setDraft(d => d.filter(l => l.name !== lang.name))} className="!bg-transparent !border-none text-red-300 hover:text-red-400 text-xl shrink-0">×</button>}
           </div>
         ))}
       </div>

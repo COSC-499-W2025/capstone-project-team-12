@@ -2,9 +2,15 @@ services:
   frontend_app:
     build:
       dockerfile: frontend.dockerfile
-      context: frontend/
+      context: frontend/capstone-project-frontend/
+      target: dev     # tells Docker to stop at the "dev" stage in the Dockerfile
     ports:
-      - 80:80
+      - 5173:5173     # expose Vite dev server port instead of 80
+    volumes:
+      - type: bind
+        source: ./frontend/capstone-project-frontend
+        target: /app
+      - /app/node_modules  # keep node_modules in container to avoid host-OS conflicts
     depends_on: 
       - backend_app
   
