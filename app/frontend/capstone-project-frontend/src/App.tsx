@@ -2,11 +2,13 @@ import { useState } from 'react';
 import Sidebar from './components/sidebar';
 import Portfolio from './pages/portfolio';
 import Onboarding from './pages/onboarding';
+import DevPortfolio from "./pages/portfolio";
+import ProjectInsights from "./ProjectInsights";
+
 import ResumeDisplay from './pages/resume_display';
 
 function App() {
   const [currentStep, setCurrentStep] = useState(1);
-
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f0f2f8' }}>
       <Sidebar currentStep={currentStep} onStepChange={setCurrentStep} />

@@ -80,7 +80,6 @@ def mock_backend(mocker,sample_analysis,sample_resume, sample_portfolio,placehol
     """
     # We patch the class names where they are IMPORTED in main_api
     MockDBClass = mocker.patch("main_api.DatabaseManager")
-    MockCLIClass = mocker.patch("main_api.CLI")
     MockConfigClass = mocker.patch("main_api.ConfigManager")
     MockPipelineClass = mocker.patch("main_api.AnalysisPipeline")
     MockLocalLLMClass = mocker.patch("main_api.LocalLLMClient")
@@ -708,11 +707,10 @@ TEST_UUID = "123e4567-e89b-12d3-a456-426614174000"
 @patch("main_api.perform_update_merge")
 @patch("main_api.FileManager")
 @patch("main_api.AnalysisPipeline")
-@patch("main_api.CLI")
 @patch("main_api.ConfigManager")
 @patch("main_api.DatabaseManager")
 def test_extract_update_endpoint(
-    mock_db_cls, mock_config_cls, mock_cli_cls,
+    mock_db_cls, mock_config_cls,
     mock_pipeline_cls, mock_fm_cls, mock_merge,
     mock_tm_cls, mock_importer_cls, mock_exporter_cls,
 ):
@@ -758,10 +756,9 @@ def test_extract_update_endpoint(
     if os.path.exists(cache_path):
         os.remove(cache_path)
 @patch("main_api.AnalysisPipeline")
-@patch("main_api.CLI")
 @patch("main_api.ConfigManager")
 @patch("main_api.DatabaseManager")
-def test_commit_update_endpoint(mock_db_cls, mock_config_cls, mock_cli_cls, mock_pipeline_cls):
+def test_commit_update_endpoint(mock_db_cls, mock_config_cls, mock_pipeline_cls):
     """Test Phase 2: POST /projects/{analysis_id}/update/commit"""
     import pickle
     cache_data = {
@@ -817,11 +814,10 @@ UPLOAD_DUMMY_CACHE = {
 @patch("main_api.os.makedirs")
 @patch("main_api.pickle.dump")
 @patch("main_api.AnalysisPipeline")
-@patch("main_api.CLI")
 @patch("main_api.ConfigManager")
 @patch("main_api.DatabaseManager")
 def test_extract_upload_success(
-    mock_db_cls, mock_config_cls, mock_cli_cls,
+    mock_db_cls, mock_config_cls,
     mock_pipeline_cls, mock_pickle_dump, mock_makedirs,
 ):
     """Test Case 1 (Success): POST /projects/upload/extract returns 200 with expected fields."""
@@ -847,11 +843,10 @@ def test_extract_upload_success(
 
 
 @patch("main_api.AnalysisPipeline")
-@patch("main_api.CLI")
 @patch("main_api.ConfigManager")
 @patch("main_api.DatabaseManager")
 def test_extract_upload_pipeline_failure(
-    mock_db_cls, mock_config_cls, mock_cli_cls, mock_pipeline_cls,
+    mock_db_cls, mock_config_cls, mock_pipeline_cls,
 ):
     """Test Case 2 (Failure): POST /projects/upload/extract returns 500 when pipeline returns None."""
     mock_pipeline = mock_pipeline_cls.return_value
@@ -864,7 +859,6 @@ def test_extract_upload_pipeline_failure(
 
 
 @patch("main_api.AnalysisPipeline")
-@patch("main_api.CLI")
 @patch("main_api.ConfigManager")
 @patch("main_api.os.remove")
 @patch("main_api.pickle.load")
@@ -873,7 +867,7 @@ def test_extract_upload_pipeline_failure(
 @patch("main_api.DatabaseManager")
 def test_commit_upload_success(
     mock_db_cls, mock_exists, mock_open_call, mock_pickle_load,
-    mock_os_remove, mock_config_cls, mock_cli_cls, mock_pipeline_cls,
+    mock_os_remove, mock_config_cls, mock_pipeline_cls,
 ):
     """Test Case 3 (Success): POST /projects/{analysis_id}/upload/commit returns 200."""
     mock_exists.return_value = True
