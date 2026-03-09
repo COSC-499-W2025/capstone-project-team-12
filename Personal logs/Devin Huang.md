@@ -1,6 +1,7 @@
 ## Devin Huang Personal Log (86828886)
 
-[Term 2 Week 6 - 8](#t2-week6-8)  
+[Term 2 Week 9](#t2-week-9)  
+[Term 2 Week 6 - 8](#t2-week-6-8)  
 [Term 2 Week 4](#t2-week-4)  
 [Term 2 Week 3](#t2-week-3)  
 [Term 2 Week 2](#t2-week-2)  
@@ -16,6 +17,30 @@
 [Week 5](#week-5)  
 [Week 4](#week-4)  
 [Week 3](#week-3)
+
+### T2 Week 9
+Decouple analysis CLI
+- Refactored analysis pipeline to remove dependency on the CLI.
+- Pipeline now accepts optional callback functions for status/progress updates.
+- CLI mode provides callbacks to print progress in the terminal.
+- API usage runs without printing by omitting callbacks.
+- Updated tests to match the new architecture.
+
+Implemented sidebar component and initial onboarding page
+- Implemented interactive sidebar for the analysis pipeline UI.
+- Added initial onboarding page.
+- UI currently static pending front-end Dockerization.
+- Onboarding collects:
+  - Local or online LLM selection
+  - GitHub configuration details
+
+#### Next week
+Next weeks plan is to further continue to implement the different required pages for the front end and determine a styling standard. We should also be able to start connecting back end to front end.
+
+#### Reflection
+This weeks work was fairly straighforward. There was a lot of cleanup of previous messy code and refactoring. 
+
+<img width="798" height="484" alt="image" src="https://github.com/user-attachments/assets/4dcaba1b-d094-40e6-83cd-2b0a2aa48f9b" />
 
 ### T2 Week 6-8
 - Implement portfolio result and skills endpoints (https://github.com/COSC-499-W2025/capstone-project-team-12/pull/394)
