@@ -8,7 +8,13 @@ from unittest.mock import Mock,MagicMock,patch
 @pytest.fixture
 def pipeline():
     #mock the dependencies
-    return AnalysisPipeline(MagicMock(), MagicMock(), MagicMock())
+    return AnalysisPipeline(MagicMock(), MagicMock(), status_callback=MagicMock(), header_callback=MagicMock())
+
+
+@pytest.fixture
+def mock_cli():
+    """Mock CLI instance for interactive tests."""
+    return MagicMock()
 
 
 @pytest.fixture
@@ -64,9 +70,11 @@ def test_file_load_failure(mock_fm, pipeline):
     """Tests that the pipeline stops if the file fails to load"""
     #forcing the file manager to return error
     mock_fm.return_value.load_from_filepath.return_value = {"status": "error", "message": "fail"}
-    pipeline.run_analysis("fake_path")
+    mock_cli = MagicMock()
+    mock_cli.get_input.return_value = ""
+    pipeline.run_analysis("fake_path", cli=mock_cli)
     # Updated expectation to match actual output from _prepare_data_for_analysis
-    pipeline.cli.print_status.assert_any_call("Load Error: fail", "error")
+    pipeline.status_callback.assert_any_call("Load Error: fail", "error")
 
 #test topic analysis pipeline for both cache miss and cache hit cases
 #The worlds longest test signature lmao, if you have any ideas to concise it let me know
@@ -161,7 +169,7 @@ def test_topic_pipeline(mock_cache_cls, mock_preprocess, mock_pii,mock_gen, #Pat
         assert bow == cached_bow
 
 class test_topic_vector_editing:
-    def test_reviews_proceed_immediately(pipeline):
+    def test_reviews_proceed_immediately(pipeline, mock_cli):
         """Tests that if user chooses to proceed immediately, the pipeline continues"""
         initial_bundle = {
             'topic_keywords': [
@@ -170,15 +178,15 @@ class test_topic_vector_editing:
             ]
         }
         #user inputs p
-        pipeline.cli.display_topic_review_menu.return_value = 'P'
+        mock_cli.display_topic_review_menu.return_value = 'P'
 
-        result = pipeline.review_topic_bundle(initial_bundle)
+        result = mock_cli.review_topic_bundle(initial_bundle)
 
         assert result == initial_bundle
-        pipeline.cli.print_status.assert_called_with("Proceeding with current topics.", "success")
+        mock_cli.print_status.assert_called_with("Proceeding with current topics.", "success")
 
 
-    def test_reviews_delete_topic(pipeline):
+    def test_reviews_delete_topic(pipeline, mock_cli):
         """Tests that it correctly deletes a topic"""
         initial_bundle = {
             'topic_keywords': [
@@ -188,35 +196,35 @@ class test_topic_vector_editing:
         }
 
         #we want to edit, then , then we input 1, then we select del, then p
-        pipeline.cli.display_topic_review_menu.side_effect = ['E', 'P']
-        pipeline.cli.get_input.return_value = '1'  #topic to delete
-        pipeline.cli.get_granular_input.return_value = ('del', None)
+        mock_cli.display_topic_review_menu.side_effect = ['E', 'P']
+        mock_cli.get_input.return_value = '1'  #topic to delete
+        mock_cli.get_granular_input.return_value = ('del', None)
 
-        result = pipeline.review_topic_bundle(initial_bundle)
+        result = mock_cli.review_topic_bundle(initial_bundle)
         final_topics = result['topic_keywords']
         assert len(final_topics) == 1
         assert final_topics[0]['topic_id'] == 0
-        pipeline.cli.print_status.assert_any_call("Topic 1 has been deleted.", "success")
+        mock_cli.print_status.assert_any_call("Topic 1 has been deleted.", "success")
 
 
-    def test_review_manual_editing(pipeline):
+    def test_review_manual_editing(pipeline, mock_cli):
         """Test the manual editing/granular edits workflow"""
         initial_bundle = {
             'topic_keywords': [{'topic_id': 0, 'keywords': ['bad', 'middle']}]
         }
 
         #from main meny, E then P after edits
-        pipeline.cli.display_topic_review_menu.side_effect = ['E', 'P']
+        mock_cli.display_topic_review_menu.side_effect = ['E', 'P']
         
-        pipeline.cli.get_input.side_effect = ["0", "better", "good"]
+        mock_cli.get_input.side_effect = ["0", "better", "good"]
 
-        pipeline.cli.get_granular_input.side_effect = [
+        mock_cli.get_granular_input.side_effect = [
             ('replace_one', 0), 
             ('add', None), 
             ('back', None)
         ]
 
-        result = pipeline.review_topic_bundle(initial_bundle)
+        result = mock_cli.review_topic_bundle(initial_bundle)
 
         keywords = result['topic_keywords'][0]['keywords']
         assert keywords[0] == 'better'  #replaced
@@ -236,24 +244,21 @@ class TestRunRepoAnalysisPipeline:
         """Test that skipping GitHub username returns empty lists"""
         git_repos = [{"path": "/repo1"}, {"path": "/repo2"}]
         
-        pipeline.cli.get_input.return_value = ""  # Empty username
-        
         result = pipeline.run_repo_analysis_pipeline(git_repos, [])
         
-        pipeline.cli.print_status.assert_called_with("Skipping GitHub linking.", "info")
+        pipeline.status_callback.assert_called_with("Skipping GitHub linking (no username provided).", "info")
         assert result == ([], [], [], [])
 
     @patch('analysis_pipeline.RepositoryProcessor')
     def test_repo_process(self, mock_repo_processor,pipeline, sample_bin_data_array):
         """Test RepositoryProcessor is initialized with correct parameters"""
         git_repos = [{"path": "/repo1"}]
-        pipeline.cli.get_input.side_effect = ["testuser", "test@email.com"]
         
         mock_processor = MagicMock()
         mock_processor.process_repositories.return_value = []
         mock_repo_processor.return_value = mock_processor
         
-        pipeline.run_repo_analysis_pipeline(git_repos, sample_bin_data_array)
+        pipeline.run_repo_analysis_pipeline(git_repos, sample_bin_data_array, github_username="testuser", github_email="test@email.com")
         
         mock_repo_processor.assert_called_once_with(
             username="testuser",
@@ -265,13 +270,12 @@ class TestRunRepoAnalysisPipeline:
     def test_repo_process_noemail(self, mock_repoprocessor, pipeline, sample_bin_data_array):
         """Test that None is passed for email when user doesn't provide one"""
         git_repos = [{"path": "/repo1"}]
-        pipeline.cli.get_input.side_effect = ["testuser", ""]
         
         mock_processor = MagicMock()
         mock_processor.process_repositories.return_value = []
         mock_repoprocessor.return_value = mock_processor
         
-        pipeline.run_repo_analysis_pipeline(git_repos, sample_bin_data_array)
+        pipeline.run_repo_analysis_pipeline(git_repos, sample_bin_data_array, github_username="testuser", github_email=None)
         
         mock_repoprocessor.assert_called_once_with(
             username="testuser",
@@ -283,15 +287,14 @@ class TestRunRepoAnalysisPipeline:
     def test_repo_process_failure(self, mock_repoprocessor, pipeline):
         """Test error message when no repositories are processed"""
         git_repos = [{"path": "/repo1"}]
-        pipeline.cli.get_input.side_effect = ["testuser", "test@email.com"]
         
         mock_processor = MagicMock()
         mock_processor.process_repositories.return_value = None
         mock_repoprocessor.return_value = mock_processor
         
-        pipeline.run_repo_analysis_pipeline(git_repos, [])
+        pipeline.run_repo_analysis_pipeline(git_repos, [], github_username="testuser", github_email="test@email.com")
         
-        pipeline.cli.print_status.assert_any_call('No repositories could be processed.', "error")
+        pipeline.status_callback.assert_any_call('No repositories could be processed.', "error")
 
     
     #Primary test for the entire repo analysis pipeline
@@ -308,7 +311,6 @@ class TestRunRepoAnalysisPipeline:
         """Test successful execution of the entire pipeline"""
         #fake data and fake user input
         git_repos = [{"path": "/repo1"}]
-        pipeline.cli.get_input.side_effect = ["testuser", "test@email.com"]
         
         #setup arrays and data for test result
         processed_repos = [{"repo_name": "test-repo"}]
@@ -341,7 +343,7 @@ class TestRunRepoAnalysisPipeline:
         mock_rerank.return_value = reranked_repos
         
         #Actual Execution
-        result = pipeline.run_repo_analysis_pipeline(git_repos, [])
+        result = pipeline.run_repo_analysis_pipeline(git_repos, [], github_username="testuser", github_email="test@email.com")
         
         # Verify analyzer was initialized correctly
         mock_repoanalyzer.assert_called_once_with("testuser", "test@email.com")
@@ -378,7 +380,7 @@ def test_metadata_pipeline_empty_data(mock_extractor_cls, mock_analyzer_cls,    
     result = pipeline.run_metadata_analysis_pipeline(mock_text_nodes, mock_code_nodes, []) #Empty file_data array
     
     #Verify Implementation and results
-    pipeline.cli.print_status.assert_called_once_with("Error during metadata analysis: Empty analysis result.","error")
+    pipeline.status_callback.assert_called_once_with("Error during metadata analysis: Empty analysis result.","error")
     mock_analyzer_cls.assert_called_once_with({})
     mock_analyzer.analyze_all.assert_called_once()
     assert result == ({}, {})
@@ -496,7 +498,7 @@ class TestSaveResults:
         )
         
         # Verify no error message was printed
-        pipeline.cli.print_status.assert_not_called()
+        pipeline.status_callback.assert_not_called()
         
         # Verify return value is not None since return_id is true
         assert result is not None

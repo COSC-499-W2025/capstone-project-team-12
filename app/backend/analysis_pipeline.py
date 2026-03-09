@@ -41,10 +41,11 @@ class AnalysisPipeline:
             self.project_analysis_data: dict = {}
             self.medium_summary = ""
 
-    def __init__(self, cli, config_manager, database_manager):
-        self.cli = cli
+    def __init__(self, config_manager, database_manager, status_callback=None, header_callback=None):
         self.config_manager = config_manager
         self.database_manager = database_manager
+        self.status_callback = status_callback
+        self.header_callback = header_callback
         self.file_data_list: List = []
         self.file_classifer = FileClassifier()
         self.data_bundle = self.data_bundle_cls()
@@ -52,15 +53,25 @@ class AnalysisPipeline:
         self.repo_detector = RepoDetector()
         self.dict_exporter = DictExporter()
 
+    def _emit_status(self, message, status="info"):
+        """Safely emit a status message via the optional callback."""
+        if self.status_callback:
+            self.status_callback(message, status)
+
+    def _emit_header(self, title):
+        """Safely emit a header via the optional callback."""
+        if self.header_callback:
+            self.header_callback(title)
+
     def get_bin_data_by_Id(self, bin_Idx: int) -> BinaryIO | None:
         if self.file_data_list is None or len(self.file_data_list) == 0:
-            self.cli.print_status("File list is empty — load files before accessing binary data.", "error")
+            self._emit_status("File list is empty — load files before accessing binary data.", "error")
             return None
         return self.file_data_list[bin_Idx]
 
     def get_bin_data_by_IdList(self, bin_Idx_list: List[int]) -> List[BinaryIO]:
         if self.file_data_list is None or len(self.file_data_list) == 0:
-            self.cli.print_status("File list is empty — load files before accessing binary data.", "error")
+            self._emit_status("File list is empty — load files before accessing binary data.", "error")
             return None
 
         response_List: List[BinaryIO | None] = []
@@ -86,107 +97,9 @@ class AnalysisPipeline:
                 result.append('')
         return result
 
-    def review_topic_bundle(self, bundle: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        provides a way for the user to edit the extracted topics before sending it to the llm
-        allows users to view, edit (remove or replace) and confirm the extracted topics
-        
-        Args:
-            bundle: Dictionary containing 'topic_keywords' (list of dicts with 'topic_id' and 'keywords')
-            
-        Returns:
-            The modified bundle with updated topic_keywords.
-        """
-        
-        topic_keywords = bundle.get('topic_keywords', [])
-
-        if not topic_keywords:
-            self.cli.print_status("No topics to review.", "warning")
-            return bundle
-
-        while True:
-            choice = self.cli.display_topic_review_menu(topic_keywords)
-
-            if choice == 'P':
-                self.cli.print_status("Proceeding with current topics.", "success")
-                break
-
-            elif choice == 'E':
-                valid_ids = {topic['topic_id'] for topic in topic_keywords}
-                topic_id_input = self.cli.get_input("\n  Enter the Topic ID to edit:\n> ").strip()
-
-                try:
-                    topic_id = int(topic_id_input)
-                except ValueError:
-                    self.cli.print_status(f"'{topic_id_input}' is not a valid ID.", "error")
-                    continue
-
-                if topic_id not in valid_ids:
-                    self.cli.print_status(f"Topic ID {topic_id} not found.  Valid IDs: {sorted(valid_ids)}", "error")
-                    continue
-
-                topic_dict = None
-                for t in topic_keywords:
-                    if t['topic_id'] == topic_id:
-                        topic_dict = t
-                        break
-
-                while True:
-                    self.cli.display_topic_edit_details(topic_dict)
-                    action_type, index = self.cli.get_granular_input()
-
-                    if action_type == 'back':
-                        break
-
-                    elif action_type == 'del':
-                        topic_keywords = [t for t in topic_keywords if t['topic_id'] != topic_id]
-                        self.cli.print_status(f"Topic {topic_id} deleted.", "success")
-                        break
-
-                    elif action_type == 'all':
-                        new_keywords_input = self.cli.get_input("\n  Enter new keywords, comma-separated:\n> ").strip()
-                        new_keywords = [kw.strip() for kw in new_keywords_input.split(',') if kw.strip()]
-                        topic_dict['keywords'] = new_keywords
-                        self.cli.print_status(f"All keywords for Topic {topic_id} replaced.", "success")
-
-                    elif action_type == 'add':
-                        new_word = self.cli.get_input("\n  Enter keyword to add:\n> ").strip()
-                        if new_word:
-                            topic_dict['keywords'].append(new_word)
-                            self.cli.print_status(f"Added '{new_word}' to Topic {topic_id}.", "success")
-                        else:
-                            self.cli.print_status("No keyword entered — nothing added.", "warning")
-
-                    elif action_type == 'replace_one':
-                        keywords = topic_dict.get('keywords', [])
-                        if index < 0 or index >= len(keywords):
-                            self.cli.print_status(f"Index {index} is out of range.  Valid range: 0–{len(keywords) - 1}.", "error")
-                        else:
-                            old_word = keywords[index]
-                            new_word = self.cli.get_input(f"\n  Replace '{old_word}' with:\n> ").strip()
-                            if new_word:
-                                keywords[index] = new_word
-                                self.cli.print_status(f"Replaced '{old_word}' → '{new_word}'.", "success")
-                            else:
-                                self.cli.print_status("No keyword entered — nothing replaced.", "warning")
-
-                    elif action_type == 'remove_one':
-                        keywords = topic_dict.get('keywords', [])
-                        if index < 0 or index >= len(keywords):
-                            self.cli.print_status(f"Index {index} is out of range.  Valid range: 0–{len(keywords) - 1}.", "error")
-                        else:
-                            removed_word = keywords.pop(index)
-                            self.cli.print_status(f"Removed '{removed_word}' from Topic {topic_id}.", "success")
-
-                    elif action_type == 'invalid':
-                        continue
-
-        bundle['topic_keywords'] = topic_keywords
-        return bundle
-
     def load_files(self, filepath: str):
         """Load and validate files from the given filepath using FileManager."""
-        self.cli.print_status("Loading files...", "info")
+        self._emit_status("Loading files...", "info")
 
         file_manager = FileManager()
         fm_result: Dict[str, str | Node | None] = file_manager.load_from_filepath(filepath)
@@ -197,13 +110,13 @@ class AnalysisPipeline:
         if fm_result["status"] == "error":
             raise RuntimeError(f"Load Error: {fm_result.get('message', 'Unknown error')}")
 
-        self.cli.print_status(f"{fm_result.get('message', 'Files loaded.')}", "success")
+        self._emit_status(f"{fm_result.get('message', 'Files loaded.')}", "success")
 
         self.file_data_list = fm_result.get("binary_data", [])
         if not self.file_data_list:
-            self.cli.print_status("No binary data returned — text preprocessing may be affected.", "warning")
+            self._emit_status("No binary data returned — text preprocessing may be affected.", "warning")
         else:
-            self.cli.print_status(f"{len(self.file_data_list)} file(s) loaded.", "success")
+            self._emit_status(f"{len(self.file_data_list)} file(s) loaded.", "success")
 
         if "tree" not in fm_result or fm_result["tree"] is None:
             raise RuntimeError("FileManager did not return a file tree.")
@@ -227,9 +140,9 @@ class AnalysisPipeline:
         codefile_nodes: List[Node] = []
         try:
             textfile_nodes, codefile_nodes, binary_data = self.file_classifer.classify_files(filetree, binary_data)
-            self.cli.print_status("File classification complete.", "success")
+            self._emit_status("File classification complete.", "success")
         except Exception as e:
-            self.cli.print_status(f"File classification failed: {e}", "error")
+            self._emit_status(f"File classification failed: {e}", "error")
             return
 
         git_repos: List[Node] = []
@@ -237,12 +150,12 @@ class AnalysisPipeline:
             self.repo_detector.process_git_repos(filetree)
             git_repos = self.repo_detector.get_git_repos()
             if git_repos:
-                self.cli.print_status(f"Detected {len(git_repos)} git repo(s).", "success")
+                self._emit_status(f"Detected {len(git_repos)} git repo(s).", "success")
         except (ValueError, TypeError, RuntimeError) as e:
-            self.cli.print_status(f"Git repository detection failed: {e}", "error")
+            self._emit_status(f"Git repository detection failed: {e}", "error")
             return
         except Exception as e:
-            self.cli.print_status(f"Unexpected error during git repository detection: {e}", "error")
+            self._emit_status(f"Unexpected error during git repository detection: {e}", "error")
             return
 
         return textfile_nodes, codefile_nodes, git_repos, binary_data
@@ -256,12 +169,12 @@ class AnalysisPipeline:
 
         try:
             if text_nodes or code_nodes:
-                self.cli.print_header("Content Analysis")
-                self.cli.print_status(
+                self._emit_header("Content Analysis")
+                self._emit_status(
                     f"Found {len(text_nodes)} text file(s) and {len(code_nodes)} code file(s).", "info"
                 )
-                self.cli.print_status("Extracting keywords and removing sensitive data...", "info")
-                self.cli.print_status("Running Bag-of-Words pipeline...", "info")
+                self._emit_status("Extracting keywords and removing sensitive data...", "info")
+                self._emit_status("Running Bag-of-Words pipeline...", "info")
 
                 preprocess_signature = {
                     "lemmatizer": True,
@@ -287,12 +200,12 @@ class AnalysisPipeline:
                     cached = cache.get(key)
                     if cached is not None:
                         final_bow = cached
-                        self.cli.print_status(f"Cache hit — retrieved BoW for {len(final_bow)} document(s).", "success")
+                        self._emit_status(f"Cache hit — retrieved BoW for {len(final_bow)} document(s).", "success")
                     else:
-                        self.cli.print_status("Cached data is corrupted — regenerating.", "warning")
+                        self._emit_status("Cached data is corrupted — regenerating.", "warning")
 
                 if not hasKey or cached is None:
-                    self.cli.print_status("No cache found — processing text from scratch.", "info")
+                    self._emit_status("No cache found — processing text from scratch.", "info")
                     text_binary_data = self.get_bin_data_by_Nodes(text_nodes) if text_nodes else []
                     code_binary_data = self.get_bin_data_by_Nodes(code_nodes) if code_nodes else []
                     text_data = self.binary_to_str(text_binary_data) if text_nodes else []
@@ -302,50 +215,38 @@ class AnalysisPipeline:
                     anonymized_docs = remove_pii(processed_docs)
                     final_bow = anonymized_docs
                     cache.set(key, final_bow)
-                    self.cli.print_status(f"Processed and cached {len(final_bow)} document(s).", "success")
+                    self._emit_status(f"Processed and cached {len(final_bow)} document(s).", "success")
 
-                self.cli.print_status("Generating topic models...", "info")
+                self._emit_status("Generating topic models...", "info")
                 lda_model, dictionary, doc_topic_vectors, topic_term_vectors = generate_topic_vectors(final_bow)
-                self.cli.print_status(
+                self._emit_status(
                     f"Generated {len(topic_term_vectors)} topic(s) from {len(doc_topic_vectors)} document(s).", "success"
                 )
-
-                self.cli.print_header("Top Topics Identified")
-                for i in range(min(5, len(topic_term_vectors))):
-                    top_words = lda_model.show_topic(i, topn=5)
-                    words_str = ", ".join([word for word, prob in top_words])
-                    print(f"  Topic {i}:  {words_str}")
 
                 return lda_model, dictionary, doc_topic_vectors, topic_term_vectors, final_bow
 
             else:
-                self.cli.print_status("No text or code files found — skipping content analysis.", "warning")
+                self._emit_status("No text or code files found — skipping content analysis.", "warning")
         except Exception as e:
             raise Exception(f"Content analysis failed: {e}")
 
     def run_metadata_analysis_pipeline(self, text_nodes, code_nodes, binary_data):
-        self.cli.print_header("Metadata Analysis")
+        self._emit_header("Metadata Analysis")
         metadata_extractor = MetadataExtractor()
         all_nodes = text_nodes + code_nodes
         metadata_results: Dict[str, Dict[str, Any]] = metadata_extractor.extract_all_metadata(all_nodes, binary_data)
 
         total_files: int = len(metadata_results)
         if total_files > 0:
-            self.cli.print_status(f"Extracted metadata from {total_files} file(s).", "success")
+            self._emit_status(f"Extracted metadata from {total_files} file(s).", "success")
 
         metadata_analyzer = MetadataAnalyzer(metadata_results)
         metadata_analysis = metadata_analyzer.analyze_all()
 
         if metadata_analysis and metadata_analysis != {}:
-            print("\n--- File Extension Statistics ---")
-            print(f"{'Extension':<10} | {'Count':<8} | {'Size':<15} | {'Percentage':<8} | {'Category'}")
-            print("-" * 70)
-            for ext, stats in metadata_analysis['extension_stats'].items():
-                print(f"{ext:<10} | {stats['count']:<8} | {stats['total_size']:<15} | {stats['percentage']:<8}% | {stats['category']}")
-            print()
-            self.cli.print_status(f"Primary languages: {', '.join(metadata_analysis['primary_languages'])}", "info")
+            self._emit_status(f"Primary languages: {', '.join(metadata_analysis['primary_languages'])}", "info")
         else:
-            self.cli.print_status("Error during metadata analysis: Empty analysis result.","error")
+            self._emit_status("Error during metadata analysis: Empty analysis result.","error")
             return {},{}
         return metadata_results,metadata_analysis
     
@@ -353,21 +254,19 @@ class AnalysisPipeline:
         processed_git_repos: List[Dict[str, Any]] = None
         analyzed_repos: List[Dict[str, Any]] = None
 
-        self.cli.print_header("Repository Analysis")
+        self._emit_header("Repository Analysis")
         if not git_repos:
-            self.cli.print_status("No git repositories found — ensure a .git folder is present.", "error")
+            self._emit_status("No git repositories found — ensure a .git folder is present.", "error")
             return [], [], [], []
 
-        self.cli.print_status(f"Found {len(git_repos)} git repo(s).  Attempting to link with GitHub...", "info")
+        self._emit_status(f"Found {len(git_repos)} git repo(s).  Attempting to link with GitHub...", "info")
 
-        github_username: str = self.cli.get_input("\n  Enter GitHub username to link repos (or [Enter] to skip):\n> ").strip().lower()
-
-        #use provided credentials (API path) or fall back to CLI prompt
         if not github_username:
-            github_username = self.cli.get_input("Enter GitHub username to link (Press Enter to skip): \n> ").strip().lower()
-        
+            self._emit_status("Skipping GitHub linking (no username provided).", "info")
+            return [], [], [], []
+
         if github_username:
-            user_email: str = github_email if github_email else self.cli.get_input("Enter GitHub email associated with the account: \n> ").strip().lower()
+            user_email: str = github_email if github_email else None
 
             repo_processor = RepositoryProcessor(
                 username=github_username,
@@ -378,7 +277,7 @@ class AnalysisPipeline:
             try:
                 processed_git_repos = repo_processor.process_repositories(git_repos)
                 if not processed_git_repos:
-                    self.cli.print_status("No repositories could be processed.", "error")
+                    self._emit_status("No repositories could be processed.", "error")
                 else:
                     for repo in processed_git_repos:
                         repo["name"] = (
@@ -393,7 +292,7 @@ class AnalysisPipeline:
                         selected_repos = choose_projects_for_analysis(processed_git_repos)
                     else:
                         selected_repos = processed_git_repos 
-                    self.cli.print_status("Repositories processed successfully.", "success")
+                    self._emit_status("Repositories processed successfully.", "success")
 
                     analyzer = RepositoryAnalyzer(github_username, user_email)
                     imports_extractor = ImportsExtractor()
@@ -421,25 +320,22 @@ class AnalysisPipeline:
                             repo['success_indicators'] = {}
 
                     if not analyzed_repos:
-                        self.cli.print_status("No repositories were successfully analysed.", "warning")
+                        self._emit_status("No repositories were successfully analysed.", "warning")
                     else:
-                        self.cli.print_status(f"Analyzed {len(analyzed_repos)} repositories.", "success")
+                        self._emit_status(f"Analyzed {len(analyzed_repos)} repositories.", "success")
                         # Allow user to rerank projects
                         if interactive:
-                            self.cli.print_status("Ready to rank/re-rank projects.\n", "info")
+                            self._emit_status("Ready to rank/re-rank projects.\n", "info")
                             analyzed_repos = rerank_projects(analyzed_repos)
                         # Generate the project timeline
                         timeline = analyzer.create_chronological_project_list(analyzed_repos)
 
-                        display_project_summary(analyzed_repos, top_n=3)
-                        display_project_insights(analyzed_repos, top_n=3)
-                        display_project_timeline(timeline)
                         return git_repos, analyzed_repos, timeline, processed_git_repos
 
             except Exception as e:
                 raise RuntimeError(f"Repository processing failed: {e}")
         else:
-            self.cli.print_status("Skipping GitHub linking.", "info")
+            self._emit_status("Skipping GitHub linking.", "info")
             return [], [], [], []
 
     def run_analysis_extract(self, filepath: str, existing_analysis_id: Optional[str] = None, preloaded_tree: Optional[Node] = None, preloaded_binary: Optional[List[bytes]] = None, github_username: Optional[str] = None, github_email: Optional[str] = None):
@@ -455,7 +351,7 @@ class AnalysisPipeline:
         binary_data: List[bytes] = []
 
         if preloaded_tree and preloaded_binary:
-            self.cli.print_status("Using preloaded file data.", "info")
+            self._emit_status("Using preloaded file data.", "info")
             filetree = preloaded_tree
             binary_data = preloaded_binary
             self.file_data_list = binary_data
@@ -465,7 +361,7 @@ class AnalysisPipeline:
                 fm_result = self.load_files(filepath)
             except Exception as e:
                 # Updated error format to match the test expectation: "Load Error: fail"
-                self.cli.print_status(f"{e}","error")
+                self._emit_status(f"{e}","error")
                 return None
             
             #Load various parts of fm_result as vars for downstream use
@@ -473,14 +369,14 @@ class AnalysisPipeline:
             binary_data = fm_result.get("binary_data")
 
             if not isinstance(binary_data, list):
-                self.cli.print_status("Binary data was not loaded — aborting analysis.", "error")
+                self._emit_status("Binary data was not loaded — aborting analysis.", "error")
                 binary_data = []
                 return None
 
             try:
                 if existing_analysis_id:
                     analysis_id = existing_analysis_id
-                    self.cli.print_status(f"Updating existing analysis: {analysis_id}", "info")
+                    self._emit_status(f"Updating existing analysis: {analysis_id}", "info")
                 else:
                     analysis_id = self.database_manager.create_analysis(file_path=filepath)
                     binary_blob = pickle.dumps(binary_data)
@@ -488,26 +384,26 @@ class AnalysisPipeline:
                     self.database_manager.save_fileset(analysis_id, binary_blob, tree_dict, filepath)
 
             except Exception as e:
-                self.cli.print_status(f"Database Analysis Creation Error: {e}", "error")
+                self._emit_status(f"Database Analysis Creation Error: {e}", "error")
                 return None
        
         #classify loaded files in text or code and extract git repos
         try:
             textfile_nodes, codefile_nodes, git_repos, binary_data = self.classify_files(filetree, binary_data)
         except Exception as e:
-            self.cli.print_status(f"File Classifier Error, Aborting analysis:{e}")
+            self._emit_status(f"File Classifier Error, Aborting analysis:{e}")
             return None
             
         #run metadata analysis
         try:
             self.data_bundle.metadata_results, self.result_bundle.metadata_analysis = self.run_metadata_analysis_pipeline(textfile_nodes, codefile_nodes, binary_data)
         except Exception as e:
-            self.cli.print_status(f"Metadata analysis failed: {e}", "error")
+            self._emit_status(f"Metadata analysis failed: {e}", "error")
 
         try:
             self.data_bundle.lda_model, self.data_bundle.dictionary, self.result_bundle.doc_topic_vectors, self.result_bundle.topic_term_vectors, self.data_bundle.final_bow = self.run_topic_analysis_pipeline(textfile_nodes, codefile_nodes)
         except Exception as e:
-            self.cli.print_status(f"Topic Analysis Error: {e}","error")
+            self._emit_status(f"Topic Analysis Error: {e}","error")
         
         #run git_repo_analysis
         analyzed_repos = None
@@ -516,9 +412,7 @@ class AnalysisPipeline:
         try:    
             git_repos,analyzed_repos,timeline,processed_git_repos = self.run_repo_analysis_pipeline(git_repos,binary_data,github_username=github_username,github_email=github_email,interactive=False)
         except Exception as e:
-            self.cli.print_status(f"Repository analysis failed: {e}", "error")
-            import traceback
-            traceback.print_exc()
+            self._emit_status(f"Repository analysis failed: {e}", "error")
 
         text_analysis_data = {
             "num_documents": len(self.result_bundle.doc_topic_vectors),
@@ -535,7 +429,7 @@ class AnalysisPipeline:
         
         # Collect analysis statistics (moved from run_AI_NLG)
         try:
-            self.cli.print_status("Collecting analysis statistics...", "info")
+            self._emit_status("Collecting analysis statistics...", "info")
             ai_data_bundle = collect_stats(
                 metadata_stats=self.data_bundle.metadata_results,
                 metadata_analysis=self.result_bundle.metadata_analysis,
@@ -613,29 +507,26 @@ class AnalysisPipeline:
             # ==================================
 
             # AI Summary Generation
-            self.cli.print_header("AI Summary Generation")
+            self._emit_header("AI Summary Generation")
             
             #check preferences, api and wrapper should alr have them saved
             online_consent = self.config_manager.preferences.get("online_llm_consent", False)
 
             if online_consent:
-                self.cli.print_status("Mode: Online LLM", "success")
+                self._emit_status("Mode: Online LLM", "success")
                 try:
                     llm_client = OnlineLLMClient()
                 except ValueError as e:
-                    self.cli.print_status(f"Online Init failed: {e}. Falling back to Local.", "error")
+                    self._emit_status(f"Online Init failed: {e}. Falling back to Local.", "error")
                     llm_client = LocalLLMClient()
             else:
-                self.cli.print_status("Mode: Local LLM", "success")
+                self._emit_status("Mode: Local LLM", "success")
                 llm_client = LocalLLMClient()
             
-            self.cli.print_status("Generating project summary (this may take a moment)...", "info")
+            self._emit_status("Generating project summary (this may take a moment)...", "info")
             
             try:
                 self.result_bundle.medium_summary = llm_client.generate_summary(topic_vector_bundle)
-                self.cli.print_header("Standard Summary")
-                print(self.result_bundle.medium_summary)
-                print("=" * 60 + "\n")
                 
             except Exception as e:
                 raise RuntimeError(f"Error generating summary: {e}")
@@ -650,28 +541,61 @@ class AnalysisPipeline:
         return self.result_bundle.medium_summary
 
     #main execution func (wrapper)
-    def run_analysis(self, filepath: str,return_id = False, existing_analysis_id: Optional[str] = None, preloaded_tree: Optional[Node] = None, preloaded_binary: Optional[List[bytes]] = None) -> None|str:
+    def run_analysis(self, filepath: str, cli=None, return_id = False, existing_analysis_id: Optional[str] = None, preloaded_tree: Optional[Node] = None, preloaded_binary: Optional[List[bytes]] = None) -> None|str:
         """
         Wrapper that orchestrates the full analysis pipeline via CLI.
         Calls Phase 1, handles interactive CLI prompts, then calls Phase 2.
+
+        Args:
+            cli: A CLI instance used for interactive prompts and display.
+                 Required when running from the terminal interface.
         """
+        if cli is None:
+            raise ValueError("run_analysis requires a cli instance for interactive prompts.")
+
+        github_username = cli.get_input("\n  Enter GitHub username to link repos (or [Enter] to skip):\n> ").strip().lower()
+        github_email = None
+        if github_username:
+            github_email = cli.get_input("  Enter GitHub email associated with the account (or [Enter] to skip):\n> ").strip().lower() or None
+
         #Phase 1: Extract and analyze data
-        extract_result = self.run_analysis_extract(filepath, existing_analysis_id, preloaded_tree, preloaded_binary)
+        extract_result = self.run_analysis_extract(
+            filepath,
+            existing_analysis_id,
+            preloaded_tree,
+            preloaded_binary,
+            github_username=github_username if github_username else None,
+            github_email=github_email,
+        )
         
         if extract_result is None:
             return None
         
         analysis_id, topic_vector_bundle, detected_skills, text_analysis_data = extract_result
         
+        #Display extracted data for CLI users
+        cli.display_metadata_stats(self.result_bundle.metadata_analysis)
+        cli.display_topics(self.data_bundle.lda_model, self.result_bundle.topic_term_vectors)
+
+        #Display repository analysis results (moved from run_repo_analysis_pipeline)
+        if self.result_bundle.project_analysis_data:
+            analyzed_repos = self.result_bundle.project_analysis_data.get("analyzed_insights", [])
+            timeline = self.result_bundle.project_analysis_data.get("timeline", [])
+            if analyzed_repos:
+                display_project_summary(analyzed_repos, top_n=3)
+                display_project_insights(analyzed_repos, top_n=3)
+            if timeline:
+                display_project_timeline(timeline)
+
         #CLI interactive prompts: review topics and select skills
-        topic_vector_bundle = self.review_topic_bundle(topic_vector_bundle)
+        topic_vector_bundle = cli.review_topic_bundle(topic_vector_bundle)
         
         user_highlights = []
         if detected_skills:
-            user_highlights = self.cli.display_skill_selection_menu(detected_skills)
+            user_highlights = cli.display_skill_selection_menu(detected_skills)
         
         topic_vector_bundle['user_highlights'] = user_highlights
-        self.cli.print_privacy_notice()
+        cli.print_privacy_notice()
 
         online_consent = self.config_manager.get_consent(
             key="online_llm_consent",
@@ -681,4 +605,10 @@ class AnalysisPipeline:
         )
         
         #Phase 2: Generate AI summary and save results
-        return self.run_analysis_generate(analysis_id, topic_vector_bundle, text_analysis_data, return_id=return_id)
+        result = self.run_analysis_generate(analysis_id, topic_vector_bundle, text_analysis_data, return_id=return_id)
+
+        #Display the generated summary CLI
+        if not return_id and result:
+            cli.display_summary(result)
+
+        return result
