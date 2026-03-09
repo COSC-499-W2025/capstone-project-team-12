@@ -4,6 +4,7 @@ import Portfolio from './pages/portfolio';
 import Onboarding from './pages/onboarding';
 import ProjectInsights from "./pages/ProjectInsights";
 import ProgressPage from './pages/progress';
+import ResumeDisplay from './pages/resume_display';
 
 function App() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -13,8 +14,8 @@ function App() {
       <Sidebar currentStep={currentStep} onStepChange={setCurrentStep} />
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         {currentStep === 1 && <Onboarding onComplete={() => setCurrentStep(2)} />}
-        {/* added progress page as step 3 for now, will set to step 2.5 next week */ }
-        {currentStep === 3 && <ProgressPage />}
+        {currentStep === 3 && <ProgressPage onComplete={() => setCurrentStep(4)} />}
+        {currentStep === 5 && <ResumeDisplay />}
         {currentStep === 6 && <Portfolio />}
         {/* add other pages/components for other steps */}
       </main>
