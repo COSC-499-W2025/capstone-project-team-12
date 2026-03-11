@@ -142,29 +142,43 @@ const FileImport: React.FC<FileImportProps> = ({ onComplete, githubUsername, git
 
   const handleProcessFiles = async () => {
     try {
+      console.log('[UPLOAD] Zipping files...');
       const zipped = await zipSelectedFiles();
+      console.log('[UPLOAD] Zip complete, size:', zipped.size, 'bytes');
 
       const formData = new FormData();
       formData.append('github_username', githubUsername);
       formData.append('github_email', githubEmail);
       formData.append('file', zipped);
 
+      console.log('[UPLOAD] Sending POST /projects/upload/extract ...');
+      const fetchStart = performance.now();
       const response = await fetch('/projects/upload/extract', {
         method: 'POST',
         body: formData,
       });
+      console.log('[UPLOAD] Response received in', ((performance.now() - fetchStart) / 1000).toFixed(1), 's — status:', response.status);
 
-      const data = await response.json();
-      console.log('Upload response:', data);
+      const text = await response.text();
+      console.log('[UPLOAD] Raw response body:', text.slice(0, 500));
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (parseErr) {
+        console.error('[UPLOAD] JSON parse failed:', parseErr, '— body was:', text.slice(0, 200));
+        return;
+      }
+      console.log('[UPLOAD] Parsed response:', data);
 
       if (!response.ok) {
-        console.error('Upload failed:', response.status, data);
+        console.error('[UPLOAD] Upload failed:', response.status, data);
         return;
       }
 
       onComplete();
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error('[UPLOAD] Upload error:', error);
     }
   };
 
