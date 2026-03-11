@@ -10,6 +10,9 @@ interface UploadEntry {
 
 interface FileImportProps {
   onComplete: () => void;
+  githubUsername: string;
+  githubEmail: string;
+  model: string;
 }
 
 /** Recursively read all File objects from a FileSystemDirectoryEntry. */
@@ -42,7 +45,7 @@ function readAllEntries(dirEntry: FileSystemDirectoryEntry): Promise<File[]> {
   });
 }
 
-const FileImport: React.FC<FileImportProps> = ({ onComplete }) => {
+const FileImport: React.FC<FileImportProps> = ({ onComplete, githubUsername, githubEmail, model: _model }) => {
   const [uploads, setUploads] = useState<UploadEntry[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
@@ -138,9 +141,31 @@ const FileImport: React.FC<FileImportProps> = ({ onComplete }) => {
   };
 
   const handleProcessFiles = async () => {
-    const zipped = await zipSelectedFiles();
-    console.log("Zipped file:", zipped);
-    onComplete();
+    try {
+      const zipped = await zipSelectedFiles();
+
+      const formData = new FormData();
+      formData.append('github_username', githubUsername);
+      formData.append('github_email', githubEmail);
+      formData.append('file', zipped);
+
+      const response = await fetch('/projects/upload/extract', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+      console.log('Upload response:', data);
+
+      if (!response.ok) {
+        console.error('Upload failed:', response.status, data);
+        return;
+      }
+
+      onComplete();
+    } catch (error) {
+      console.error('Upload error:', error);
+    }
   };
 
   return (

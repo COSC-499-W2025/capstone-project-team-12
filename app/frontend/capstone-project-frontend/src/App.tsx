@@ -7,15 +7,31 @@ import ProgressPage from './pages/progress';
 import ResumeDisplay from './pages/resume_display';
 import FileImport from './pages/fileImport';
 
+interface OnboardingData {
+  llmMode: 'online' | 'local';
+  githubUsername: string;
+  email: string;
+}
+
 function App() {
   const [currentStep, setCurrentStep] = useState(1);
+  const [onboardingData, setOnboardingData] = useState<OnboardingData | null>(null);
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f0f2f8' }}>
       <Sidebar currentStep={currentStep} onStepChange={setCurrentStep} />
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        {currentStep === 1 && <Onboarding onComplete={() => setCurrentStep(2)} />}
-        {currentStep === 2 && <FileImport onComplete={() => setCurrentStep(3)} />}
+        {currentStep === 1 && (
+          <Onboarding onComplete={(data) => { setOnboardingData(data); setCurrentStep(2); }} />
+        )}
+        {currentStep === 2 && (
+          <FileImport
+            onComplete={() => setCurrentStep(3)}
+            githubUsername={onboardingData?.githubUsername || ''}
+            githubEmail={onboardingData?.email || ''}
+            model={onboardingData?.llmMode || 'online'}
+          />
+        )}
         {currentStep === 3 && <ProgressPage onComplete={() => setCurrentStep(4)} />}
         {currentStep === 5 && <ResumeDisplay />}
         {currentStep === 6 && <Portfolio />}
