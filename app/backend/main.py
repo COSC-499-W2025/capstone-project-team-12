@@ -71,8 +71,8 @@ def main() -> None:
 
                     analysis_id = None
                     try:
-                        pipeline = AnalysisPipeline(cli, config_manager, database_manager)
-                        analysis_id = pipeline.run_analysis(str(path), return_id=True)
+                        pipeline = AnalysisPipeline(config_manager, database_manager, status_callback=cli.print_status, header_callback=cli.print_header)
+                        analysis_id = pipeline.run_analysis(str(path), cli=cli, return_id=True)
                     except Exception as e:
                         cli.print_status(f"Analysis failed: {e}", "error")
 
@@ -243,9 +243,10 @@ def main() -> None:
                     cli.print_status("Files saved. Re-running analysis...", "success")
 
                     try:
-                        pipeline = AnalysisPipeline(cli, config_manager, database_manager)
+                        pipeline = AnalysisPipeline(config_manager, database_manager, status_callback=cli.print_status, header_callback=cli.print_header)
                         pipeline.run_analysis(
                             filepath=new_path,
+                            cli=cli,
                             return_id=False,
                             existing_analysis_id=analysis_id,
                             preloaded_tree=merged_tree,
