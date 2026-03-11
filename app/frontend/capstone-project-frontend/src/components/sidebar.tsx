@@ -1,4 +1,4 @@
-const Sidebar = ({ currentStep = 1, onStepChange }: { currentStep?: number; onStepChange?: (step: number) => void }) => {
+const Sidebar = ({ currentStep = 1, onStepChange, onDashboard }: { currentStep?: number; onStepChange?: (step: number) => void; onDashboard?: () => void}) => {
   const steps = [
     { id: 1, label: "Onboarding" },
     { id: 2, label: "File Selection" },
@@ -185,6 +185,7 @@ const Sidebar = ({ currentStep = 1, onStepChange }: { currentStep?: number; onSt
         }}
         onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
         onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+        onClick={onDashboard}
         >
           <div style={{
             width: "28px",
@@ -200,7 +201,7 @@ const Sidebar = ({ currentStep = 1, onStepChange }: { currentStep?: number; onSt
                 d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
           </div>
-          <span style={{ fontSize: "13px", fontWeight: "500" }}>My Analyses</span>
+          <span style={{ fontSize: "13px", fontWeight: "500", color: "white" }}>My Dashboard</span>
         </button>
       </div>
     </div>

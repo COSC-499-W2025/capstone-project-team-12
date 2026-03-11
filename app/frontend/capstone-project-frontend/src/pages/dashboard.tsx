@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Analysis, EmptyStateProps, NewAnalysisPayload } from "../types/dashboardTypes";
+import type { Analysis, EmptyStateProps, NewAnalysisPayload, ToastProps } from "../types/dashboardTypes";
 import { NewAnalysisModal } from "../components/modals";
 import { AnalysisCard } from "../components/analysisCard";
 
@@ -58,11 +58,6 @@ export function EmptyState({ onNew }: EmptyStateProps) {
       </button>
     </div>
   );
-}
-
-interface ToastProps {
-  message: string;
-  onDismiss: () => void;
 }
 
 function Toast({ message, onDismiss }: ToastProps) {

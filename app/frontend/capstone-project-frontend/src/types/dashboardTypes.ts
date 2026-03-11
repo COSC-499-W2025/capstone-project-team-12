@@ -43,3 +43,8 @@ export interface IconButtonProps {
 export interface EmptyStateProps {
   onNew: () => void;
 }
+
+export interface ToastProps {
+  message: string;
+  onDismiss: () => void;
+}
