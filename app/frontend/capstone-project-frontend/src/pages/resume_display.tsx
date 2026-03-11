@@ -1,6 +1,6 @@
 import { useState } from "react";
 import SectionCard from "../components/SectionCard";
-import type { Resume, Project, Language } from "../resumeTypes";
+import type { Resume, Project, Language } from "../types/resumeTypes";
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
 
