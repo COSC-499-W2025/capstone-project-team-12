@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
+import JSZip from "jszip";
 
 interface UploadEntry {
   name: string;
@@ -123,6 +124,23 @@ const FileImport: React.FC<FileImportProps> = ({ onComplete }) => {
     setUploads((prev) => prev.filter((_, i) => i !== index));
     if (fileInputRef.current) fileInputRef.current.value = "";
     if (folderInputRef.current) folderInputRef.current.value = "";
+  };
+
+  const zipSelectedFiles = async (): Promise<File> => {
+    const zip = new JSZip();
+    const allFiles = uploads.flatMap((entry) => entry.files);
+    for (const file of allFiles) {
+      const path = file.webkitRelativePath || file.name;
+      zip.file(path, file);
+    }
+    const blob = await zip.generateAsync({ type: "blob" });
+    return new File([blob], "project_files.zip", { type: "application/zip" });
+  };
+
+  const handleProcessFiles = async () => {
+    const zipped = await zipSelectedFiles();
+    console.log("Zipped file:", zipped);
+    onComplete();
   };
 
   return (
@@ -250,7 +268,7 @@ const FileImport: React.FC<FileImportProps> = ({ onComplete }) => {
 
         {/* Confirm button */}
         <button
-          onClick={onComplete}
+          onClick={handleProcessFiles}
           disabled={uploads.length === 0}
           className={`
             w-full py-3.5 rounded-xl border-none font-bold text-sm
