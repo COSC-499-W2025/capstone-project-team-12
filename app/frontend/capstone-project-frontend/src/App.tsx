@@ -13,9 +13,9 @@ function App() {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f0f2f8' }}>
-      <Sidebar currentStep={currentStep} onStepChange={setCurrentStep} onDashboard={() => setShowDashboard(true)} />
+      <Sidebar currentStep={currentStep} onStepChange={(step) => { setShowDashboard(false); setCurrentStep(step); }} onDashboard={() => setShowDashboard(true)} />
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        {showDashboard ? <Dashboard /> : (
+        {showDashboard ? (<Dashboard />) : (
         <>
           {currentStep === 1 && <Onboarding onComplete={() => setCurrentStep(2)} />}
           {currentStep === 3 && <ProgressPage onComplete={() => setCurrentStep(4)} />}
