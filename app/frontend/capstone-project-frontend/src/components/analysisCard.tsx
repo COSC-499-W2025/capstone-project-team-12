@@ -84,7 +84,7 @@ export function AnalysisCard({
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {analysis.hasResume    && <Badge label="Résumé"    color="indigo"  />}
+            {analysis.hasResume    && <Badge label="Resume"    color="indigo"  />}
             {analysis.hasPortfolio && <Badge label="Portfolio" color="emerald" />}
             {analysis.hasInsights  && <Badge label="Insights"  color="slate"   />}
             <svg
@@ -115,12 +115,12 @@ export function AnalysisCard({
               <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">Generated Outputs</p>
               <div className="space-y-2">
 
-                {/* Résumé */}
+                {/* Resume */}
                 <div className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 border border-slate-100 px-3 py-2.5">
                   <div className="flex items-center gap-2">
                     <span className="text-base">📄</span>
                     <div>
-                      <p className="text-xs font-semibold text-slate-700">Résumé</p>
+                      <p className="text-xs font-semibold text-slate-700">Resume</p>
                       {!analysis.hasResume && <p className="text-xs text-slate-400">Not generated</p>}
                     </div>
                   </div>
@@ -132,7 +132,7 @@ export function AnalysisCard({
                       >
                         View
                       </button>
-                      <IconButton onClick={() => setConfirmDeleteResume(true)} title="Delete résumé">
+                      <IconButton onClick={() => setConfirmDeleteResume(true)} title="Delete resume">
                         <TrashIcon />
                       </IconButton>
                     </div>
@@ -217,7 +217,7 @@ export function AnalysisCard({
       {confirmDelete && (
         <Modal
           title="Delete Analysis?"
-          description={`This will permanently delete "${analysis.label}" and all its generated outputs (résumé, portfolio, insights). This cannot be undone.`}
+          description={`This will permanently delete "${analysis.label}" and all its generated outputs (resume, portfolio, insights). This cannot be undone.`}
           confirmLabel="Delete"
           onConfirm={() => { onDelete(analysis.id); setConfirmDelete(false); }}
           onCancel={() => setConfirmDelete(false)}
@@ -225,8 +225,8 @@ export function AnalysisCard({
       )}
       {confirmDeleteResume && (
         <Modal
-          title="Delete Résumé?"
-          description={`This will permanently delete the résumé generated for "${analysis.label}".`}
+          title="Delete Resume?"
+          description={`This will permanently delete the resume generated for "${analysis.label}".`}
           confirmLabel="Delete"
           onConfirm={() => { onDeleteResume(analysis.id); setConfirmDeleteResume(false); }}
           onCancel={() => setConfirmDeleteResume(false)}
