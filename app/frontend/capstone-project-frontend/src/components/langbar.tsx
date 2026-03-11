@@ -4,7 +4,17 @@ import { type Language } from "../types/types";
 const LangBar: React.FC<Language & { index: number }> = ({ name, pct, files, index }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [go, setGo] = useState(false);
-  const COLORS = ["#e8ff47","#47d9ff","#ff6b6b","#a78bfa","#34d399","#f97316","#f472b6","#60a5fa","#fbbf24"];
+  const COLORS = [
+    "#d0f0ff", 
+    "#7fdfff", 
+    "#47caff", 
+    "#1e90ff", 
+    "#0b61d6", 
+    "#034ea2",
+    "#002f66", 
+    "#4dabff", 
+    "#3390ff"  
+  ];
   const color = COLORS[index % COLORS.length];
 
   useEffect(() => {
@@ -15,17 +25,18 @@ const LangBar: React.FC<Language & { index: number }> = ({ name, pct, files, ind
 
   return (
     <div ref={ref} className="flex items-center gap-3">
-      <span className="text-[0.72rem] text-[#8899bb] shrink-0 tracking-wide" style={{ width: 100 }}>{name}</span>
-      <div className="flex-1 rounded overflow-hidden bg-[#1a1d26]" style={{ height: 6 }}>
+      <span className="text-xs font-semibold text-slate-500 shrink-0" style={{ width: 100 }}>{name}</span>
+      <div className="flex-1 rounded-full overflow-hidden bg-slate-100" style={{ height: 6 }}>
         <div style={{
-          height: "100%", borderRadius: 3,
+          height: "100%",
+          borderRadius: 9999,
           width: go ? `${pct}%` : "0%",
-          background: color,
           transition: `width .9s cubic-bezier(.4,0,.2,1) ${index * 60}ms`,
+          background: color,
         }} />
       </div>
-      <span style={{ width: 48, fontSize: "0.72rem", fontWeight: 700, textAlign: "right", flexShrink: 0, color }}>{pct.toFixed(1)}%</span>
-      <span className="text-[0.62rem] text-[#8899bb] text-right shrink-0" style={{ width: 36 }}>{files} files</span>
+      <span className="text-xs font-bold text-indigo-600 text-right shrink-0" style={{ width: 48 }}>{pct.toFixed(1)}%</span>
+      <span className="text-xs text-slate-400 text-right shrink-0" style={{ width: 44 }}>{files} files</span>
     </div>
   );
 };
