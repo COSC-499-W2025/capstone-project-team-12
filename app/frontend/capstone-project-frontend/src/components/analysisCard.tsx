@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { BadgeColor, AnalysisCardProps, BadgeProps, IconButtonProps } from "../dashboardTypes";
+import type { BadgeColor, AnalysisCardProps, BadgeProps, IconButtonProps } from "../types/dashboardTypes";
 import { Modal, IncrementalUpdateModal } from "./modals";
 
 

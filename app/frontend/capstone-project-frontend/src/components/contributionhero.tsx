@@ -1,5 +1,5 @@
 import React from "react";
-import { type Contribution } from "../types";
+import { type Contribution } from "../types/types";
 
 const ContributionHero: React.FC<{ contribution: Contribution }> = ({ contribution }) => {
   const { rank, teamSize, share, level } = contribution;

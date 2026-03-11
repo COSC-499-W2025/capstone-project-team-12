@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { type Language } from "../types";
+import { type Language } from "../types/types";
 
 const LangBar: React.FC<Language & { index: number }> = ({ name, pct, files, index }) => {
   const ref = useRef<HTMLDivElement>(null);

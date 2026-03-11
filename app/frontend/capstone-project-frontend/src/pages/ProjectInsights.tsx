@@ -3,7 +3,7 @@ import OverviewTab from "../components/OverviewTab";
 import TestingTab from "../components/TestingTab";
 import DeploymentTab from "../components/DeploymentTab";
 import PacingTab from "../components/PacingTab";
-import type { Project, Technology, FileExtension } from "../insightTypes";
+import type { Project, Technology, FileExtension } from "../types/insightTypes";
 
 const projects: Project[] = [
   {

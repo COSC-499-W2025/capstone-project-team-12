@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import type { Analysis, NewAnalysisPayload } from "../dashboardTypes";
+import type { Analysis, NewAnalysisPayload } from "../types/dashboardTypes";
 
 
 interface ModalProps {

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Analysis, EmptyStateProps, NewAnalysisPayload } from "../dashboardTypes";
+import type { Analysis, EmptyStateProps, NewAnalysisPayload } from "../types/dashboardTypes";
 import { NewAnalysisModal } from "../components/modals";
 import { AnalysisCard } from "../components/analysisCard";
 

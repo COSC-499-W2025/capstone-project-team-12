@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import Counter from "./counter";
 import RankBadge from "./rankbadge";
 import ContributionHero from "./contributionhero";
-import { type Project } from "../types";
+import { type Project } from "../types/types";
 
 const ProjectCard: React.FC<{ project: Project; index: number }> = ({ project, index }) => {
   const [open, setOpen] = useState(false);

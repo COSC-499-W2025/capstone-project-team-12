@@ -1,4 +1,4 @@
-import { type PortfolioData } from "../types";
+import { type PortfolioData } from "../types/types";
 import ProjectCard from "../components/projectcard";
 import LangBar from "../components/langbar";
 
