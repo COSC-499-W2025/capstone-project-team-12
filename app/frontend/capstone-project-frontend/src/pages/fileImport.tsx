@@ -285,21 +285,17 @@ const FileImport: React.FC<FileImportProps> = ({ onComplete }) => {
         </div>
 
         {/* Right column: uploaded items list */}
-        <div className="w-[320px] flex-shrink-0">
+        {uploads.length > 0 && (
+        <div className="w-[320px] flex-shrink-0 max-h-[calc(100vh-8rem)] flex flex-col">
           <p className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#64748b] mb-3">
             Uploaded Items
           </p>
 
-          {uploads.length === 0 ? (
-            <div className="rounded-xl border-2 border-dashed border-[#c4c9d4] bg-[#eef0f6] flex items-center justify-center h-[200px]">
-              <p className="text-xs text-[#9ca3af]">Nothing uploaded yet</p>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2.5 max-h-[460px] overflow-y-auto pr-1">
+            <div className="flex flex-col gap-2.5 overflow-y-auto pr-1 min-h-0 max-h-[360px]">
               {uploads.map((entry, idx) => (
                 <div
                   key={`${entry.name}-${idx}`}
-                  className="flex items-center gap-3 bg-white rounded-xl border border-[rgba(0,0,0,0.06)] px-4 py-3 shadow-sm"
+                  className="flex items-center gap-3 bg-white rounded-xl border border-black/10 px-4 py-3"
                 >
                   {/* Icon */}
                   <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-[#6378ff]/10 flex items-center justify-center">
@@ -368,8 +364,8 @@ const FileImport: React.FC<FileImportProps> = ({ onComplete }) => {
                 </div>
               ))}
             </div>
-          )}
         </div>
+        )}
       </div>
     </div>
   );
