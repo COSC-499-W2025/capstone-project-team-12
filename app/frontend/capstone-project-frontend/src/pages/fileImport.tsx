@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 
 interface UploadEntry {
   name: string;
@@ -42,14 +42,28 @@ function readAllEntries(dirEntry: FileSystemDirectoryEntry): Promise<File[]> {
 }
 
 const FileImport: React.FC<FileImportProps> = ({ onComplete }) => {
-  const [upload, setUpload] = useState<UploadEntry | null>(null);
+  const [uploads, setUploads] = useState<UploadEntry[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
 
-  const setFromFiles = useCallback((name: string, files: File[], isDirectory: boolean) => {
+  // Close picker on outside click
+  useEffect(() => {
+    if (!showPicker) return;
+    const handleClick = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setShowPicker(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [showPicker]);
+
+  const addUpload = useCallback((name: string, files: File[], isDirectory: boolean) => {
     const totalSize = files.reduce((sum, f) => sum + f.size, 0);
-    setUpload({ name, isDirectory, files, totalSize });
+    setUploads((prev) => [...prev, { name, isDirectory, files, totalSize }]);
   }, []);
 
   const handleDrop = useCallback(
@@ -63,13 +77,13 @@ const FileImport: React.FC<FileImportProps> = ({ onComplete }) => {
       const entry = items[0].webkitGetAsEntry?.();
       if (entry?.isDirectory) {
         const files = await readAllEntries(entry as FileSystemDirectoryEntry);
-        setFromFiles(entry.name, files, true);
+        addUpload(entry.name, files, true);
       } else {
         const dropped = e.dataTransfer.files[0];
-        if (dropped) setFromFiles(dropped.name, [dropped], false);
+        if (dropped) addUpload(dropped.name, [dropped], false);
       }
     },
-    [setFromFiles]
+    [addUpload]
   );
 
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
@@ -83,18 +97,20 @@ const FileImport: React.FC<FileImportProps> = ({ onComplete }) => {
   }, []);
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = e.target.files?.[0];
-    if (selected) setFromFiles(selected.name, [selected], false);
+    const fileList = e.target.files;
+    if (!fileList || fileList.length === 0) return;
+    Array.from(fileList).forEach((f) => addUpload(f.name, [f], false));
+    setShowPicker(false);
   };
 
   const handleFolderInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = e.target.files;
     if (!fileList || fileList.length === 0) return;
-    // Derive folder name from the first file's webkitRelativePath ("folder/sub/file.txt")
     const firstPath = fileList[0].webkitRelativePath;
     const folderName = firstPath.split("/")[0] || "folder";
     const files = Array.from(fileList);
-    setFromFiles(folderName, files, true);
+    addUpload(folderName, files, true);
+    setShowPicker(false);
   };
 
   const formatSize = (bytes: number) => {
@@ -103,8 +119,8 @@ const FileImport: React.FC<FileImportProps> = ({ onComplete }) => {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  const removeUpload = () => {
-    setUpload(null);
+  const removeUpload = (index: number) => {
+    setUploads((prev) => prev.filter((_, i) => i !== index));
     if (fileInputRef.current) fileInputRef.current.value = "";
     if (folderInputRef.current) folderInputRef.current.value = "";
   };
@@ -117,7 +133,9 @@ const FileImport: React.FC<FileImportProps> = ({ onComplete }) => {
         <div className="absolute bottom-0 left-[10%] w-[400px] h-[400px] rounded-full bg-[#a78bfa] opacity-[0.03] blur-[100px]" />
       </div>
 
-      <div className="w-full max-w-[480px] relative">
+      <div className="w-full max-w-[960px] relative flex gap-8 items-start">
+        {/* Left column: header + drop zone + button */}
+        <div className="flex-1 min-w-0">
         {/* Header */}
         <div className="mb-9">
           <p className="text-[11px] font-bold tracking-[0.12em] uppercase text-[#6378ff] mb-2.5">
@@ -136,6 +154,7 @@ const FileImport: React.FC<FileImportProps> = ({ onComplete }) => {
           onDrop={handleDrop}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
+          onClick={() => setShowPicker(true)}
           className={`
             relative flex flex-col items-center justify-center gap-3
             w-full min-h-[200px] rounded-xl border-2 border-dashed
@@ -166,32 +185,55 @@ const FileImport: React.FC<FileImportProps> = ({ onComplete }) => {
 
           <div className="text-center">
             <p className="text-sm font-semibold text-[#0f1629]">
-              Drag & drop a file or folder here
+              Drag & drop files or folders here
             </p>
             <p className="text-xs text-[#9ca3af] mt-1">
-              or browse for a{" "}
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
-                className="text-[#6378ff] font-semibold hover:underline bg-transparent border-none cursor-pointer p-0 font-sans text-xs"
-              >
-                file
-              </button>
-              {" "}or{" "}
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); folderInputRef.current?.click(); }}
-                className="text-[#6378ff] font-semibold hover:underline bg-transparent border-none cursor-pointer p-0 font-sans text-xs"
-              >
-                folder
-              </button>
+              or click to <span className="text-[#6378ff] font-semibold">browse</span>
             </p>
           </div>
+
+          {/* Picker popover */}
+          {showPicker && (
+            <div
+              ref={pickerRef}
+              onClick={(e) => e.stopPropagation()}
+              className="absolute z-10 bg-white rounded-xl border border-[rgba(0,0,0,0.08)] shadow-lg p-1.5 flex flex-col gap-1 w-[200px]"
+            >
+              <button
+                type="button"
+                onClick={() => { fileInputRef.current?.click(); }}
+                className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left text-sm font-semibold text-[#0f1629] hover:bg-[#f3f4f8] transition-colors duration-100 bg-transparent border-none cursor-pointer font-sans w-full"
+              >
+                <svg className="w-4 h-4 text-[#6378ff] flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                </svg>
+                <div>
+                  <span className="block leading-tight">Files</span>
+                  <span className="block text-[10px] font-normal text-[#9ca3af] mt-0.5">Select one or more files</span>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => { folderInputRef.current?.click(); }}
+                className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left text-sm font-semibold text-[#0f1629] hover:bg-[#f3f4f8] transition-colors duration-100 bg-transparent border-none cursor-pointer font-sans w-full"
+              >
+                <svg className="w-4 h-4 text-[#6378ff] flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                </svg>
+                <div>
+                  <span className="block leading-tight">Folder</span>
+                  <span className="block text-[10px] font-normal text-[#9ca3af] mt-0.5">Select an entire directory</span>
+                </div>
+              </button>
+            </div>
+          )}
 
           <input
             ref={fileInputRef}
             type="file"
             onChange={handleFileInput}
+            multiple
             className="hidden"
           />
           <input
@@ -203,89 +245,19 @@ const FileImport: React.FC<FileImportProps> = ({ onComplete }) => {
           />
         </div>
 
-        {/* Uploaded file / folder card */}
-        {upload && (
-          <div className="mt-5 flex items-center gap-3 bg-white rounded-xl border border-[rgba(0,0,0,0.06)] px-4 py-3.5 shadow-sm">
-            {/* Icon */}
-            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-[#6378ff]/10 flex items-center justify-center">
-              {upload.isDirectory ? (
-                <svg
-                  className="w-5 h-5 text-[#6378ff]"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-                </svg>
-              ) : (
-                <svg
-                  className="w-5 h-5 text-[#6378ff]"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                  <polyline points="14 2 14 8 20 8" />
-                </svg>
-              )}
-            </div>
-
-            {/* Info */}
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-[#0f1629] truncate">
-                {upload.name}
-              </p>
-              <p className="text-xs text-[#9ca3af] mt-0.5">
-                {formatSize(upload.totalSize)}
-                {upload.isDirectory && (
-                  <span className="ml-1.5 text-[#64748b]">
-                    &middot; {upload.files.length} file{upload.files.length !== 1 && "s"}
-                  </span>
-                )}
-              </p>
-            </div>
-
-            {/* Remove button */}
-            <button
-              onClick={removeUpload}
-              className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-[#9ca3af] hover:text-red-500 hover:bg-red-50 transition-colors duration-150"
-              aria-label="Remove upload"
-            >
-              <svg
-                className="w-4 h-4"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
-          </div>
-        )}
-
         {/* Divider */}
         <div className="h-px bg-black/[0.07] my-6" />
 
         {/* Confirm button */}
         <button
           onClick={onComplete}
-          disabled={!upload}
+          disabled={uploads.length === 0}
           className={`
             w-full py-3.5 rounded-xl border-none font-bold text-sm
             flex items-center justify-center gap-2
             transition-all duration-200 font-sans
             ${
-              upload
+              uploads.length > 0
                 ? "bg-gradient-to-br from-[#6378ff] to-[#a78bfa] text-white shadow-[0_4px_20px_rgba(99,120,255,0.3)] cursor-pointer hover:shadow-[0_6px_28px_rgba(99,120,255,0.4)]"
                 : "bg-[#eef0f6] text-[#c4c9d4] cursor-not-allowed"
             }
@@ -310,6 +282,94 @@ const FileImport: React.FC<FileImportProps> = ({ onComplete }) => {
         <p className="text-center text-[11px] text-[#c4c9d4] mt-4">
           You can always come back and re-upload.
         </p>
+        </div>
+
+        {/* Right column: uploaded items list */}
+        <div className="w-[320px] flex-shrink-0">
+          <p className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#64748b] mb-3">
+            Uploaded Items
+          </p>
+
+          {uploads.length === 0 ? (
+            <div className="rounded-xl border-2 border-dashed border-[#c4c9d4] bg-[#eef0f6] flex items-center justify-center h-[200px]">
+              <p className="text-xs text-[#9ca3af]">Nothing uploaded yet</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2.5 max-h-[460px] overflow-y-auto pr-1">
+              {uploads.map((entry, idx) => (
+                <div
+                  key={`${entry.name}-${idx}`}
+                  className="flex items-center gap-3 bg-white rounded-xl border border-[rgba(0,0,0,0.06)] px-4 py-3 shadow-sm"
+                >
+                  {/* Icon */}
+                  <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-[#6378ff]/10 flex items-center justify-center">
+                    {entry.isDirectory ? (
+                      <svg
+                        className="w-4.5 h-4.5 text-[#6378ff]"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                      </svg>
+                    ) : (
+                      <svg
+                        className="w-4.5 h-4.5 text-[#6378ff]"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                      </svg>
+                    )}
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-[#0f1629] truncate">
+                      {entry.name}
+                    </p>
+                    <p className="text-xs text-[#9ca3af] mt-0.5">
+                      {formatSize(entry.totalSize)}
+                      {entry.isDirectory && (
+                        <span className="ml-1.5 text-[#64748b]">
+                          &middot; {entry.files.length} file{entry.files.length !== 1 && "s"}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+
+                  {/* Remove */}
+                  <button
+                    onClick={() => removeUpload(idx)}
+                    className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-[#9ca3af] hover:text-red-500 hover:bg-red-50 transition-colors duration-150"
+                    aria-label="Remove upload"
+                  >
+                    <svg
+                      className="w-3.5 h-3.5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
