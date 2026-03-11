@@ -20,8 +20,8 @@ function App() {
           {currentStep === 1 && <Onboarding onComplete={() => setCurrentStep(2)} />}
           {currentStep === 3 && <ProgressPage onComplete={() => setCurrentStep(4)} />}
           {currentStep === 4 && <ProjectInsights onPrevious={() => setCurrentStep(3)} onComplete={() => setCurrentStep(5)} />}
-          {currentStep === 5 && <ResumeDisplay />}
-          {currentStep === 6 && <Portfolio />}
+          {currentStep === 5 && <ResumeDisplay onPrevious={() => setCurrentStep(4)} onComplete={() => setCurrentStep(6)} />}
+          {currentStep === 6 && <Portfolio onPrevious={() => setCurrentStep(5)} onComplete={() => setShowDashboard(true)} />}
           {/* add other pages/components for other steps */}
         </>      
         )}

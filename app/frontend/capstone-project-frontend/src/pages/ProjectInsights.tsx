@@ -131,7 +131,7 @@ export default function ProjectInsights( { onComplete, onPrevious }: { onComplet
           <div className="flex justify-between mt-8">
             <button
               onClick={onPrevious}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-500 shadow-sm hover:bg-indigo-700 transition-all"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 shadow-sm hover:bg-indigo-700 transition-all"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M19 12H5M12 19l-7-7 7-7" />
@@ -139,10 +139,10 @@ export default function ProjectInsights( { onComplete, onPrevious }: { onComplet
               Back
             </button>
           
-          {/* Next button */}
+            {/* Next button */}
             <button
               onClick={onComplete}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-500 shadow-sm hover:bg-indigo-700 transition-all"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 shadow-sm hover:bg-indigo-700 transition-all"
             >
               Next
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
