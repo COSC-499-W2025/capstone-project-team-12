@@ -73,7 +73,7 @@ const projects: Project[] = [
 type Tab = "overview" | "testing" | "deployment" | "pacing & role";
 const tabs: Tab[] = ["overview", "testing", "deployment", "pacing & role"];
 
-export default function ProjectInsights() {
+export default function ProjectInsights( { onComplete } : { onComplete?: () => void}) {
   const [selectedProject, setSelectedProject] = useState<Project>(projects[0]);
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const p = selectedProject;
@@ -126,7 +126,21 @@ export default function ProjectInsights() {
         {activeTab === "testing"       && <TestingTab    p={p} />}
         {activeTab === "deployment"    && <DeploymentTab p={p} />}
         {activeTab === "pacing & role" && <PacingTab     p={p} />}
+
+          {/* Next button */}
+          <div className="flex justify-end mt-8">
+            <button
+              onClick={onComplete}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-500 shadow-sm hover:bg-indigo-700 transition-all"
+            >
+              Next
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>          
       </div>
+      
     </div>
   );
 }
