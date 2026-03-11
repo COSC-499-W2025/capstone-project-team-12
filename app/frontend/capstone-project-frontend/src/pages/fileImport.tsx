@@ -336,9 +336,9 @@ const FileImport: React.FC<FileImportProps> = ({ onComplete, githubUsername, git
           </svg>
         </button>
 
-        <p className="text-center text-[11px] text-[#c4c9d4] mt-4">
+        {/* <p className="text-center text-[11px] text-[#c4c9d4] mt-4">
           You can always come back and re-upload.
-        </p>
+        </p> */}
         </div>
 
         {/* Right column: uploaded items list */}
