@@ -73,7 +73,7 @@ const projects: Project[] = [
 type Tab = "overview" | "testing" | "deployment" | "pacing & role";
 const tabs: Tab[] = ["overview", "testing", "deployment", "pacing & role"];
 
-export default function ProjectInsights( { onComplete } : { onComplete?: () => void}) {
+export default function ProjectInsights( { onComplete, onPrevious }: { onComplete?: () => void, onPrevious?: () => void }) {
   const [selectedProject, setSelectedProject] = useState<Project>(projects[0]);
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const p = selectedProject;
@@ -127,8 +127,19 @@ export default function ProjectInsights( { onComplete } : { onComplete?: () => v
         {activeTab === "deployment"    && <DeploymentTab p={p} />}
         {activeTab === "pacing & role" && <PacingTab     p={p} />}
 
+          {/* Back button */}
+          <div className="flex justify-between mt-8">
+            <button
+              onClick={onPrevious}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-500 shadow-sm hover:bg-indigo-700 transition-all"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+              Back
+            </button>
+          
           {/* Next button */}
-          <div className="flex justify-end mt-8">
             <button
               onClick={onComplete}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-500 shadow-sm hover:bg-indigo-700 transition-all"
