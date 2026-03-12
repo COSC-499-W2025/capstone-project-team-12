@@ -70,8 +70,8 @@ const FileImport: React.FC<FileImportProps> = ({ onComplete, githubUsername, git
 
   const addUpload = useCallback((name: string, files: File[], isDirectory: boolean) => {
     const totalSize = files.reduce((sum, f) => sum + f.size, 0);
-    setUploads([...uploads, { name, isDirectory, files, totalSize }]);
-  }, [uploads, setUploads]);
+    setUploads(prev => [...prev, { name, isDirectory, files, totalSize }]);
+  }, [setUploads]);
 
   const handleDrop = useCallback(
     async (e: React.DragEvent<HTMLDivElement>) => {
