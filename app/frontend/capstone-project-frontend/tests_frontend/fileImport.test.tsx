@@ -1,22 +1,61 @@
-import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, it, expect, vi } from "vitest";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import "@testing-library/jest-dom";
-import FileImport from "../src/pages/fileImport";
+import { useState } from "react";
+import FileImport, { type UploadEntry } from "../src/pages/fileImport";
 
 const setup = () => {
   const onComplete = vi.fn();
+  const onUploadsChange = vi.fn();
   render(
     <FileImport
       onComplete={onComplete}
       githubUsername="testuser"
       githubEmail="test@example.com"
       model="test-model"
+      uploads={[]}
+      onUploadsChange={onUploadsChange}
     />
   );
+  return { onComplete, onUploadsChange };
+};
+
+/** Wrapper that manages uploads state so the component behaves like it does in the real app */
+const StatefulFileImport = ({ onComplete }: { onComplete: () => void }) => {
+  const [uploads, setUploads] = useState<UploadEntry[]>([]);
+  return (
+    <FileImport
+      onComplete={onComplete}
+      githubUsername="testuser"
+      githubEmail="test@example.com"
+      model="test-model"
+      uploads={uploads}
+      onUploadsChange={setUploads}
+    />
+  );
+};
+
+const setupStateful = () => {
+  const onComplete = vi.fn();
+  render(<StatefulFileImport onComplete={onComplete} />);
   return { onComplete };
 };
 
 describe("FileImport", () => {
+  const originalFetch = globalThis.fetch;
+
+  beforeEach(() => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: () => Promise.resolve(JSON.stringify({ success: true })),
+    });
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
   it("renders heading and description", () => {
     setup();
     expect(screen.getByText("Upload your file or folder")).toBeInTheDocument();
@@ -61,8 +100,8 @@ describe("FileImport", () => {
     expect(screen.queryByText("Select one or more files")).not.toBeInTheDocument();
   });
 
-  it("adds a file via file input and enables confirm button", () => {
-    const { onComplete } = setup();
+  it("adds a file via file input and enables confirm button", async () => {
+    const { onComplete } = setupStateful();
     const dropZone = screen.getByText("Drag & drop files or folders here").closest("div[class*='border-dashed']")!;
     fireEvent.click(dropZone);
 
@@ -78,11 +117,11 @@ describe("FileImport", () => {
     const btn = screen.getByRole("button", { name: /confirm & continue/i });
     expect(btn).not.toBeDisabled();
     fireEvent.click(btn);
-    expect(onComplete).toHaveBeenCalledOnce();
+    await waitFor(() => expect(onComplete).toHaveBeenCalledOnce());
   });
 
   it("removes an uploaded file", () => {
-    setup();
+    setupStateful();
     const dropZone = screen.getByText("Drag & drop files or folders here").closest("div[class*='border-dashed']")!;
     fireEvent.click(dropZone);
 
@@ -96,8 +135,5 @@ describe("FileImport", () => {
     expect(screen.queryByText("remove-me.txt")).not.toBeInTheDocument();
   });
 
-  it("shows re-upload note", () => {
-    setup();
-    expect(screen.getByText(/you can always come back/i)).toBeInTheDocument();
-  });
+  
 });

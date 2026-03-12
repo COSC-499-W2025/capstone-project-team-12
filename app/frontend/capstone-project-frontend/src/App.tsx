@@ -5,7 +5,7 @@ import Onboarding from './pages/onboarding';
 import ProjectInsights from "./pages/ProjectInsights";
 import ProgressPage from './pages/progress';
 import ResumeDisplay from './pages/resume_display';
-import FileImport from './pages/fileImport';
+import FileImport, { type UploadEntry } from './pages/fileImport';
 
 interface OnboardingData {
   llmMode: 'online' | 'local';
@@ -16,13 +16,17 @@ interface OnboardingData {
 function App() {
   const [currentStep, setCurrentStep] = useState(1);
   const [onboardingData, setOnboardingData] = useState<OnboardingData | null>(null);
+  const [uploads, setUploads] = useState<UploadEntry[]>([]);
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f0f2f8' }}>
       <Sidebar currentStep={currentStep} onStepChange={setCurrentStep} />
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         {currentStep === 1 && (
-          <Onboarding onComplete={(data) => { setOnboardingData(data); setCurrentStep(2); }} />
+          <Onboarding
+            initialData={onboardingData}
+            onComplete={(data) => { setOnboardingData(data); setCurrentStep(2); }}
+          />
         )}
         {currentStep === 2 && (
           <FileImport
@@ -30,6 +34,8 @@ function App() {
             githubUsername={onboardingData?.githubUsername || ''}
             githubEmail={onboardingData?.email || ''}
             model={onboardingData?.llmMode || 'online'}
+            uploads={uploads}
+            onUploadsChange={setUploads}
           />
         )}
         {currentStep === 3 && <ProgressPage onComplete={() => setCurrentStep(4)} />}

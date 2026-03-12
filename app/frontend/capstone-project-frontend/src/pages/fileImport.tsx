@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import JSZip from "jszip";
 
-interface UploadEntry {
+export interface UploadEntry {
   name: string;
   isDirectory: boolean;
   files: File[];
@@ -13,6 +13,8 @@ interface FileImportProps {
   githubUsername: string;
   githubEmail: string;
   model: string;
+  uploads: UploadEntry[];
+  onUploadsChange: (uploads: UploadEntry[]) => void;
 }
 
 /** Recursively read all File objects from a FileSystemDirectoryEntry. */
@@ -45,8 +47,8 @@ function readAllEntries(dirEntry: FileSystemDirectoryEntry): Promise<File[]> {
   });
 }
 
-const FileImport: React.FC<FileImportProps> = ({ onComplete, githubUsername, githubEmail, model: _model }) => {
-  const [uploads, setUploads] = useState<UploadEntry[]>([]);
+const FileImport: React.FC<FileImportProps> = ({ onComplete, githubUsername, githubEmail, model: _model, uploads, onUploadsChange }) => {
+  const setUploads = onUploadsChange;
   const [isDragging, setIsDragging] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -68,8 +70,8 @@ const FileImport: React.FC<FileImportProps> = ({ onComplete, githubUsername, git
 
   const addUpload = useCallback((name: string, files: File[], isDirectory: boolean) => {
     const totalSize = files.reduce((sum, f) => sum + f.size, 0);
-    setUploads((prev) => [...prev, { name, isDirectory, files, totalSize }]);
-  }, []);
+    setUploads([...uploads, { name, isDirectory, files, totalSize }]);
+  }, [uploads, setUploads]);
 
   const handleDrop = useCallback(
     async (e: React.DragEvent<HTMLDivElement>) => {
@@ -125,7 +127,7 @@ const FileImport: React.FC<FileImportProps> = ({ onComplete, githubUsername, git
   };
 
   const removeUpload = (index: number) => {
-    setUploads((prev) => prev.filter((_, i) => i !== index));
+    setUploads(uploads.filter((_, i) => i !== index));
     if (fileInputRef.current) fileInputRef.current.value = "";
     if (folderInputRef.current) folderInputRef.current.value = "";
   };
