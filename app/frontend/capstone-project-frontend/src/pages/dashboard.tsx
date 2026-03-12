@@ -115,12 +115,26 @@ export default function Dashboard() {
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
-  const handleDelete = (id: string) => {
-    setAnalyses(a => a.filter(x => x.id !== id));
-    showToast("Analysis deleted.");
+  const handleDeleteAnalysis = async (id: string) => {
+    try {
+      const response = await fetch(`${API_BASE}/projects/${id}`, { method: "DELETE" });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete analysis");
+      }
+
+      setAnalyses(function(prev) {
+        return prev.filter(analysis => analysis.id !== id);
+      })
+
+      showToast("Analysis deleted.")
+      
+    } catch (error) {
+      error instanceof Error ? error.message : "Could not delete analysis."
+    }
   };
 
-  const handleDeleteResume = (id: string) => {
+  const handleDeleteResume = async (id: string) => {
     setAnalyses(a => a.map(x => x.id === id ? { ...x, hasResume: false, resumeIds: [] } : x));
     showToast("Resume deleted.");
   };
@@ -206,7 +220,7 @@ export default function Dashboard() {
               <AnalysisCard
                 key={a.id}
                 analysis={a}
-                onDelete={handleDelete}
+                onDelete={handleDeleteAnalysis}
                 onDeleteResume={handleDeleteResume}
                 onDeletePortfolio={handleDeletePortfolio}
                 onIncremental={handleIncremental}
