@@ -1,10 +1,18 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
+import "@testing-library/jest-dom";
 import FileImport from "../src/pages/fileImport";
 
 const setup = () => {
   const onComplete = vi.fn();
-  render(<FileImport onComplete={onComplete} />);
+  render(
+    <FileImport
+      onComplete={onComplete}
+      githubUsername="testuser"
+      githubEmail="test@example.com"
+      model="test-model"
+    />
+  );
   return { onComplete };
 };
 
