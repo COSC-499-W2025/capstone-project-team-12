@@ -49,6 +49,7 @@ const FileImport: React.FC<FileImportProps> = ({ onComplete, githubUsername, git
   const [uploads, setUploads] = useState<UploadEntry[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
@@ -141,6 +142,7 @@ const FileImport: React.FC<FileImportProps> = ({ onComplete, githubUsername, git
   };
 
   const handleProcessFiles = async () => {
+    setIsUploading(true);
     try {
       console.log('[UPLOAD] Zipping files...');
       const zipped = await zipSelectedFiles();
@@ -179,6 +181,8 @@ const FileImport: React.FC<FileImportProps> = ({ onComplete, githubUsername, git
       onComplete();
     } catch (error) {
       console.error('[UPLOAD] Upload error:', error);
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -308,32 +312,48 @@ const FileImport: React.FC<FileImportProps> = ({ onComplete, githubUsername, git
         {/* Confirm button */}
         <button
           onClick={handleProcessFiles}
-          disabled={uploads.length === 0}
+          disabled={uploads.length === 0 || isUploading}
           className={`
             w-full py-3.5 rounded-xl border-none font-bold text-sm
             flex items-center justify-center gap-2
             transition-all duration-200 font-sans
             ${
-              uploads.length > 0
+              uploads.length > 0 && !isUploading
                 ? "bg-gradient-to-br from-[#6378ff] to-[#a78bfa] text-white shadow-[0_4px_20px_rgba(99,120,255,0.3)] cursor-pointer hover:shadow-[0_6px_28px_rgba(99,120,255,0.4)]"
-                : "bg-[#eef0f6] text-[#c4c9d4] cursor-not-allowed"
+                : isUploading
+                  ? "bg-gradient-to-br from-[#6378ff] to-[#a78bfa] text-white/80 cursor-wait"
+                  : "bg-[#eef0f6] text-[#c4c9d4] cursor-not-allowed"
             }
           `}
         >
-          Confirm & Continue
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <line x1="5" y1="12" x2="19" y2="12" />
-            <polyline points="12 5 19 12 12 19" />
-          </svg>
+          {isUploading ? 'Processing...' : 'Confirm & Continue'}
+          {isUploading ? (
+            <svg
+              className="animate-spin"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeOpacity="0.25" />
+              <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+            </svg>
+          ) : (
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="12 5 19 12 12 19" />
+            </svg>
+          )}
         </button>
 
         {/* <p className="text-center text-[11px] text-[#c4c9d4] mt-4">
