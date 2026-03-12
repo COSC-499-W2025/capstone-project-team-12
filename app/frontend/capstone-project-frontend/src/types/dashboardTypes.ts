@@ -6,6 +6,8 @@ export interface Analysis {
   label: string;
   createdAt: string;
   repos: string[];
+  resumeIds: number[];
+  portfolioIds: number[];
   hasResume: boolean;
   hasPortfolio: boolean;
   hasInsights: boolean;
@@ -47,4 +49,27 @@ export interface EmptyStateProps {
 export interface ToastProps {
   message: string;
   onDismiss: () => void;
+}
+
+export interface RawProject {
+  analysis_id: string;
+  analysis_title: string | null;
+  creation_date: string;
+  metadata_insights: any;
+  project_insights: any;
+  file_path: string;
+}
+
+export interface RawResume {
+  resume_id: number;
+  analysis_id: string;
+  resume_title: string | null;
+  resume_data: any;
+}
+
+export interface RawPortfolio {
+  portfolio_id: number;
+  analysis_id: string;
+  portfolio_title: string | null;
+  portfolio_data: any;
 }

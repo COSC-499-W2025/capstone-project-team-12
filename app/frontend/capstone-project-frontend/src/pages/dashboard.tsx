@@ -1,77 +1,49 @@
-import { useState } from "react";
-import type { Analysis, EmptyStateProps, NewAnalysisPayload, ToastProps } from "../types/dashboardTypes";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import type { Analysis, EmptyStateProps, NewAnalysisPayload, ToastProps, RawProject, RawResume, RawPortfolio } from "../types/dashboardTypes";
 import { NewAnalysisModal } from "../components/modals";
 import { AnalysisCard } from "../components/analysisCard";
 
+const API_BASE = "http://localhost:8080";
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
 
-const mockAnalyses: Analysis[] = [
-  {
-    id: "a1b2c3",
-    label: "Spring 2025 Analyses",
-    createdAt: "2025-04-06",
-    repos: ["COSC 360 Project", "Personal Portfolio"],
-    hasResume: true,
-    hasPortfolio: true,
+// Mapping function
+
+function mapProject(
+  p: RawProject,
+  resumes: RawResume[],
+  portfolios: RawPortfolio[]
+): Analysis {
+  // Extract repo names from project_insights if available
+  let repos: string[] = [];
+  try {
+    const insights = typeof p.project_insights === "string"
+      ? JSON.parse(p.project_insights)
+      : p.project_insights;
+    repos = (insights?.analyzed_insights ?? []).map(
+      (r: any) => r.repository_name ?? r.name ?? "Unknown"
+    );
+  } catch {}
+
+  return {
+    id: p.analysis_id,
+    label: p.analysis_title ?? p.analysis_id,
+    createdAt: p.creation_date?.slice(0, 10) ?? "",
+    repos,
+    resumeIds: resumes.map(r => r.resume_id),
+    portfolioIds: portfolios.map(r => r.portfolio_id),
+    hasResume: resumes.length > 0,
+    hasPortfolio: portfolios.length > 0,
     hasInsights: true,
     status: "complete",
-  },
-  {
-    id: "d4e5f6",
-    label: "Winter 2025 Analyses",
-    createdAt: "2025-02-14",
-    repos: ["Capstone Analysis Tool"],
-    hasResume: true,
-    hasPortfolio: false,
-    hasInsights: true,
-    status: "complete",
-  },
-  {
-    id: "g7h8i9",
-    label: "Fall 2024 Analyses",
-    createdAt: "2024-12-01",
-    repos: ["COSC 301 Assignment"],
-    hasResume: false,
-    hasPortfolio: false,
-    hasInsights: true,
-    status: "complete",
-  },
-];
-
-
-
-export function EmptyState({ onNew }: EmptyStateProps) {
-  return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center mb-4 text-2xl">📂</div>
-      <p className="text-base font-bold text-slate-700 mb-1">No analyses yet</p>
-      <p className="text-sm text-slate-400 mb-5">Run your first analysis to get tailored insights, a resume, and more.</p>
-      <button
-        onClick={onNew}
-        className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 shadow-sm hover:bg-indigo-700 transition-all"
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
-        New Analysis
-      </button>
-    </div>
-  );
-}
-
-function Toast({ message, onDismiss }: ToastProps) {
-  return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-800 text-white text-sm font-semibold px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3">
-      {message}
-      <button onClick={onDismiss} className="!bg-transparent !border-none text-slate-400 hover:text-white text-lg">×</button>
-    </div>
-  );
+  };
 }
 
 
 export default function Dashboard() {
-  const [analyses, setAnalyses] = useState<Analysis[]>(mockAnalyses);
+  const navigate = useNavigate();
+  const [analyses, setAnalyses] = useState<Analysis[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showNewModal, setShowNewModal] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -80,47 +52,104 @@ export default function Dashboard() {
     setTimeout(() => setToast(null), 3500);
   };
 
+  // Data fetching (projects, resumes and portfolios)
+  useEffect(() => {
+    async function loadDashboard() {
+      try {
+        const [projectsRes, resumesRes, portfoliosRes] = await Promise.all([
+          fetch(`${API_BASE}/projects`),
+          fetch(`${API_BASE}/resumes`),
+          fetch(`${API_BASE}/portfolios`),
+        ]);
+
+        if (!projectsRes.ok) throw new Error("Failed to load projects");
+        if (!resumesRes.ok)  throw new Error("Failed to load resumes");
+        if (!portfoliosRes.ok) throw new Error("Failed to load portfolios");
+
+        const [projects, allResumes, allPortfolios]: [
+          RawProject[],
+          RawResume[],
+          RawPortfolio[]
+        ] = await Promise.all([
+          projectsRes.json(),
+          resumesRes.json(),
+          portfoliosRes.json(),
+        ]);
+
+        // Group resumes and portfolios by analysis id (doing this manually to reduce the number of api calls
+        // instead of calling GET /portfolio/{analysis_id} and GET /resume/{analysis_id} for each analysis
+        const resumesByAnalysis = allResumes.reduce<Record<string, RawResume[]>>(
+          (acc, r) => {
+            (acc[r.analysis_id] ??= []).push(r);
+            return acc;
+          }, {}
+        );
+
+        const portfoliosByAnalysis = allPortfolios.reduce<Record<string, RawPortfolio[]>>(
+          (acc, p) => {
+            (acc[p.analysis_id] ??= []).push(p);
+            return acc;
+          }, {}
+        );
+
+        setAnalyses(
+          projects.map(p =>
+            mapProject(
+              p,
+              resumesByAnalysis[p.analysis_id] ?? [],
+              portfoliosByAnalysis[p.analysis_id] ?? []
+            )
+          )
+        );
+      } catch (err) {
+        showToast(err instanceof Error ? err.message : "Failed to load dashboard.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadDashboard();
+  }, []);
+
+
+
+  // ── Handlers ────────────────────────────────────────────────────────────────
+
   const handleDelete = (id: string) => {
     setAnalyses(a => a.filter(x => x.id !== id));
     showToast("Analysis deleted.");
   };
 
   const handleDeleteResume = (id: string) => {
-    setAnalyses(a => a.map(x => x.id === id ? { ...x, hasResume: false } : x));
+    setAnalyses(a => a.map(x => x.id === id ? { ...x, hasResume: false, resumeIds: [] } : x));
     showToast("Resume deleted.");
   };
 
   const handleDeletePortfolio = (id: string) => {
-    setAnalyses(a => a.map(x => x.id === id ? { ...x, hasPortfolio: false } : x));
+    setAnalyses(a => a.map(x => x.id === id ? { ...x, hasPortfolio: false, portfolioIds: [] } : x));
     showToast("Portfolio deleted.");
   };
 
-  const handleIncremental = (id: string, files: string[]) => {
-    showToast(`Incremental update queued with ${files.length} item${files.length !== 1 ? "s" : ""}.`);
+  const handleIncremental = () => {
+    // place holder
   };
 
-  const handleNew = ({ label, repos }: NewAnalysisPayload) => {
-    const newA: Analysis = {
-      id: Math.random().toString(36).slice(2),
-      label,
-      createdAt: new Date().toISOString().slice(0, 10),
-      repos,
-      hasResume: false,
-      hasPortfolio: false,
-      hasInsights: false,
-      status: "complete",
-    };
-    setAnalyses(a => [newA, ...a]);
-    setShowNewModal(false);
-    showToast("Analysis created! (Mock — no backend call.)");
+  const handleNew = () => {
+    // placeholder
   };
 
-  const handleViewResume    = (a: Analysis) => showToast(`Navigating to resume for "${a.label}"…`);
-  const handleViewPortfolio = (a: Analysis) => showToast(`Navigating to portfolio for "${a.label}"…`);
-  const handleViewInsights  = (a: Analysis) => showToast(`Navigating to insights for "${a.label}"…`);
+  // place holders for later implementation
+  const handleViewResume    = () => "do nothing";
+  const handleViewPortfolio = () => "do nada";
+  const handleViewInsights  = () => "do nothing";
 
-  const totalResumes    = analyses.filter(a => a.hasResume).length;
-  const totalPortfolios = analyses.filter(a => a.hasPortfolio).length;
+  // derive counts for top stat component
+  const totalResumes    = analyses.reduce((n, a) => n + a.resumeIds.length, 0);
+  const totalPortfolios = analyses.reduce((n, a) => n + a.portfolioIds.length, 0);
+
+
+
+  // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans">
@@ -145,7 +174,7 @@ export default function Dashboard() {
         </div>
 
         {/* Stats strip */}
-        {analyses.length > 0 && (
+        {!loading && analyses.length > 0 && (
           <div className="grid grid-cols-3 gap-3 mb-8">
             {(
               [
@@ -166,7 +195,9 @@ export default function Dashboard() {
         )}
 
         {/* Analysis list */}
-        {analyses.length === 0 ? (
+        {loading ? (
+          <p className="text-sm text-slate-400 py-10 text-center">Loading analyses…</p>
+        ) : analyses.length === 0 ? (
           <EmptyState onNew={() => setShowNewModal(true)} />
         ) : (
           <div className="space-y-3">
@@ -196,6 +227,38 @@ export default function Dashboard() {
       )}
 
       {toast !== null && <Toast message={toast} onDismiss={() => setToast(null)} />}
+    </div>
+  );
+}
+
+
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+export function EmptyState({ onNew }: EmptyStateProps) {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center mb-4 text-2xl">📂</div>
+      <p className="text-base font-bold text-slate-700 mb-1">No analyses yet</p>
+      <p className="text-sm text-slate-400 mb-5">Run your first analysis to get tailored insights, a resume, and more.</p>
+      <button
+        onClick={onNew}
+        className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 shadow-sm hover:bg-indigo-700 transition-all"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        New Analysis
+      </button>
+    </div>
+  );
+}
+
+function Toast({ message, onDismiss }: ToastProps) {
+  return (
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-800 text-white text-sm font-semibold px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3">
+      {message}
+      <button onClick={onDismiss} className="!bg-transparent !border-none text-slate-400 hover:text-white text-lg">×</button>
     </div>
   );
 }

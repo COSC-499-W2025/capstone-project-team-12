@@ -558,7 +558,7 @@ class DatabaseManager:
         try:
             # Updated to use latest_file_path and original_file_path
             query = """
-                SELECT r.analysis_id,a.analysis_title, r.metadata_insights, r.project_insights, COALESCE(f.latest_file_path, a.original_file_path) as file_path
+                SELECT r.analysis_id,a.analysis_title, a.creation_date, r.metadata_insights, r.project_insights, COALESCE(f.latest_file_path, a.original_file_path) as file_path
                 FROM Results r 
                 JOIN Analyses a ON r.analysis_id = a.analysis_id 
                 LEFT JOIN Filesets f ON r.analysis_id = f.analysis_id
