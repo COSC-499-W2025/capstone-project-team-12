@@ -3,7 +3,7 @@ import OverviewTab from "../components/OverviewTab";
 import TestingTab from "../components/TestingTab";
 import DeploymentTab from "../components/DeploymentTab";
 import PacingTab from "../components/PacingTab";
-import type { Project, Technology, FileExtension } from "../insightTypes";
+import type { Project, Technology, FileExtension } from "../types/insightTypes";
 
 const projects: Project[] = [
   {
@@ -73,7 +73,7 @@ const projects: Project[] = [
 type Tab = "overview" | "testing" | "deployment" | "pacing & role";
 const tabs: Tab[] = ["overview", "testing", "deployment", "pacing & role"];
 
-export default function ProjectInsights() {
+export default function ProjectInsights( { onComplete, onPrevious }: { onComplete?: () => void, onPrevious?: () => void }) {
   const [selectedProject, setSelectedProject] = useState<Project>(projects[0]);
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const p = selectedProject;
@@ -97,7 +97,7 @@ export default function ProjectInsights() {
                 onClick={() => { setSelectedProject(proj); setActiveTab("overview"); }}
                 className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${
                   selectedProject.id === proj.id
-                    ? "bg-indigo-600 text-slate-600 border-indigo-600 shadow-md"
+                    ? "bg-indigo-600 text-white border-indigo-600 shadow-md"
                     : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-600"
                 }`}
               >
@@ -126,7 +126,32 @@ export default function ProjectInsights() {
         {activeTab === "testing"       && <TestingTab    p={p} />}
         {activeTab === "deployment"    && <DeploymentTab p={p} />}
         {activeTab === "pacing & role" && <PacingTab     p={p} />}
+
+          {/* Back button */}
+          <div className="flex justify-between mt-8">
+            <button
+              onClick={onPrevious}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 shadow-sm hover:bg-indigo-700 transition-all"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+              Back
+            </button>
+          
+            {/* Next button */}
+            <button
+              onClick={onComplete}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 shadow-sm hover:bg-indigo-700 transition-all"
+            >
+              Next
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>          
       </div>
+      
     </div>
   );
 }

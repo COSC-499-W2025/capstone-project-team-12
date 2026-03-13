@@ -1,7 +1,7 @@
 import StatCard from "./StatCard";
 import SectionCard from "./SectionCard";
 import PacingBar from "./PacingBar";
-import type { Project } from "../insightTypes";
+import type { Project } from "../types/insightTypes";
 
 interface PacingTabProps {
   p: Project;
