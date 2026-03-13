@@ -127,6 +127,8 @@ export default function Dashboard() {
         return prev.filter(analysis => analysis.id !== id);
       })
 
+      showToast("Analysis deleted.")
+
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to delete analysis."
       showToast(message);
@@ -142,7 +144,13 @@ export default function Dashboard() {
         throw new Error("Failed to delete resume.");
       }
 
-      
+      // resume is managed in analysis state instead of having its own
+      setAnalyses(prev => prev.map(analysis => {
+        if (!analysis.resumeIds.includes(resume_id)) return analysis;
+        return { ...analysis, resumeIds: analysis.resumeIds.filter(id => id !== resume_id) };
+      }));
+
+      showToast("Resume deleted.")
 
     } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to delete resume.";
@@ -151,9 +159,26 @@ export default function Dashboard() {
   };
 
 
-  const handleDeletePortfolio = (id: string) => {
-    setAnalyses(a => a.map(x => x.id === id ? { ...x, hasPortfolio: false, portfolioIds: [] } : x));
-    showToast("Portfolio deleted.");
+  const handleDeletePortfolio = async (portfolio_id: number) => {
+    try {
+      const response = await fetch(`${API_BASE}/portfolio/${portfolio_id}`, { method: "DELETE" });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete portfolio.");
+      }
+
+      // resume is managed in analysis state instead of having its own
+      setAnalyses(prev => prev.map(analysis => {
+        if (!analysis.portfolioIds.includes(portfolio_id)) return analysis;
+        return { ...analysis, portfolioIds: analysis.portfolioIds.filter(id => id !== portfolio_id) };
+      }));
+
+      showToast("Portfolio deleted.")
+
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to delete portfolio.";
+        showToast(message);
+    }
   };
 
   const handleIncremental = () => {

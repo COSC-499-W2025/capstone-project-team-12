@@ -25,8 +25,8 @@ export interface AnalysisCardProps {
   onDeleteResume: (resumeId: number) => void;
   onDeletePortfolio: (portfolioId: number) => void;
   onIncremental: (id: string, files: string[]) => void;
-  onViewResume: (analysis: Analysis) => void;
-  onViewPortfolio: (analysis: Analysis) => void;
+  onViewResume: (analysis: Analysis, resumeId: number) => void;
+  onViewPortfolio: (analysis: Analysis, portfolioId: number) => void;
   onViewInsights: (analysis: Analysis) => void;
 }
 
