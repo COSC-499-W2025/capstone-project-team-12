@@ -45,6 +45,18 @@ class TestResumeBuilder:
                 ]
             }
         }
+
+    @pytest.fixture
+    def multiline_result_data(self):  # noqa: F811
+        """Result data with multi-line bullet resume_points"""
+        return {
+            'resume_points': '- Built scalable APIs\n- Led cross-functional teams\n- Reduced latency by 40%',
+            'metadata_insights': {
+                'primary_skills': ['Python'],
+                'language_stats': {'Python': {'language': 'Python', 'file_count': 10}}
+            },
+            'project_insights': {'analyzed_insights': []}
+        }
     
     def test_create_resume_from_analysis_id_success(self, mock_db_manager, mock_cli, sample_result_data):
         """Test successful resume creation from result ID"""
@@ -102,13 +114,39 @@ class TestResumeBuilder:
     def test_build_resume_structure(self, sample_result_data):
         """Test internal resume building creates correct structure"""
         builder = ResumeBuilder()
-        
+ 
         resume = builder._build_resume(sample_result_data, 'test-result-id')
-        
+ 
         assert resume['analysis_id'] == 'test-result-id'
-        assert resume['summary'] == sample_result_data['resume_points']
+        # summary is now a list
+        assert isinstance(resume['summary'], list)
+        assert len(resume['summary']) == 1
+        assert resume['summary'][0] == sample_result_data['resume_points']
         assert len(resume['skills']) == 3
         assert len(resume['projects']) > 0
+ 
+    def test_build_resume_multiline_summary(self, multiline_result_data):
+        """summary field should be a list with one entry per non-empty line"""
+        builder = ResumeBuilder()
+        resume = builder._build_resume(multiline_result_data, 'test-id')
+ 
+        assert isinstance(resume['summary'], list)
+        assert resume['summary'] == [
+            'Built scalable APIs',
+            'Led cross-functional teams',
+            'Reduced latency by 40%'
+        ]
+ 
+    def test_build_resume_new_fields_present(self, sample_result_data):
+        """Newly added fields (education, awards, work_experience, phone, linkedin) exist"""
+        builder = ResumeBuilder()
+        resume = builder._build_resume(sample_result_data, 'test-id')
+ 
+        assert 'education' in resume and resume['education'] == []
+        assert 'awards' in resume and resume['awards'] == []
+        assert 'work_experience' in resume and resume['work_experience'] == []
+        assert 'phone' in resume and resume['phone'] == ''
+        assert 'linkedin' in resume and resume['linkedin'] == ''
     
     def test_build_resume_handles_invalid_data(self):
         """Test _build_resume handles invalid data gracefully"""
