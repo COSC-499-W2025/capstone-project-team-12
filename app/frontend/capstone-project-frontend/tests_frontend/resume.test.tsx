@@ -4,8 +4,6 @@ import ResumeDisplay from "../src/pages/resume_display";
 
 const setup = () => render(<ResumeDisplay />);
 
-// SectionCard renders a rounded-2xl card — scope queries to the whole card
-// so Edit/Save/Cancel buttons are reachable from within the right section.
 const getCard = (title: string) =>
   screen.getByText(title).closest(".rounded-2xl") as HTMLElement;
 
@@ -53,7 +51,7 @@ describe("Summary section", () => {
   it("saves updated summary", () => {
     setup();
     fireEvent.click(within(getCard("Summary")).getByText("Edit"));
-    fireEvent.change(screen.getByRole("textbox"), { target: { value: "Updated summary" } });
+    fireEvent.change(screen.getAllByRole("textbox")[0], { target: { value: "Updated summary" } });
     fireEvent.click(screen.getByText("Save"));
     expect(screen.getByText("Updated summary")).toBeInTheDocument();
   });
@@ -64,25 +62,26 @@ describe("Summary section", () => {
 describe("Education & Awards section", () => {
   it("renders default education entry", () => {
     setup();
-    expect(screen.getByText(/University of British Columbia/)).toBeInTheDocument();
-    expect(screen.getByText(/Bachelor of Science/)).toBeInTheDocument();
+    const card = getCard("Education");
+    expect(within(card).getAllByText(/University of British Columbia/).length).toBeGreaterThan(0);
+    expect(within(card).getAllByText(/Bachelor of Science/).length).toBeGreaterThan(0);
   });
 
   it("adds a new entry", () => {
     setup();
     fireEvent.click(screen.getByText("+ Add Entry"));
-    expect(screen.getByDisplayValue("Institution Name")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Institution")).toBeInTheDocument();
   });
 
   it("removes an entry", () => {
     setup();
-    fireEvent.click(screen.getByText("✕"));
-    expect(screen.queryByText(/University of British Columbia/)).not.toBeInTheDocument();
+    fireEvent.click(within(getCard("Education")).getAllByText("✕")[0]);
+    expect(within(getCard("Education")).queryByText(/University of British Columbia/)).not.toBeInTheDocument();
   });
 
   it("saves edits to an entry", () => {
     setup();
-    fireEvent.click(within(getCard("Education & Awards")).getByText("Edit"));
+    fireEvent.click(within(getCard("Education")).getByText("Edit"));
     fireEvent.change(screen.getByDisplayValue(/University of British Columbia/), { target: { value: "MIT" } });
     fireEvent.click(screen.getByText("Save"));
     expect(screen.getByText("MIT")).toBeInTheDocument();
@@ -90,8 +89,6 @@ describe("Education & Awards section", () => {
 });
 
 // ─── Skills ───────────────────────────────────────────────────────────────────
-// Note: Skills and Projects share framework names (TypeScript, Docker, React etc.)
-// so all skill text queries use getAllByText and are scoped to the Skills card.
 
 describe("Skills section", () => {
   it("renders detected skills", () => {
@@ -106,7 +103,6 @@ describe("Skills section", () => {
     setup();
     const card = getCard("Skills");
     fireEvent.click(within(card).getByText("Edit"));
-    // scope to the Skills card to avoid matching the TypeScript chip in frameworks
     const chip = within(card).getAllByText("TypeScript")[0].closest("span")!;
     fireEvent.click(within(chip).getByText("×"));
     fireEvent.click(screen.getByText("Save"));
@@ -129,7 +125,6 @@ describe("Skills section", () => {
     fireEvent.click(within(card).getByText("Edit"));
     fireEvent.change(screen.getByPlaceholderText("Add skill…"), { target: { value: "React" } });
     fireEvent.click(screen.getAllByText("+ Add")[0]);
-    // count within the Skills card should not have increased
     expect(within(getCard("Skills")).getAllByText("React").length).toBe(countBefore);
   });
 });
@@ -171,8 +166,6 @@ describe("Projects section", () => {
 });
 
 // ─── Languages ────────────────────────────────────────────────────────────────
-// Note: language names overlap with Skills (TypeScript, Python) and project
-// frameworks (XML) so all queries are scoped to the Languages card.
 
 describe("Languages section", () => {
   it("renders all language names", () => {
