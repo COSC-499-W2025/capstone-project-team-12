@@ -22,8 +22,8 @@ export interface NewAnalysisPayload {
 export interface AnalysisCardProps {
   analysis: Analysis;
   onDelete: (id: string) => void;
-  onDeleteResume: (id: string) => void;
-  onDeletePortfolio: (id: string) => void;
+  onDeleteResume: (resumeId: number) => void;
+  onDeletePortfolio: (portfolioId: number) => void;
   onIncremental: (id: string, files: string[]) => void;
   onViewResume: (analysis: Analysis) => void;
   onViewPortfolio: (analysis: Analysis) => void;

@@ -127,17 +127,29 @@ export default function Dashboard() {
         return prev.filter(analysis => analysis.id !== id);
       })
 
-      showToast("Analysis deleted.")
-      
     } catch (error) {
-      error instanceof Error ? error.message : "Could not delete analysis."
+      const message = error instanceof Error ? error.message : "Failed to delete analysis."
+      showToast(message);
     }
   };
 
-  const handleDeleteResume = async (id: string) => {
-    setAnalyses(a => a.map(x => x.id === id ? { ...x, hasResume: false, resumeIds: [] } : x));
-    showToast("Resume deleted.");
+
+  const handleDeleteResume = async (resume_id: number) => {
+    try {
+      const response = await fetch(`${API_BASE}/resume/${resume_id}`, { method: "DELETE" });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete resume.");
+      }
+
+      
+
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to delete resume.";
+        showToast(message);
+    }
   };
+
 
   const handleDeletePortfolio = (id: string) => {
     setAnalyses(a => a.map(x => x.id === id ? { ...x, hasPortfolio: false, portfolioIds: [] } : x));
