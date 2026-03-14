@@ -6,6 +6,7 @@ import ProjectInsights from "./pages/ProjectInsights";
 import ProgressPage from './pages/progress';
 import ResumeDisplay from './pages/resume_display';
 import Dashboard from './pages/dashboard';
+import FileImport from './pages/fileImport';
 
 function App() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -18,8 +19,9 @@ function App() {
         {showDashboard ? (<Dashboard />) : (
         <>
           {currentStep === 1 && <Onboarding onComplete={() => setCurrentStep(2)} />}
+          {currentStep === 2 && <FileImport onComplete={() => setCurrentStep(3)} />}
           {currentStep === 3 && <ProgressPage onComplete={() => setCurrentStep(4)} />}
-          {currentStep === 4 && <ProjectInsights onPrevious={() => setCurrentStep(3)} onComplete={() => setCurrentStep(5)} />}
+          {currentStep === 4 && <ProjectInsights onPrevious={() => setCurrentStep(2)} onComplete={() => setCurrentStep(5)} />}
           {currentStep === 5 && <ResumeDisplay onPrevious={() => setCurrentStep(4)} onComplete={() => setCurrentStep(6)} />}
           {currentStep === 6 && <Portfolio onPrevious={() => setCurrentStep(5)} onComplete={() => setShowDashboard(true)} />}
           {/* add other pages/components for other steps */}
