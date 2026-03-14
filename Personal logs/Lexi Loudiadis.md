@@ -1,5 +1,25 @@
 # Lexi Loudiadis (93546844) Personal Log
 
+## Term 2 - Week 10 (03/09/2026 - 03/15/2026)
+
+- Implemented the UI for the dashboard page, which is where you land after running your first analysis. From here, you can create a new analysis, add new files to an existing analysis, delete analyses, and view different portfolios, resumes, and skill extractions for a given analysis (PR #475 & PR #478)
+- Switching the portfolio to "light mode" as a result of team discussion (PR #478)
+- Tests for the dashboard page (PR #480)
+- Implementing the first half of the dashboard API endpoint connections. This included mapping analyses to the card with associated portfolios, resumes, and skills. I also implemented the delete endpoints for portfolio, resumes, and analyses. (PR #492)
+- Testing teammates' code
+- Team meetings
+
+### In Progress
+- Continuing to work on the dashboard API calls
+  
+### What's Next
+- Continuing to connect endpoints and preparing for peer testing #2. For me specifically, I have planned to implement the heatmap and finishing hooking up the dashboard API. The dashboard page contains many of the API calls we need, so once this is done we'll have a reasonable chunk of the frontend calls will be done. 
+
+### Reflection
+- All tasks that were planned for this week were completed and it felt like quite a productive week for me. As mentioned last week, some of us had slightly different UI styles, so as per our team discussion on Monday, I changed the portfolio UI to better match our light theme. I also made a list of things I want to get done before our last Milestone deliverable is due to help me stay on track.
+
+![Type of tasks I worked on](imgs/Week%2021%20Lexi.png)
+
 ## Term 2 - Week 9 (03/02/2026 - 03/08/2026)
 
 - Implemented the Project Insights UI (PR #460)
