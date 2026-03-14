@@ -55,10 +55,15 @@ class ResumeEditor:
 
     def _edit_summary(self, current_summary: str) -> str:
         """
-        Edit the summary section of the resume
+        Edit the summary section of the resume. Only used for CLI
         """
-        self.cli.print_status(f"Current Summary: {current_summary}", "info")
-        return self._edit_text_field("Summary", current_summary, allow_multiline = True) 
+        joined = '\n'.join(f"- {point}" for point in current_summary)
+
+        self.cli.print_status(f"Current Summary: {joined}", "info")
+        edited = self._edit_text_field("Summary", joined, allow_multiline = True) 
+
+        lines = edited.strip().split('\n')
+        return [line.lstrip('- ').strip() for line in lines if line.strip()]
 
     def _edit_projects(self, current_projects: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
@@ -328,7 +333,8 @@ class ResumeEditor:
             resume (Dict[str, Any]): The resume data to preview
         """
         self.cli.print_header("Resume Preview")
-        print(f"Summary:\n{resume.get('summary', 'No Summary')}\n")
+        joined = '\n'.join(f"- {point}" for point in resume.get('summary','No Summary'))
+        print(f"Summary:\n{joined}\n")
         print("Skills:")
         print(', '.join(resume.get('skills', [])) + "\n")
         print("Languages:")
