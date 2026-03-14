@@ -54,7 +54,7 @@ export default function FinetunePage({ onComplete, extractedData }: FinetunePage
     );
   };
 
-  // --- 2. Topics State & Logic ---
+  // --- 2. Topics ---
   const [topics, setTopics] = useState<TopicGroup[]>([
     { id: "t0", keywords: ["user", "post", "blog", "comment", "account", "create", "like", "option", "name", "use"] },
     { id: "t1", keywords: ["post", "setting", "view", "recent", "account", "piggybank", "trend", "make", "save", "jane"] },

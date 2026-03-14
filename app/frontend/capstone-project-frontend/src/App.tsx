@@ -19,6 +19,7 @@ function App() {
         {currentStep === 2 && <FileImport onComplete={() => setCurrentStep(2.5)} />}
         {currentStep === 2.5 && <ProgressPage onComplete={() => setCurrentStep(3)} />}
         {currentStep === 3 && <FinetunePage onComplete ={() => setCurrentStep(4)} />}
+          {currentStep === 4 && <ProjectInsights onPrevious={() => setCurrentStep(3)} onComplete={() => setCurrentStep(5)} />}
         {currentStep === 5 && <ResumeDisplay />}
         {currentStep === 6 && <Portfolio />}
         {/* add other pages/components for other steps */}
