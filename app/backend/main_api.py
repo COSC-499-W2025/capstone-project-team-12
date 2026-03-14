@@ -58,7 +58,7 @@ class PortfolioEditRequest(BaseModel):
 
 
 class ConfigRequest(BaseModel):
-    consent_type: str
+    config_type: str
     value: bool|str
 
 class TopicEditRequest(BaseModel):
@@ -604,7 +604,7 @@ async def edit_portfolio(portfolio_id: int, new: PortfolioEditRequest, db: Datab
 async def update_consent(req: ConfigRequest):
     """Updates user preferences file."""
     cfg = ConfigManager()
-    cfg.save_prefs({req.consent_type: req.value})
+    cfg.save_prefs({req.config_type: req.value})
     return {"status": "success"}
 
 @app.get("/configs")
