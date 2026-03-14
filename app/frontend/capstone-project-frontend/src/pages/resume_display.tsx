@@ -1,6 +1,6 @@
 import { useState } from "react";
 import SectionCard from "../components/SectionCard";
-import type { Resume, Project, Language } from "../resumeTypes";
+import type { Resume, Project, Language } from "../types/resumeTypes";
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
 
@@ -372,7 +372,7 @@ function DownloadButton() {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-export default function ResumeDisplay() {
+export default function ResumeDisplay( {onPrevious, onComplete} : {onPrevious?: () => void, onComplete?: () => void}) {
   const [resume, setResume] = useState<Resume>(mockResume);
   return (
     <div className="min-h-screen bg-slate-50 font-sans">
@@ -392,6 +392,29 @@ export default function ResumeDisplay() {
           <ProjectsSection projects={resume.projects} onChange={p => setResume(r => ({ ...r, projects: p }))} />
           <LanguagesSection languages={resume.languages} onChange={l => setResume(r => ({ ...r, languages: l }))} />
         </div>
+         {/* Back button */}
+          <div className="flex justify-between mt-8">
+            <button
+              onClick={onPrevious}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 shadow-sm hover:bg-indigo-700 transition-all"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+              Back
+            </button>
+          
+            {/* Next button */}
+            <button
+              onClick={onComplete}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 shadow-sm hover:bg-indigo-700 transition-all"
+            >
+              Next
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>  
         <p className="text-center text-xs text-slate-300 mt-8">Edits are session-only · Export available in a future release</p>
       </div>
     </div>
