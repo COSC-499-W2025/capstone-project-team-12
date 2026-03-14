@@ -638,11 +638,16 @@ def test_get_project_detail_not_found(mock_backend,placeholder_UUID):
     res = client.get(f"/projects/{placeholder_UUID}")
     assert res.status_code == 404
 
-def test_privacy_consent(mock_backend):
-    """Test consent update."""
-    res = client.post("/privacy-consent", json={"consent_type": "online_llm_consent", "value": True})
+def test_set_config(mock_backend):
+    """Test config update."""
+    res = client.post("/configs", json={"config_type": "online_llm_consent", "value": True})
     assert res.status_code == 200
     assert res.json()["status"] == "success"
+
+def test_get_config(mock_backend):
+    """Test get configs."""
+    res = client.get("/configs")
+    assert res.status_code == 200
 
 def test_get_skills_interface_success(mock_backend):
     """Interface test: GET /skills aggregates languages/frameworks correctly."""
