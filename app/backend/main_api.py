@@ -57,9 +57,9 @@ class PortfolioEditRequest(BaseModel):
     portfolio_data:Dict[str,Any]
 
 
-class ConsentRequest(BaseModel):
+class ConfigRequest(BaseModel):
     consent_type: str
-    value: bool
+    value: bool|str
 
 class TopicEditRequest(BaseModel):
     topic_keywords: List[Dict[str, Any]] 
@@ -164,7 +164,6 @@ async def extract_upload(
     finally:
         if os.path.exists(tmp_path):
             os.remove(tmp_path)
-
 
 @app.post("/projects/{analysis_id}/upload/commit")
 async def commit_upload(
@@ -345,7 +344,6 @@ async def get_all_resumes(db:DatabaseManager = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail =f"Internal Server Error:{e}")
     
-
 @app.get("/resumes/{analysis_id}")
 async def get_resumes(analysis_id: str, db: DatabaseManager = Depends(get_db)):
     """
@@ -486,7 +484,6 @@ async def get_all_portfolios(db:DatabaseManager = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail =f"Internal Server Error:{e}")
     
-
 @app.get("/portfolios/{analysis_id}")
 async def get_portfolios(analysis_id: str, db: DatabaseManager = Depends(get_db)):
     """
@@ -603,12 +600,18 @@ async def edit_portfolio(portfolio_id: int, new: PortfolioEditRequest, db: Datab
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"{e}")
 
-@app.post("/privacy-consent")
-async def update_consent(req: ConsentRequest):
+@app.post("/configs")
+async def update_consent(req: ConfigRequest):
     """Updates user preferences file."""
     cfg = ConfigManager()
     cfg.save_prefs({req.consent_type: req.value})
     return {"status": "success"}
+
+@app.get("/configs")
+async def update_consent():
+    """Updates user preferences file."""
+    cfg = ConfigManager()
+    return JSONResponse(status_code=200,content=cfg.preferences)
 
 @app.put("/projects/{analysis_id}/update/extract")
 async def extract_update(
@@ -732,7 +735,6 @@ async def extract_update(
         if os.path.exists(tmp_path):
             os.remove(tmp_path)
 
-
 @app.post("/projects/{analysis_id}/update/commit")
 async def commit_update(
     analysis_id: str,
@@ -810,6 +812,7 @@ async def commit_update(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 @app.delete("/projects/{analysis_id}")
 async def delete_project(analysis_id: str, db: DatabaseManager = Depends(get_db)):
     """
@@ -833,7 +836,6 @@ async def delete_project(analysis_id: str, db: DatabaseManager = Depends(get_db)
         raise HTTPException(status_code=400, detail="Invalid UUID format")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {e}")
-
 
 @app.delete("/projects")
 async def delete_all_projects(db: DatabaseManager = Depends(get_db)):
