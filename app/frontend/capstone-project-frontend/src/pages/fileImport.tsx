@@ -161,9 +161,9 @@ const FileImport: React.FC<FileImportProps> = ({ onComplete, githubUsername, git
       formData.append('github_email', githubEmail);
       formData.append('file', zipped);
 
-      console.log('[UPLOAD] Sending POST /projects/upload/extract ...');
+      console.log('[UPLOAD] Sending POST http://localhost:8080/projects/upload/extract ...');
       const fetchStart = performance.now();
-      const response = await fetch('/projects/upload/extract', {
+      const response = await fetch('http://localhost:8080/projects/upload/extract', {
         method: 'POST',
         body: formData,
       });

@@ -118,6 +118,10 @@ describe("FileImport", () => {
     expect(btn).not.toBeDisabled();
     fireEvent.click(btn);
     await waitFor(() => expect(onComplete).toHaveBeenCalledOnce());
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "http://localhost:8080/projects/upload/extract",
+      expect.objectContaining({ method: "POST" })
+    );
   });
 
   it("removes an uploaded file", () => {
