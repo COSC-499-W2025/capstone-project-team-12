@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import SectionCard from "../components/SectionCard";
-import type { Resume, Project, Language, EducationEntry, WorkEntry, AwardEntry } from "../resumeTypes";
+import type { Resume, Project, Language, EducationEntry, WorkEntry, AwardEntry } from "../types/resumeTypes";
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
 
@@ -612,7 +612,7 @@ function DownloadButton() {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-export default function ResumeDisplay() {
+export default function ResumeDisplay( {onPrevious, onComplete} : {onPrevious?: () => void, onComplete?: () => void}) {
   const {resumeId} = useParams<{ resumeId?: string }>();
   const params = new URLSearchParams(window.location.search);
   const devId = params.get("resumeId");
@@ -674,6 +674,29 @@ export default function ResumeDisplay() {
           <SkillsSection   skills={resume.skills}     onChange={s => update({skills: s })} />
           <ProjectsSection projects={resume.projects} onChange={p => update({ projects: p })} />
           <LanguagesSection languages={resume.languages} onChange={l => update({languages: l })} />
+          </div>
+         {/* Back button */}
+          <div className="flex justify-between mt-8">
+            <button
+              onClick={onPrevious}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 shadow-sm hover:bg-indigo-700 transition-all"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+              Back
+            </button>
+          
+            {/* Next button */}
+            <button
+              onClick={onComplete}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 shadow-sm hover:bg-indigo-700 transition-all"
+            >
+              Next
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </button>
         </div>
         <p className="text-center text-xs text-slate-300 mt-8">{parsedId ? "Changes save automatically" : "Edits are session-only · connect a resume ID to persist"}</p>
       </div>
