@@ -1,5 +1,5 @@
 import SectionCard from "./SectionCard";
-import type { FileExtension } from "../insightTypes";
+import type { FileExtension } from "../types/insightTypes";
 
 const categoryColors: Record<string, string> = {
   "Documentation":  "bg-sky-100 text-sky-700",

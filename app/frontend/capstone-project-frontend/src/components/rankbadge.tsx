@@ -1,13 +1,16 @@
 import React from "react";
 
+const rankStyles: Record<number, string> = {
+  1: "border-amber-300 text-amber-400 bg-amber-50",
+  2: "border-slate-300 text-slate-500 bg-slate-50",
+  3: "border-orange-300 text-orange-500 bg-orange-50",
+};
+
 const RankBadge: React.FC<{ rank: number; total: number }> = ({ rank, total }) => {
-  const medals = ["#FFD700", "#C0C0C0", "#CD7F32"];
-  const color = medals[rank - 1] || "#8899aa";
+  const cls = rankStyles[rank] ?? "border-slate-200 text-slate-400 bg-slate-50";
   return (
-    <div 
-      style={{ fontSize: "0.9rem", fontWeight: 700, padding: "4px 10px", borderRadius: 4, flexShrink: 0, letterSpacing: "-0.02em", border: `2px solid ${color}`, color }}
-    >
-      #{rank}<span style={{ opacity: 0.5, fontSize: "0.65em" }}>/{total}</span>
+    <div className={`text-sm font-bold px-2.5 py-1 rounded-lg border-2 shrink-0 tracking-tight ${cls}`}>
+      #{rank}<span className="opacity-50 text-xs">/{total}</span>
     </div>
   );
 };
