@@ -5,7 +5,7 @@ import type { Resume, Project, Language, EducationEntry, WorkEntry, AwardEntry }
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
 
-const mockResume: Resume = {
+export const mockResume: Resume = {
   analysis_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   // TODO (backend): pass github_username and user_email through _build_resume()
   github_username: "yourusername",

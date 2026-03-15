@@ -1,6 +1,8 @@
 import { render, screen, fireEvent, within } from "@testing-library/react";
-import { describe, it, expect } from "vitest";
-import ResumeDisplay from "../src/pages/resume_display";
+import { describe, it, expect, afterEach, vi } from "vitest";
+import ResumeDisplay, {mockResume} from "../src/pages/resume_display";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
+import '@testing-library/jest-dom';
 
 const setup = () => render(<ResumeDisplay />);
 
@@ -212,5 +214,264 @@ describe("Download button", () => {
   it("renders the Soon badge", () => {
     setup();
     expect(screen.getByText("Soon")).toBeInTheDocument();
+  });
+});
+
+// ─── Work Experience ──────────────────────────────────────────────────────────
+
+describe("Work Experience section", () => {
+  it("renders default work entry", () => {
+    setup();
+    const card = getCard("Work Experience");
+    expect(within(card).getByText(/UBC Okanagan Computer Science/)).toBeInTheDocument();
+    expect(within(card).getByText(/Teaching Assistant/)).toBeInTheDocument();
+  });
+
+  it("renders bullet points", () => {
+    setup();
+    expect(screen.getByText(/Led weekly lab sessions/)).toBeInTheDocument();
+  });
+
+  it("shows inputs when Edit is clicked", () => {
+    setup();
+    fireEvent.click(within(getCard("Work Experience")).getByText("Edit"));
+    expect(screen.getByDisplayValue(/UBC Okanagan/)).toBeInTheDocument();
+  });
+
+  it("saves edits to an entry", () => {
+    setup();
+    fireEvent.click(within(getCard("Work Experience")).getByText("Edit"));
+    fireEvent.change(screen.getByDisplayValue(/UBC Okanagan Computer Science/), {
+      target: { value: "Google" },
+    });
+    fireEvent.click(within(getCard("Work Experience")).getByText("Save"));
+    expect(screen.getByText(/Google/)).toBeInTheDocument();
+  });
+
+  it("discards changes on cancel", () => {
+    setup();
+    fireEvent.click(within(getCard("Work Experience")).getByText("Edit"));
+    fireEvent.change(screen.getByDisplayValue(/UBC Okanagan Computer Science/), {
+      target: { value: "Google" },
+    });
+    fireEvent.click(within(getCard("Work Experience")).getByText("Cancel"));
+    expect(screen.getByText(/UBC Okanagan Computer Science/)).toBeInTheDocument();
+  });
+
+  it("removes an entry", () => {
+    setup();
+    fireEvent.click(within(getCard("Work Experience")).getByText("✕"));
+    expect(within(getCard("Work Experience")).queryByText(/UBC Okanagan/)).not.toBeInTheDocument();
+  });
+
+  it("adds a new entry", () => {
+    setup();
+    fireEvent.click(screen.getByText("+ Add Position"));
+    expect(screen.getByPlaceholderText("Company")).toBeInTheDocument();
+  });
+
+  it("cancelling a new entry removes it", () => {
+    setup();
+    const card = getCard("Work Experience");
+    const countBefore = within(card).queryAllByText("✕").length;
+    fireEvent.click(screen.getByText("+ Add Position"));
+    fireEvent.click(screen.getByText("Cancel"));
+    expect(within(getCard("Work Experience")).queryAllByText("✕").length).toBe(countBefore);
+  });
+});
+
+// ─── Awards ───────────────────────────────────────────────────────────────────
+
+describe("Awards section", () => {
+  it("renders default award", () => {
+    setup();
+    const card = getCard("Awards & Honours");
+    expect(within(card).getByText("Test Scholars Award")).toBeInTheDocument();
+    expect(within(card).getByText(/top 5%/)).toBeInTheDocument();
+  });
+
+  it("shows inputs when Edit is clicked", () => {
+    setup();
+    fireEvent.click(within(getCard("Awards & Honours")).getByText("Edit"));
+    expect(screen.getByDisplayValue("Test Scholars Award")).toBeInTheDocument();
+  });
+
+  it("saves edits to an entry", () => {
+    setup();
+    fireEvent.click(within(getCard("Awards & Honours")).getByText("Edit"));
+    fireEvent.change(screen.getByDisplayValue("Test Scholars Award"), {
+      target: { value: "Dean's Award" },
+    });
+    fireEvent.click(within(getCard("Awards & Honours")).getByText("Save"));
+    expect(screen.getByText("Dean's Award")).toBeInTheDocument();
+  });
+
+  it("discards changes on cancel", () => {
+    setup();
+    fireEvent.click(within(getCard("Awards & Honours")).getByText("Edit"));
+    fireEvent.change(screen.getByDisplayValue("Test Scholars Award"), {
+      target: { value: "Dean's Award" },
+    });
+    fireEvent.click(within(getCard("Awards & Honours")).getByText("Cancel"));
+    expect(screen.getByText("Test Scholars Award")).toBeInTheDocument();
+  });
+
+  it("removes an entry", () => {
+    setup();
+    fireEvent.click(within(getCard("Awards & Honours")).getByText("✕"));
+    expect(within(getCard("Awards & Honours")).queryByText("Test Scholars Award")).not.toBeInTheDocument();
+  });
+
+  it("adds a new entry", () => {
+    setup();
+    fireEvent.click(screen.getByText("+ Add Award"));
+    expect(screen.getByPlaceholderText("Award title")).toBeInTheDocument();
+  });
+
+  it("cancelling a new award removes it", () => {
+    setup();
+    const card = getCard("Awards & Honours");
+    const countBefore = within(card).queryAllByText("✕").length;
+    fireEvent.click(screen.getByText("+ Add Award"));
+    fireEvent.click(screen.getByText("Cancel"));
+    expect(within(getCard("Awards & Honours")).queryAllByText("✕").length).toBe(countBefore);
+  });
+});
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const setupWithId = () =>
+  render(
+    <MemoryRouter initialEntries={["/resume/1"]}>
+      <Routes>
+        <Route path="/resume/:resumeId" element={<ResumeDisplay />} />
+      </Routes>
+    </MemoryRouter>
+  );
+
+const mockGet = () =>
+  vi.spyOn(global, "fetch").mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({ resume_data: mockResume }),
+  } as Response);
+
+// ─── Async states (loading / error / saving) ─────────────────────────────────
+
+describe("Async UI states", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("shows loading state while fetching", () => {
+    vi.spyOn(global, "fetch").mockReturnValue(new Promise(() => {}));
+    setupWithId();
+    expect(screen.getByText("Loading resume…")).toBeInTheDocument();
+  });
+
+  it("shows error when fetch fails", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: false,
+      status: 500,
+      statusText: "Internal Server Error",
+    } as Response);
+    setupWithId();
+    expect(await screen.findByText(/Error:/)).toBeInTheDocument();
+  });
+
+  it("shows saving indicator during PUT", async () => {
+    mockGet();
+    vi.spyOn(global, "fetch").mockReturnValueOnce(new Promise(() => {})); // PUT hangs
+
+    setupWithId();
+    await screen.findByText("yourusername");
+
+    fireEvent.click(within(getCard("Contact")).getByText("Edit"));
+    fireEvent.change(screen.getByPlaceholderText("GitHub username"), {
+      target: { value: "newuser" },
+    });
+    fireEvent.click(screen.getByText("Save"));
+
+    expect(await screen.findByText("Saving…")).toBeInTheDocument();
+  });
+
+  it("shows error when PUT fails", async () => {
+    mockGet();
+    vi.spyOn(global, "fetch").mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      statusText: "Internal Server Error",
+    } as Response);
+
+    setupWithId();
+    await screen.findByText("yourusername");
+
+    fireEvent.click(within(getCard("Contact")).getByText("Edit"));
+    fireEvent.change(screen.getByPlaceholderText("GitHub username"), {
+      target: { value: "newuser" },
+    });
+    fireEvent.click(screen.getByText("Save"));
+
+    expect(await screen.findByText(/Error:/)).toBeInTheDocument();
+  });
+
+  it("loads and renders resume from API", async () => {
+    mockGet();
+    setupWithId();
+    expect(await screen.findByText("yourusername")).toBeInTheDocument();
+  });
+});
+
+// ─── Bullet Editor ────────────────────────────────────────────────────────────
+
+describe("Bullet editor", () => {
+  it("adds a bullet in summary", () => {
+    setup();
+    fireEvent.click(within(getCard("Summary")).getByText("Edit"));
+    fireEvent.click(screen.getByText("+ Add bullet"));
+    expect(screen.getAllByRole("textbox").length).toBeGreaterThan(2);
+  });
+
+  it("removes a bullet in summary", () => {
+    setup();
+    fireEvent.click(within(getCard("Summary")).getByText("Edit"));
+    const countBefore = screen.getAllByRole("textbox").length;
+    fireEvent.click(screen.getAllByText("×")[0]);
+    expect(screen.getAllByRole("textbox").length).toBe(countBefore - 1);
+  });
+
+  it("adds a bullet in work experience", () => {
+    setup();
+    fireEvent.click(within(getCard("Work Experience")).getByText("Edit"));
+    const countBefore = screen.getAllByRole("textbox").length;
+    fireEvent.click(screen.getByText("+ Add bullet"));
+    expect(screen.getAllByRole("textbox").length).toBe(countBefore + 1);
+  });
+
+  it("removes a bullet in work experience", () => {
+    setup();
+    fireEvent.click(within(getCard("Work Experience")).getByText("Edit"));
+    const countBefore = screen.getAllByRole("textbox").length;
+    fireEvent.click(screen.getAllByText("×")[0]);
+    expect(screen.getAllByRole("textbox").length).toBe(countBefore - 1);
+  });
+});
+
+// ─── Work entry cancel new ────────────────────────────────────────────────────
+
+describe("Work entry cancel new", () => {
+  it("cancelling a new work entry removes the blank card", () => {
+    setup();
+    const card = getCard("Work Experience");
+    fireEvent.click(screen.getByText("+ Add Position"));
+    expect(screen.getByPlaceholderText("Company")).toBeInTheDocument();
+    fireEvent.click(within(card).getByText("Cancel"));
+    expect(screen.queryByPlaceholderText("Company")).not.toBeInTheDocument();
+  });
+
+  it("existing entry cancel restores original values", () => {
+    setup();
+    fireEvent.click(within(getCard("Work Experience")).getByText("Edit"));
+    fireEvent.change(screen.getByDisplayValue(/UBC Okanagan Computer Science/), {
+      target: { value: "Google" },
+    });
+    fireEvent.click(within(getCard("Work Experience")).getByText("Cancel"));
+    expect(screen.getByText(/UBC Okanagan Computer Science/)).toBeInTheDocument();
   });
 });
