@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
+import JSZip from "jszip";
 
-interface UploadEntry {
+export interface UploadEntry {
   name: string;
   isDirectory: boolean;
   files: File[];
@@ -9,6 +10,11 @@ interface UploadEntry {
 
 interface FileImportProps {
   onComplete: () => void;
+  githubUsername: string;
+  githubEmail: string;
+  model: string;
+  uploads: UploadEntry[];
+  onUploadsChange: (uploads: UploadEntry[]) => void;
 }
 
 /** Recursively read all File objects from a FileSystemDirectoryEntry. */
@@ -41,10 +47,11 @@ function readAllEntries(dirEntry: FileSystemDirectoryEntry): Promise<File[]> {
   });
 }
 
-const FileImport: React.FC<FileImportProps> = ({ onComplete }) => {
-  const [uploads, setUploads] = useState<UploadEntry[]>([]);
+const FileImport: React.FC<FileImportProps> = ({ onComplete, githubUsername, githubEmail, model: _model, uploads, onUploadsChange }) => {
+  const setUploads = onUploadsChange;
   const [isDragging, setIsDragging] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
@@ -63,8 +70,8 @@ const FileImport: React.FC<FileImportProps> = ({ onComplete }) => {
 
   const addUpload = useCallback((name: string, files: File[], isDirectory: boolean) => {
     const totalSize = files.reduce((sum, f) => sum + f.size, 0);
-    setUploads((prev) => [...prev, { name, isDirectory, files, totalSize }]);
-  }, []);
+    setUploads([...uploads, { name, isDirectory, files, totalSize }]);
+  }, [uploads, setUploads]);
 
   const handleDrop = useCallback(
     async (e: React.DragEvent<HTMLDivElement>) => {
@@ -99,7 +106,13 @@ const FileImport: React.FC<FileImportProps> = ({ onComplete }) => {
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = e.target.files;
     if (!fileList || fileList.length === 0) return;
-    Array.from(fileList).forEach((f) => addUpload(f.name, [f], false));
+    const newEntries: UploadEntry[] = Array.from(fileList).map((f) => ({
+      name: f.name,
+      isDirectory: false,
+      files: [f],
+      totalSize: f.size,
+    }));
+    setUploads([...uploads, ...newEntries]);
     setShowPicker(false);
   };
 
@@ -120,9 +133,65 @@ const FileImport: React.FC<FileImportProps> = ({ onComplete }) => {
   };
 
   const removeUpload = (index: number) => {
-    setUploads((prev) => prev.filter((_, i) => i !== index));
+    setUploads(uploads.filter((_, i) => i !== index));
     if (fileInputRef.current) fileInputRef.current.value = "";
     if (folderInputRef.current) folderInputRef.current.value = "";
+  };
+
+  const zipSelectedFiles = async (): Promise<File> => {
+    const zip = new JSZip();
+    const allFiles = uploads.flatMap((entry) => entry.files);
+    for (const file of allFiles) {
+      const path = file.webkitRelativePath || file.name;
+      zip.file(path, file);
+    }
+    const blob = await zip.generateAsync({ type: "blob" });
+    return new File([blob], "project_files.zip", { type: "application/zip" });
+  };
+
+  const handleProcessFiles = async () => {
+    setIsUploading(true);
+    try {
+      console.log('[UPLOAD] Zipping files...');
+      const zipped = await zipSelectedFiles();
+      console.log('[UPLOAD] Zip complete, size:', zipped.size, 'bytes');
+
+      const formData = new FormData();
+      formData.append('github_username', githubUsername);
+      formData.append('github_email', githubEmail);
+      formData.append('file', zipped);
+
+      console.log('[UPLOAD] Sending POST http://localhost:8080/projects/upload/extract ...');
+      const fetchStart = performance.now();
+      const response = await fetch('http://localhost:8080/projects/upload/extract', {
+        method: 'POST',
+        body: formData,
+      });
+      console.log('[UPLOAD] Response received in', ((performance.now() - fetchStart) / 1000).toFixed(1), 's — status:', response.status);
+
+      const text = await response.text();
+      console.log('[UPLOAD] Raw response body:', text.slice(0, 500));
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (parseErr) {
+        console.error('[UPLOAD] JSON parse failed:', parseErr, '— body was:', text.slice(0, 200));
+        return;
+      }
+      console.log('[UPLOAD] Parsed response:', data);
+
+      if (!response.ok) {
+        console.error('[UPLOAD] Upload failed:', response.status, data);
+        return;
+      }
+
+      onComplete();
+    } catch (error) {
+      console.error('[UPLOAD] Upload error:', error);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -250,38 +319,54 @@ const FileImport: React.FC<FileImportProps> = ({ onComplete }) => {
 
         {/* Confirm button */}
         <button
-          onClick={onComplete}
-          disabled={uploads.length === 0}
+          onClick={handleProcessFiles}
+          disabled={uploads.length === 0 || isUploading}
           className={`
             w-full py-3.5 rounded-xl border-none font-bold text-sm
             flex items-center justify-center gap-2
             transition-all duration-200 font-sans
             ${
-              uploads.length > 0
+              uploads.length > 0 && !isUploading
                 ? "bg-gradient-to-br from-[#6378ff] to-[#a78bfa] text-white shadow-[0_4px_20px_rgba(99,120,255,0.3)] cursor-pointer hover:shadow-[0_6px_28px_rgba(99,120,255,0.4)]"
-                : "bg-[#eef0f6] text-[#c4c9d4] cursor-not-allowed"
+                : isUploading
+                  ? "bg-gradient-to-br from-[#6378ff] to-[#a78bfa] text-white/80 cursor-wait"
+                  : "bg-[#eef0f6] text-[#c4c9d4] cursor-not-allowed"
             }
           `}
         >
-          Confirm & Continue
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <line x1="5" y1="12" x2="19" y2="12" />
-            <polyline points="12 5 19 12 12 19" />
-          </svg>
+          {isUploading ? 'Processing...' : 'Confirm & Continue'}
+          {isUploading ? (
+            <svg
+              className="animate-spin"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeOpacity="0.25" />
+              <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+            </svg>
+          ) : (
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="12 5 19 12 12 19" />
+            </svg>
+          )}
         </button>
 
-        <p className="text-center text-[11px] text-[#c4c9d4] mt-4">
+        {/* <p className="text-center text-[11px] text-[#c4c9d4] mt-4">
           You can always come back and re-upload.
-        </p>
+        </p> */}
         </div>
 
         {/* Right column: uploaded items list */}

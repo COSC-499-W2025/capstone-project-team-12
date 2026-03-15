@@ -6,6 +6,8 @@ services:
       target: dev     # tells Docker to stop at the "dev" stage in the Dockerfile
     ports:
       - 5173:5173     # expose Vite dev server port instead of 80
+    environment:
+      - API_TARGET=http://backend_app:8080
     volumes:
       - type: bind
         source: ./frontend/capstone-project-frontend
