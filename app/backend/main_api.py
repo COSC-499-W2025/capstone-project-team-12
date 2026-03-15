@@ -673,12 +673,18 @@ async def extract_update(
         # Merge with existing analysis data
         try:
             merged_tree, merged_binary_list = perform_update_merge(
-                analysis_id, new_tree, new_binary_list, db, tree_manager, importer, exporter
+                analysis_id, tmp_path, file_manager, db, importer
             )
         except LookupError:
             raise HTTPException(
                 status_code=404,
                 detail=f"No existing analysis found for ID {analysis_id}",
+            )
+        except RuntimeError as e:
+            # Catch the load error specifically thrown by perform_update_merge
+            raise HTTPException(
+                status_code=400,
+                detail=str(e),
             )
 
         if merged_tree is None:

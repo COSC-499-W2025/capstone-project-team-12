@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 
-
 const fmt = (n: number): string => n.toLocaleString();
 
 function useCountUp(target: number, duration: number = 1200, start: boolean = false): number {
@@ -20,8 +19,8 @@ function useCountUp(target: number, duration: number = 1200, start: boolean = fa
   return value;
 }
 
-const Counter: React.FC<{ value: number; label: string; prefix?: string; forceStart?: boolean }> = ({ 
-  value, label, prefix = "", forceStart = false 
+const Counter: React.FC<{ value: number; label: string; prefix?: string; forceStart?: boolean }> = ({
+  value, label, prefix = "", forceStart = false
 }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -29,17 +28,17 @@ const Counter: React.FC<{ value: number; label: string; prefix?: string; forceSt
   const count = useCountUp(value, 1100, shouldStart);
 
   useEffect(() => {
-    const obs = new IntersectionObserver(([e]) => { 
-      if (e.isIntersecting) setVisible(true); 
+    const obs = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) setVisible(true);
     }, { threshold: 0.1 });
     if (ref.current) obs.observe(ref.current);
     return () => obs.disconnect();
   }, []);
 
   return (
-    <div ref={ref} className="bg-[#111318] px-5 py-4 flex flex-col gap-1">
-      <span className="text-2xl font-bold text-white tracking-tight leading-none">{prefix}{fmt(count)}</span>
-      <span className="text-[0.6rem] text-[#556070] tracking-widest uppercase">{label}</span>
+    <div ref={ref} className="bg-white px-5 py-4 flex flex-col gap-1">
+      <span className="text-2xl font-bold text-slate-800 tracking-tight leading-none">{prefix}{fmt(count)}</span>
+      <span className="text-xs font-semibold uppercase tracking-widest text-slate-400">{label}</span>
     </div>
   );
 };

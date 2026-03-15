@@ -218,18 +218,10 @@ def main() -> None:
                     if new_path is None:
                         continue
 
-                    cli.print_status("Loading files from new path...", "info")
-                    load_result = file_manager.load_from_filepath(new_path)
-                    if load_result['status'] == 'error':
-                        cli.print_status(f"Failed to load files: {load_result['message']}", "error")
-                        continue
-
-                    new_tree = load_result['tree']
-                    new_binary_list = load_result['binary_data']
-
                     try:
+                        # main_utils now handles the DB fetching, FileManager seeding, and loading
                         merged_tree, merged_binary_list = perform_update_merge(
-                            analysis_id, new_tree, new_binary_list, database_manager, tree_manager, importer, exporter)
+                            analysis_id, new_path, file_manager, database_manager, importer)
 
                         if not merged_tree:
                             raise LookupError("Could not retrieve previous file data from the database.")

@@ -78,36 +78,50 @@ def compare_path(old_path: str, new_path: str) -> bool:
 
 def perform_update_merge(
     analysis_id: str, 
-    new_tree, 
-    new_binary_list, 
+    new_path: str, 
+    file_manager, 
     db_manager, 
-    tree_manager, 
-    importer, 
-    exporter
+    importer
 ):
     """
-    Handles the logic for retrieving old data, merging it with new data,
-    and returning the merged results.
+    Handles the logic for retrieving old data, seeding the FileManager for cross-session
+    deduplication, loading the new files, and returning the merged results.
     """
     print("Fetching previous analysis state...")
     
     try:
         old_binary_blob, old_tree_dict = db_manager.get_fileset_data(analysis_id)
         if not old_binary_blob or not old_tree_dict:
-            raise LookupError
+            raise LookupError("Could not retrieve previous file data from the database.")
     except Exception as e:
         raise e
     
-    # Deserialize
+    # Deserialize the old data
     old_binary_list = pickle.loads(old_binary_blob)
     old_tree = importer.import_(old_tree_dict)
 
-    print("Comparing and merging updates...")
-    merged_tree, merged_binary_list = tree_manager.merge_trees(
-        old_tree, old_binary_list, new_tree, new_binary_list
-    )
+    # Reconstruct the seen_hashes dict from the old tree
+    previous_hashes = {}
+    for node in old_tree.descendants:
+        if node.type == "file" and hasattr(node, "file_data") and "file_hash" in node.file_data:
+            previous_hashes[node.file_data["file_hash"]] = node.file_data["binary_index"]
+
+    # Seed the file manager with previous state
+    print("Seeding file manager with previous session data...")
+    file_manager.set_previous_state(old_binary_list, previous_hashes)
+
+    # Load the new files (reset_state=False so we don't wipe out what we just seeded)
+    print("Loading files from new path...")
+    load_result = file_manager.load_from_filepath(new_path, reset_state=False)
+    
+    if load_result['status'] == 'error':
+        raise RuntimeError(f"Failed to load files: {load_result['message']}")
+
+    merged_tree = load_result['tree']
+    merged_binary_list = load_result['binary_data']
     
     return merged_tree, merged_binary_list
+
 
 def view_all_analyses(database_manager:DatabaseManager) -> None:
     try:
