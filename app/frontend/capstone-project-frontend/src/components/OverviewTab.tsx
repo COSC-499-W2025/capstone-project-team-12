@@ -2,7 +2,7 @@ import StatCard from "./StatCard";
 import SectionCard from "./SectionCard";
 import TechBadge from "./TechBadge";
 import FileExtensionSection from "./FileExtensionSection";
-import type { Project } from "../insightTypes";
+import type { Project } from "../types/insightTypes";
 
 interface OverviewTabProps {
   p: Project;

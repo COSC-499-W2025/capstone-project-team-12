@@ -88,7 +88,12 @@ class ResumeBuilder:
                 "summary": summary,
                 "projects": projects,
                 "skills": skills,
-                "languages": languages
+                "languages": languages,
+                "education": [],    # This will be populated by user input from the frontend
+                "awards": [],        # Also will be populated by user input from the frontend
+                "work_experience": [], # Also will be populated by user input from the frontend
+                "phone": "",           # User input
+                "linkedin": "",        # User input
             }
 
             return resume
@@ -115,10 +120,13 @@ class ResumeBuilder:
             
             # Display summary section
             summary = resume.get('summary')
+            if isinstance(summary, str):
+                summary = [summary]
             if summary:
                 print("SUMMARY")
                 print("-" * 60)
-                print(summary)
+                for point in summary:
+                    print(f"{point}")
                 print("")
             
             # Display projects section
