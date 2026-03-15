@@ -1,5 +1,35 @@
 # Sara Srinivasan Personal Log (10801751)
 
+## Term 2 Week 10
+
+### Work Done
+
+- Finished E2E-Testing for API. See PR #[#494](https://github.com/COSC-499-W2025/capstone-project-team-12/pull/494)  
+- Added new endpoints and made changes to handle app-level config management. See PR #[#496](https://github.com/COSC-499-W2025/capstone-project-team-12/pull/496)
+- New endpoints let us set/edit/retrieve arbritary config values to enable frontend config management as well
+- Reviewed teammate PRs
+- Wrote personal logs
+
+  ### Quiz Response
+
+![Term 2 Week 10  ](imgs/Sara%20Srinivasan%20T2%20Week%2010.png)
+
+### Review and Plans
+
+Managed to get some things off the backlog and make a needed backend feature update to speedup front end dev!
+Although not productive as a week as my baseline, it is something. Hopefully I can help with wrapping things up for frontend dev next week to allow for a smooth peer testing.
+
+## Term 2 Week 9
+
+### Work Done
+
+- Team log for this week
+- Minor technical support on discord
+
+### Review and Plans
+
+As a consequence of bad mental health I did not do much, including properly filling out this log. Hopefully I am better and can get some commits merged.
+
 ## Term 2 Week 6,7 and 8
 
 ### Work Done
