@@ -3,10 +3,14 @@ import shutil
 import tempfile
 import json
 import pickle
+import logging
+import time
 from typing import Optional, Dict, Any, List
 from pathlib import Path
 import uuid
 from input_validation import validate_uuid
+
+logger = logging.getLogger("uvicorn.error")
 
 from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Form
 from fastapi.middleware.cors import CORSMiddleware
@@ -94,27 +98,39 @@ async def extract_upload(
     a new analysis ID internally), caches heavy state for the commit step,
     and returns lightweight results to the frontend.
     """
+    t0 = time.time()
+    logger.info("[EXTRACT] === Request received ===")
+    logger.info("[EXTRACT] file=%s, size=%s, username=%s, email=%s",
+                file.filename, file.size, github_username, github_email)
+
     # Save uploaded file to a temporary path
     suffix = Path(file.filename).suffix
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         shutil.copyfileobj(file.file, tmp)
         tmp_path = tmp.name
+    logger.info("[EXTRACT] File saved to %s (%.2fs)", tmp_path, time.time() - t0)
 
     try:
         # Initialize pipeline
+        t1 = time.time()
         config = ConfigManager()
         pipeline = AnalysisPipeline(config, db)
+        logger.info("[EXTRACT] Pipeline initialized (%.2fs)", time.time() - t1)
 
         # Run extraction – no existing_analysis_id or preloaded data,
         # so the pipeline creates a brand-new analysis ID and saves
         # the initial fileset to the database automatically.
+        t2 = time.time()
+        logger.info("[EXTRACT] Starting run_analysis_extract...")
         extract_result = pipeline.run_analysis_extract(
             filepath=tmp_path,
             github_username=github_username,
             github_email=github_email,
         )
+        logger.info("[EXTRACT] run_analysis_extract finished (%.2fs)", time.time() - t2)
 
         if extract_result is None:
+            logger.error("[EXTRACT] extract_result is None — extraction failed")
             raise HTTPException(status_code=500, detail="Extraction phase failed")
 
         analysis_id, topic_vector_bundle, detected_skills, text_analysis_data = extract_result
@@ -160,10 +176,12 @@ async def extract_upload(
     except HTTPException:
         raise
     except Exception as e:
+        logger.exception("[EXTRACT] Unhandled exception after %.2fs", time.time() - t0)
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         if os.path.exists(tmp_path):
             os.remove(tmp_path)
+        logger.info("[EXTRACT] === Request complete (%.2fs) ===", time.time() - t0)
 
 
 @app.post("/projects/{analysis_id}/upload/commit")
