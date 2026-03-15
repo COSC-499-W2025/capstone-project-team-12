@@ -6,8 +6,9 @@ import ProjectInsights from "./pages/ProjectInsights";
 import ProgressPage from './pages/progress';
 import ResumeDisplay from './pages/resume_display';
 import Dashboard from './pages/dashboard';
-import FileImport from './pages/fileImport';
 import FileImport, { type UploadEntry } from './pages/fileImport';
+import FinetunePage from './pages/FinetunePage';
+
 
 interface OnboardingData {
   llmMode: 'online' | 'local';
@@ -35,7 +36,7 @@ function App() {
         )}
           {currentStep === 2 && (
             <FileImport
-              onComplete={() => setCurrentStep(3)}
+              onComplete={() => setCurrentStep(2.5)}
               githubUsername={onboardingData?.githubUsername || ''}
               githubEmail={onboardingData?.email || ''}
               model={onboardingData?.llmMode || 'online'}
@@ -43,7 +44,9 @@ function App() {
               onUploadsChange={setUploads}
             />
           )}
-          {currentStep === 3 && <ProgressPage onComplete={() => setCurrentStep(4)} />}
+
+          {currentStep === 2.5 && <ProgressPage onComplete={() => setCurrentStep(3)} />}
+          {currentStep === 3 && <FinetunePage onComplete ={() => setCurrentStep(4)} />}
           {currentStep === 4 && <ProjectInsights onPrevious={() => setCurrentStep(2)} onComplete={() => setCurrentStep(5)} />}
           {currentStep === 5 && <ResumeDisplay onPrevious={() => setCurrentStep(4)} onComplete={() => setCurrentStep(6)} />}
           {currentStep === 6 && <Portfolio onPrevious={() => setCurrentStep(5)} onComplete={() => setShowDashboard(true)} />}
