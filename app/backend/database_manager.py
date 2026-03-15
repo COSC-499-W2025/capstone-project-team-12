@@ -340,8 +340,7 @@ class DatabaseManager:
             """
             resume_json = json.dumps(resume_data)
         
-            result = self.db.execute_update(query, (resume_json,resume_title,resume_id))
-            analysis_id = result[0] #get analysis_id of associated analysis
+            self.db.execute_update(query, (resume_json,resume_title,resume_id))
             # print(f"\n> Successfully updated resume with resume_id:{resume_id} for analysis id:{analysis_id}")
             return True
         except Exception as e:
