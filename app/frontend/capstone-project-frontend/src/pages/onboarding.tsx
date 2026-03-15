@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 
 interface OnboardingProps {
+  initialData?: { llmMode: 'online' | 'local'; githubUsername: string; email: string } | null;
   onComplete?: (data: { llmMode: 'online' | 'local'; githubUsername: string; email: string }) => void;
 }
 
-const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
-  const [llmMode, setLlmMode] = useState<'online' | 'local'>('online');
-  const [githubUsername, setGithubUsername] = useState('');
-  const [email, setEmail] = useState('');
+const Onboarding: React.FC<OnboardingProps> = ({ initialData, onComplete }) => {
+  const [llmMode, setLlmMode] = useState<'online' | 'local'>(initialData?.llmMode ?? 'online');
+  const [githubUsername, setGithubUsername] = useState(initialData?.githubUsername ?? '');
+  const [email, setEmail] = useState(initialData?.email ?? '');
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [showConsentPopup, setShowConsentPopup] = useState(false);
 
