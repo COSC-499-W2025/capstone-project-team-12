@@ -1,5 +1,23 @@
 # Madelyn DeGruchy Personal Log (85064962 - maddydeg)
 
+## Term 2 Week 10 (03/09/2026- 03/15/2026)
+- Updated our backend to now support storing information related to awards, education, and previous work experience for the resume. They are user-populated fields from the front end. (PR #486)
+    - Included some minor refactoring of the LLM prompt and generated summary list to make the display cleaner on the front end.
+    - Updated testing to ensure overall functionality worked as intended and to resolve tests that now failed
+- Updated the front-end to make calls through the API to display resumes and to add sections for the education, awards, and previous work experience sections. (PR #487)
+    - Now once the user has created a resume from an analysis, they are able to view it from the resume page, make edits, and once they save this new version it will update the database so the changes persist
+    - Added relevant testing for these frontend changes PR #502
+- Participated in team meetings and code reviews
+
+## Next Week
+- Need to check with the team on how we want to work with the router, as this will impact how the resumeId will be passed to the page to display. Currently we only access the resume page as part of the initial analysis flow, where it is generated upon the first completion of an analysis. When the user goes to access the page later on, it will likely not have the sidebar, and we will need to likely make use of a router.
+- Prior to Wednesday's class we will need to make some final touches to ensure the basic flow of our system is in tact and ready for peer review. 
+
+## Reflection
+- Some teammates have had personal issues arise in previous weeks that had left me slightly worried we would not be able to stay on track for Milestone 3 completion given the tight turn around. Overall, the team has handled it very well and I believe that we will be able to have a final product ready for the Milestone 3 presentation and demo in the coming weeks. I also had a busy week with my work and was behind schedule for getting my testing up for the team, so I am looking to be able to get a head start in the coming weeks to stay ahead of the curve.
+
+![Peer Evaluation Term 2 Week 10](imgs/Madelyn%20DeGruchy%20T2%20Week%2010.png)
+
 ## Term 2 Week 9 (03/02/2026 - 03/08/2026)
 - Dockerized our front-end so we are able to use the container for development
     - Container is live-mounted like backend so changes made copy straight to files on local machine
