@@ -27,6 +27,12 @@ interface Skill {
 export default function FinetunePage({ onComplete, onBack, extractedData }: FinetunePageProps) {
   // --- UI State ---
   const [showInfoModal, setShowInfoModal] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (message: string) => {
+    setToastMessage(message);
+    setTimeout(() => setToastMessage(null), 3000); // Hides after 3 seconds
+  };
 
   // --- 1. Projects State & Drag-and-Drop ---
   const [projects, setProjects] = useState<Project[]>([
@@ -79,11 +85,20 @@ export default function FinetunePage({ onComplete, onBack, extractedData }: Fine
   const addKeyword = (topicId: string) => {
     const keyword = newKeywordInputs[topicId]?.trim();
     if (!keyword) return;
+
+    // 1. Find the target topic
+    const targetTopic = topics.find((t) => t.id === topicId);
+    
+    // 2. Check for duplicates BEFORE updating state
+    if (targetTopic?.keywords.includes(keyword)) {
+      showToast(`"${keyword}" is already in this topic!`);
+      return; // Stop here, don't clear the input or update state
+    }
+
+    // 3. If unique, add it and clear the specific input
     setTopics((prev) =>
       prev.map((t) =>
-        t.id === topicId && !t.keywords.includes(keyword)
-          ? { ...t, keywords: [...t.keywords, keyword] }
-          : t
+        t.id === topicId ? { ...t, keywords: [...t.keywords, keyword] } : t
       )
     );
     setNewKeywordInputs((prev) => ({ ...prev, [topicId]: "" }));
@@ -125,6 +140,13 @@ export default function FinetunePage({ onComplete, onBack, extractedData }: Fine
   const addCustomSkill = () => {
     const skillName = customSkillInput.trim();
     if (!skillName) return;
+    
+    // Check for duplicate custom skills too!
+    if (skills.some(s => s.name.toLowerCase() === skillName.toLowerCase())) {
+      showToast(`"${skillName}" is already in your skills list!`);
+      return;
+    }
+
     const newSkill: Skill = {
       id: `s${Date.now()}`,
       name: skillName,
@@ -395,7 +417,7 @@ export default function FinetunePage({ onComplete, onBack, extractedData }: Fine
             </h3>
             <div className="text-sm text-[#6b7280] leading-relaxed space-y-3 mb-7">
               <p>
-                Topic vectors are <strong>underlying themes</strong> that our AI discovered by scanning through your codebase using a machine learning library called Gensim.
+                Topic vectors are like <strong>"underlying themes"</strong> that our AI discovered by scanning through your codebase using a machine learning library called Gensim.
               </p>
               <p>
                 Instead of just looking for exact words, the AI groups together terms that frequently appear in the same context. For example, keywords like <code className="text-[#6378ff] font-bold font-mono bg-[#6378ff]/10 px-1.5 py-0.5 rounded">database</code>, <code className="text-[#6378ff] font-bold font-mono bg-[#6378ff]/10 px-1.5 py-0.5 rounded">sql</code>, and <code className="text-[#6378ff] font-bold font-mono bg-[#6378ff]/10 px-1.5 py-0.5 rounded">query</code> might be automatically clustered into a single topic representing your backend experience.
@@ -411,6 +433,18 @@ export default function FinetunePage({ onComplete, onBack, extractedData }: Fine
               Got it
             </button>
           </div>
+        </div>
+      )}
+
+      {/* --- Duplicate Warning Toast --- */}
+      {toastMessage && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#0f1629] text-white text-sm font-bold px-6 py-3.5 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.2)] flex items-center gap-3 transition-all duration-300">
+          <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          {toastMessage}
         </div>
       )}
     </>
