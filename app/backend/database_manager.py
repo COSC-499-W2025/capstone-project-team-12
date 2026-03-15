@@ -324,7 +324,7 @@ class DatabaseManager:
             raise RuntimeError(f"Error saving new resume: {e}")
         
         
-    def update_resume(self, resume_id: str, resume_data: Dict[str, Any],resume_title=None) -> bool:
+    def update_resume(self, resume_id: int, resume_data: Dict[str, Any],resume_title=None) -> bool:
         """
         Update existing resume in the Resumes table with new data
         resume_title is optional, set to None to skip it , also default value
@@ -340,7 +340,8 @@ class DatabaseManager:
             """
             resume_json = json.dumps(resume_data)
         
-            self.db.execute_update(query, (resume_json,resume_title,resume_id))
+            result = self.db.execute_update(query, (resume_json,resume_title,resume_id),returning=True)
+            analysis_id = result[0] #get analysis_id of associated analysis
             # print(f"\n> Successfully updated resume with resume_id:{resume_id} for analysis id:{analysis_id}")
             return True
         except Exception as e:
@@ -397,7 +398,7 @@ class DatabaseManager:
             """
             portfolio_json = json.dumps(portfolio_data)
         
-            result = self.db.execute_update(query, (portfolio_json,portfolio_title,portfolio_id))
+            result = self.db.execute_update(query, (portfolio_json,portfolio_title,portfolio_id),returning=True)
             analysis_id = result[0] #get analysis_id of associated analysis
             print(f"\n> Successfully updated portfolio with portfolio_id:{portfolio_id} for analysis id:{analysis_id}")
             return True
