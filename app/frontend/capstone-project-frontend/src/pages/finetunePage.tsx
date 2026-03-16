@@ -89,7 +89,7 @@ export default function FinetunePage({ onComplete, onBack, extractedData }: Fine
     // 1. Find the target topic
     const targetTopic = topics.find((t) => t.id === topicId);
     
-    // 2. Check for duplicates before updating state
+    // 2. Check for duplicates BEFORE updating state
     if (targetTopic?.keywords.includes(keyword)) {
       showToast(`"${keyword}" is already in this topic!`);
       return; // Stop here, don't clear the input or update state
@@ -141,7 +141,7 @@ export default function FinetunePage({ onComplete, onBack, extractedData }: Fine
     const skillName = customSkillInput.trim();
     if (!skillName) return;
     
-    // Check for duplicate custom skills too
+    // Check for duplicate custom skills too!
     if (skills.some(s => s.name.toLowerCase() === skillName.toLowerCase())) {
       showToast(`"${skillName}" is already in your skills list!`);
       return;
