@@ -33,15 +33,17 @@ Frontend updates:
 
 ### Burnup chart & Task Table
 
-*[Insert T2 Week 10 Burn Up Chart Here]*
 
-*[Insert T2 Week 10 Tasks Table Here]* Filtered to only show Tasks with changes this week.
+![T2 Week 10 Tasks Table](/imgs/T2%20Week%2010%20Task%20Table.png)
+![T2 Week 10 burnup chart](/imgs/T2%20Week%2010%20Burnup%20Chart.png)
+
+
 
 ### Test Report
 
-*[Insert T2 Week 10 Test Report Frontend Here]*
+![week 10 frontend test](</imgs/T2%20Week%2010%20Frontend%20Tests.png>)
 
-*[Insert T2 Week 10 Test Report Backend Here]*
+![week 10 backend test](</imgs/T2%20Week%2010%20Backend%20Tests.png>)
 
 ### In Progress
 
