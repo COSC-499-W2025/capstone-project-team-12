@@ -1,5 +1,6 @@
 ## Devin Huang Personal Log (86828886)
 
+[Term 2 Week 10](#t2-week-10)  
 [Term 2 Week 9](#t2-week-9)  
 [Term 2 Week 6 - 8](#t2-week-6-8)  
 [Term 2 Week 4](#t2-week-4)  
@@ -17,6 +18,29 @@
 [Week 5](#week-5)  
 [Week 4](#week-4)  
 [Week 3](#week-3)
+
+### T2 Week 10
+Created file upload page:
+- Allows single file and folder upload or batch file and folder upload.
+- Allows user to remove uploaded files/folders.
+- Zips all uploaded file/folders
+
+
+Implement state persistance for onboarding and upload page:
+- Github Username and email will persist through tab changes
+- Same thing with uploaded files/folders
+
+Set up onboarding and upload file page to use the actual API
+- Once the files are uploaded, continuing will send the github username, email, selected model and zipped files to the extract API endpoint
+- Able to successfully receive the response bundle
+
+#### Next week
+We have connected most of the different pages to their respective API endpoints, but we still need to connect the different pages together to create a better experience for the user. As for the file upload I believe that we need to connect the analysis pipeline process to the loading screen to provide more visual cues about the actual process. Generally it will be more about connecting everything together and making the experience flow better.
+
+#### Reflection
+I got my PRs in early this week, but for the API implementation for my pages, I had done it in a way that was different than what was expected, which made me have to refactor it a bit later on in the week. Except from that I think we did pretty good progress!
+
+<img width="960" height="563" alt="Image" src="https://github.com/user-attachments/assets/aeedddaa-28aa-4388-8ae0-21245c457528" />
 
 ### T2 Week 9
 Decouple analysis CLI
