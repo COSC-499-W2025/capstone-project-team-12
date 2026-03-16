@@ -65,6 +65,9 @@ class ConfigRequest(BaseModel):
     config_type: str
     value: bool|str
 
+class BulkConfigRequest(BaseModel):
+    preferences: Dict[str, Any]
+
 class TopicEditRequest(BaseModel):
     topic_keywords: List[Dict[str, Any]] 
 
@@ -632,6 +635,13 @@ async def update_consent():
     """Updates user preferences file."""
     cfg = ConfigManager()
     return JSONResponse(status_code=200,content=cfg.preferences)
+
+@app.post("/configs/bulk")
+async def bulk_update_configs(req: BulkConfigRequest):
+    """Saves multiple user preferences at once."""
+    cfg = ConfigManager()
+    cfg.save_prefs(req.preferences)
+    return {"status": "success"}
 
 @app.put("/projects/{analysis_id}/update/extract")
 async def extract_update(
