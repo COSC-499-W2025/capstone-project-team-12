@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { BadgeColor, AnalysisCardProps, BadgeProps, IconButtonProps } from "../types/dashboardTypes";
-import { Modal, IncrementalUpdateModal } from "./modals";
+import { Modal } from "./modals";
 
 
 
@@ -63,7 +63,6 @@ export function AnalysisCard({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmDeleteResume, setConfirmDeleteResume] = useState<number | null>(null);
   const [confirmDeletePortfolio, setConfirmDeletePortfolio] = useState<number | null>(null);
-  const [showIncremental, setShowIncremental] = useState(false);
 
   return (
     <>
@@ -217,7 +216,7 @@ export function AnalysisCard({
             {/* Actions */}
             <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100">
               <button
-                onClick={() => setShowIncremental(true)}
+                onClick={ () => onIncremental(analysis.id) }
                 className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 border border-indigo-200 rounded-lg px-3 py-1.5 hover:bg-indigo-50 transition-all"
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -263,13 +262,6 @@ export function AnalysisCard({
           confirmLabel="Delete"
           onConfirm={() => { onDeletePortfolio(confirmDeletePortfolio); setConfirmDeletePortfolio(null); }}
           onCancel={() => setConfirmDeletePortfolio(null)}
-        />
-      )}
-      {showIncremental && (
-        <IncrementalUpdateModal
-          analysis={analysis}
-          onConfirm={(files) => { onIncremental(analysis.id, files); setShowIncremental(false); }}
-          onCancel={() => setShowIncremental(false)}
         />
       )}
     </>

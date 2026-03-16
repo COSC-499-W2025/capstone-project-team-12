@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import type { Analysis, EmptyStateProps, NewAnalysisPayload, ToastProps, RawProject, RawResume, RawPortfolio, DashboardProps } from "../types/dashboardTypes";
-import { NewAnalysisModal } from "../components/modals";
+// import { useNavigate } from "react-router-dom";
+import type { Analysis, EmptyStateProps, ToastProps, RawProject, RawResume, RawPortfolio, DashboardProps } from "../types/dashboardTypes";
+// import { NewAnalysisModal } from "../components/modals";
 import { AnalysisCard } from "../components/analysisCard";
 
 const API_BASE = "http://localhost:8080";
@@ -40,7 +40,7 @@ function mapProject(
 }
 
 
-export default function Dashboard( {onNewAnalysis}: DashboardProps ) {
+export default function Dashboard( {onNewAnalysis, onIncremental}: DashboardProps ) {
   const [analyses, setAnalyses] = useState<Analysis[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNewModal, setShowNewModal] = useState(false);
@@ -180,28 +180,9 @@ export default function Dashboard( {onNewAnalysis}: DashboardProps ) {
     }
   };
 
-  const handleIncremental = () => {
-    // place holder
+  const handleIncremental = (id: string) => {
+    onIncremental(id);
   };
-
-  // const handleNew = (payload: NewAnalysisPayload) => {
-  //   const newAnalysis: Analysis = {
-  //     id: `analysis-${Date.now()}`,
-  //     label: payload.label,
-  //     createdAt: new Date().toISOString(),
-  //     repos: payload.repos,
-  //     resumeIds: [],
-  //     portfolioIds: [],
-  //     hasResume: false,
-  //     hasPortfolio: false,
-  //     hasInsights: true,
-  //     status: "complete",
-  //   };
-
-  //   setAnalyses(prev => [newAnalysis, ...prev]);
-  //   setShowNewModal(false);
-  //   showToast("Analysis created.");
-  // };
 
   // place holders for later implementation
   const handleViewResume    = () => "do nothing";
@@ -263,7 +244,7 @@ export default function Dashboard( {onNewAnalysis}: DashboardProps ) {
         {loading ? (
           <p className="text-sm text-slate-400 py-10 text-center">Loading analyses…</p>
         ) : analyses.length === 0 ? (
-          <EmptyState onNew={() => setShowNewModal(true)} />
+          <EmptyState onNew={onNewAnalysis} />
         ) : (
           <div className="space-y-3">
             <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-1">All Analyses</p>

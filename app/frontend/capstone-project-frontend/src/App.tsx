@@ -7,7 +7,7 @@ import ProgressPage from './pages/progress';
 import ResumeDisplay from './pages/resume_display';
 import Dashboard from './pages/dashboard';
 import FileImport, { type UploadEntry } from './pages/fileImport';
-import FinetunePage from './pages/FinetunePage';
+import FinetunePage from './pages/finetunePage';
 
 
 interface OnboardingData {
@@ -22,6 +22,7 @@ function App() {
   const [onboardingData, setOnboardingData] = useState<OnboardingData | null>(null);
   const [uploads, setUploads] = useState<UploadEntry[]>([]);
   const [analysisMode, setAnalysisMode] = useState<'setup' | 'new-analysis'>('setup');
+  const [activeAnalysisId, setActiveAnalysisId] = useState<string | null>(null);
 
   const handleNewAnalysis = () => {
     setShowDashboard(false);
@@ -29,11 +30,19 @@ function App() {
     setCurrentStep(1);
   };
 
+
+  const handleIncremental = (analysisId: string) => {
+    setActiveAnalysisId(analysisId);
+    setShowDashboard(false);
+    setCurrentStep(2); // skip onboarding and go straight to FileImport
+  };
+
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f0f2f8' }}>
       <Sidebar currentStep={currentStep} onStepChange={(step) => { setShowDashboard(false); setCurrentStep(step); }} onDashboard={() => setShowDashboard(true)} />
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        {showDashboard ? (<Dashboard onNewAnalysis={handleNewAnalysis} />) : (
+        {showDashboard ? (<Dashboard onNewAnalysis={handleNewAnalysis} onIncremental={handleIncremental} />) : (
         <>
           {currentStep === 1 && (
           <Onboarding
@@ -44,6 +53,7 @@ function App() {
         )}
           {currentStep === 2 && (
             <FileImport
+              activeAnalysisId={activeAnalysisId}
               onComplete={() => setCurrentStep(2.5)}
               githubUsername={onboardingData?.githubUsername || ''}
               githubEmail={onboardingData?.email || ''}

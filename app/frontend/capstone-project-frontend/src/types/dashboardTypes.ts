@@ -21,6 +21,7 @@ export interface NewAnalysisPayload {
 
 export interface DashboardProps {
   onNewAnalysis: () => void;
+  onIncremental: (id: string) => void;
 }
 
 export interface AnalysisCardProps {
@@ -28,7 +29,7 @@ export interface AnalysisCardProps {
   onDelete: (id: string) => void;
   onDeleteResume: (resumeId: number) => void;
   onDeletePortfolio: (portfolioId: number) => void;
-  onIncremental: (id: string, files: string[]) => void;
+  onIncremental: (id: string) => void;
   onViewResume: (analysis: Analysis, resumeId: number) => void;
   onViewPortfolio: (analysis: Analysis, portfolioId: number) => void;
   onViewInsights: (analysis: Analysis) => void;

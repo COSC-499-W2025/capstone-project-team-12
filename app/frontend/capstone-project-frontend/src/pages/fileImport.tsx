@@ -9,6 +9,7 @@ export interface UploadEntry {
 }
 
 interface FileImportProps {
+  activeAnalysisId?: string | null;
   onComplete: () => void;
   githubUsername: string;
   githubEmail: string;
@@ -47,7 +48,7 @@ function readAllEntries(dirEntry: FileSystemDirectoryEntry): Promise<File[]> {
   });
 }
 
-const FileImport: React.FC<FileImportProps> = ({ onComplete, githubUsername, githubEmail, model: _model, uploads, onUploadsChange }) => {
+const FileImport: React.FC<FileImportProps> = ({ activeAnalysisId, onComplete, githubUsername, githubEmail, model: _model, uploads, onUploadsChange }) => {
   const setUploads = onUploadsChange;
   const [isDragging, setIsDragging] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
@@ -163,7 +164,12 @@ const FileImport: React.FC<FileImportProps> = ({ onComplete, githubUsername, git
 
       console.log('[UPLOAD] Sending POST http://localhost:8080/projects/upload/extract ...');
       const fetchStart = performance.now();
-      const response = await fetch('http://localhost:8080/projects/upload/extract', {
+
+      // url depends on whether this is an incremental or new analysis
+      const url = activeAnalysisId ? `http://localhost:8080/projects/${activeAnalysisId}/upload/extract` : `http://localhost:8080/projects/upload/extract`;
+
+
+      const response = await fetch(url, {
         method: 'POST',
         body: formData,
       });
