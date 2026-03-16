@@ -1,5 +1,25 @@
 # Sithara Chari Personal Log (22066401)
 
+## Term 2 Week 9 (03/01/2026 - 03/08/2026)
+### TODOs:
+- work on finetuning page
+    - issue 498 and 499 https://github.com/COSC-499-W2025/capstone-project-team-12/issues/498 , https://github.com/COSC-499-W2025/capstone-project-team-12/issues/499 
+- carry over from last week: address reviews on deduplication PR from 2 weeks ago concerning persistence of file set hashes
+    - issue 481 https://github.com/COSC-499-W2025/capstone-project-team-12/issues/481
+- change progress page from dark mode and light mode to match rest of the app 
+### Work Done
+- finished finetuning page 
+    - pr links: #497, #500 https://github.com/COSC-499-W2025/capstone-project-team-12/pull/500 , https://github.com/COSC-499-W2025/capstone-project-team-12/pull/497
+- finished refactor of deduplication 
+    - pr #471 link https://github.com/COSC-499-W2025/capstone-project-team-12/pull/471
+
+### What's next
+- complete rework of progress page in time for peer review 
+- link all pages to backend with api, as at least my pages currently are only static 
+
+### Relfection
+- I was able to get all my PRs in this week, except for the rework of the progress page which I just need to get done by peer review. It wasn't a very busy week, we had already gotten started on the frontend so it was just a matter of finishing as many pages as possible. Although we have not linked up the backend to all of our pages yet, I think the priority should be the UI and consistency between all the pages in time for peer review. 
+
 ![alt text](<imgs/Sithara Chari T2 Week 10.png>)
 
 ## Term 2 Week 9 (03/01/2026 - 03/08/2026)
