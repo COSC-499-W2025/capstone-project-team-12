@@ -22,3 +22,4 @@ __pycache__/
 # ignore package-lock.json in frontend
 /app/node_modules
 app/package-lock.json
+app/backend/configs/user_prefs.json

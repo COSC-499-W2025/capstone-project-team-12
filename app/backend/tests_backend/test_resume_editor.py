@@ -14,7 +14,7 @@ class TestResumeEditor:
     def sample_resume(self):
         """Create sample resume data for testing"""
         return {
-            'summary': 'Experienced developer with expertise in Python',
+            'summary': ['Experienced developer with expertise in Python'],
             'skills': ['Python', 'JavaScript', 'Docker'],
             'languages': [
                 {'name': 'Python', 'file_count': 15},
@@ -147,14 +147,32 @@ class TestResumeEditor:
     
     # ========== Updated Original Tests ==========
     
-    def test_edit_summary(self, mock_cli):
-        """Test summary editing"""
+    def test_edit_summary_returns_list(self, mock_cli):
+        """_edit_summary should always return a list"""
         editor = ResumeEditor(mock_cli)
         mock_cli.get_input.return_value = 'e'
-        
+ 
         with patch('resume_editor.prompt', return_value='New summary'):
-            result = editor._edit_summary('Old summary')
-            assert result == 'New summary'
+            result = editor._edit_summary(['Old summary'])
+            assert isinstance(result, list)
+ 
+    def test_edit_summary_single_point(self, mock_cli):
+        """Editing a single-point summary returns a one-element list"""
+        editor = ResumeEditor(mock_cli)
+        mock_cli.get_input.return_value = 'e'
+ 
+        with patch('resume_editor.prompt', return_value='New summary'):
+            result = editor._edit_summary(['Old summary'])
+            assert result == ['New summary']
+ 
+    def test_edit_summary_multiline_input_becomes_list(self, mock_cli):
+        """Editing with a multi-line string splits into multiple list entries"""
+        editor = ResumeEditor(mock_cli)
+        mock_cli.get_input.return_value = 'e'
+ 
+        with patch('resume_editor.prompt', return_value='- Point one\n- Point two\n- Point three'):
+            result = editor._edit_summary(['Old summary'])
+            assert result == ['Point one', 'Point two', 'Point three']
     
     def test_edit_skills(self, mock_cli):
         """Test skills add and remove"""
@@ -271,7 +289,7 @@ class TestResumeEditor:
         mock_cli.get_input.side_effect = ['s', 'r', 'd']
         with patch('resume_editor.prompt', return_value='New summary'):
             result = editor.edit_resume(sample_resume.copy())
-            assert result['summary'] == 'New summary'
+            assert result['summary'] == ['New summary']
         
         # Invalid option handling
         mock_cli.get_input.side_effect = ['z', 'd']

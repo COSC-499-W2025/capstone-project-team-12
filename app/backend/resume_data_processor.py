@@ -16,22 +16,23 @@ class ResumeDataProcessor:
         """
         self.result_data = result_data
 
-    def extract_summary(self) -> Optional[str]:
+    def extract_summary(self) -> Optional[List[str]]:
         """
         Extract the LLM-generate summary. This will be used as the summary for
         the entire resume.
-        #TODO: LLM Prompt may need to be updated to better match this function
 
         Returns:
             Summary bullet points, or None if not available due to issue with 
-            LLM summary
+            LLM summary. Formatted as list of strings to make front end displaying cleaner.
         """
         try: 
             resume_points = self.result_data.get('resume_points')
-            
-            if resume_points:
-                return resume_points
-            return None
+            if not resume_points:
+                return None
+
+            lines = resume_points.strip().split('\n')
+            cleaned = [line.lstrip('- ').strip() for line in lines if line.strip()]
+            return cleaned
 
         except Exception as e:
             print(f"Error extracting summary: {e}")

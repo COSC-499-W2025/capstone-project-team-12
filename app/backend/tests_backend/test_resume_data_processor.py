@@ -60,16 +60,27 @@ class TestResumeDataProcessor:
         processor = ResumeDataProcessor(sample_result_data)
         assert processor.result_data == sample_result_data
     
-    def test_extract_summary(self, sample_result_data):
-        """Test summary extraction for various scenarios"""
-        # Success case
+    def test_extract_summary_returns_list(self, sample_result_data):
+        """extract_summary should return a List[str], not a plain string"""
         processor = ResumeDataProcessor(sample_result_data)
-        assert processor.extract_summary() == sample_result_data['resume_points']
-        
-        # Edge cases
-        assert ResumeDataProcessor({}).extract_summary() is None
-        assert ResumeDataProcessor({'resume_points': None}).extract_summary() is None
+        result = processor.extract_summary()
+        assert isinstance(result, list)
+ 
+    def test_extract_summary_single_line(self, sample_result_data):
+        """Single-line resume_points becomes a one-element list"""
+        processor = ResumeDataProcessor(sample_result_data)
+        result = processor.extract_summary()
+        assert len(result) == 1
+        assert result[0] == 'Skilled developer with 5+ years of experience in full-stack development'
     
+    def test_extract_summary_none_value(self):
+        """Explicit None resume_points returns None"""
+        assert ResumeDataProcessor({'resume_points': None}).extract_summary() is None
+ 
+    def test_extract_summary_empty_string(self):
+        """Empty string resume_points returns None"""
+        assert ResumeDataProcessor({'resume_points': ''}).extract_summary() is None
+
     def test_extract_metadata_skills(self, sample_result_data):
         """Test skills extraction"""
         processor = ResumeDataProcessor(sample_result_data)
