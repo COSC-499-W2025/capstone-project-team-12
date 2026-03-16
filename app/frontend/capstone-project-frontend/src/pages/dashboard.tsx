@@ -185,8 +185,23 @@ export default function Dashboard() {
     // place holder
   };
 
-  const handleNew = () => {
-    // placeholder
+  const handleNew = (payload: NewAnalysisPayload) => {
+    const newAnalysis: Analysis = {
+      id: `analysis-${Date.now()}`,
+      label: payload.label,
+      createdAt: new Date().toISOString(),
+      repos: payload.repos,
+      resumeIds: [],
+      portfolioIds: [],
+      hasResume: false,
+      hasPortfolio: false,
+      hasInsights: true,
+      status: "complete",
+    };
+
+    setAnalyses(prev => [newAnalysis, ...prev]);
+    setShowNewModal(false);
+    showToast("Analysis created.");
   };
 
   // place holders for later implementation
