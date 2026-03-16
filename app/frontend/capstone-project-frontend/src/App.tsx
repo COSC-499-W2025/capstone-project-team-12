@@ -24,7 +24,14 @@ function App() {
   const [analysisMode, setAnalysisMode] = useState<'setup' | 'new-analysis'>('setup');
   const [activeAnalysisId, setActiveAnalysisId] = useState<string | null>(null);
   const [viewResumeId, setViewResumeId] = useState<number | null>(null);
+  const [viewPortfolioId, setViewPortfolioId] = useState<number | null>(null);
 
+  const handleViewPortfolio = (portfolioId: number) => {
+    setViewPortfolioId(portfolioId);
+    setShowDashboard(false);
+    setCurrentStep(6); 
+  };
+  
   const handleViewResume = (resumeId: number) => {
     setViewResumeId(resumeId);
     setShowDashboard(false);
@@ -50,7 +57,7 @@ function App() {
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f0f2f8' }}>
       <Sidebar currentStep={currentStep} onStepChange={(step) => { setShowDashboard(false); setCurrentStep(step); }} onDashboard={() => setShowDashboard(true)} />
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        {showDashboard ? (<Dashboard onNewAnalysis={handleNewAnalysis} onIncremental={handleIncremental} onViewResume={handleViewResume}/>) : (
+        {showDashboard ? (<Dashboard onNewAnalysis={handleNewAnalysis} onIncremental={handleIncremental} onViewResume={handleViewResume} onViewPortfolio={handleViewPortfolio}/>) : (
         <>
           {currentStep === 1 && (
           <Onboarding
@@ -83,7 +90,14 @@ function App() {
             /> 
           )}
           
-          {currentStep === 6 && <Portfolio onPrevious={() => setCurrentStep(5)} onComplete={() => setShowDashboard(true)} />}
+          {currentStep === 6 && (
+            <Portfolio 
+              onPrevious={() => setCurrentStep(5)} 
+              onComplete={() => setShowDashboard(true)} 
+              portfolioId={viewPortfolioId} 
+            />
+          )}
+
           {/* add other pages/components for other steps */}
         </>      
         )}
