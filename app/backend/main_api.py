@@ -91,8 +91,6 @@ def health_check():
 @app.post("/projects/upload/extract")
 async def extract_upload(
     file: UploadFile = File(...),
-    github_username: Optional[str] = Form(None),
-    github_email: Optional[str] = Form(None),
     db: DatabaseManager = Depends(get_db),
 ):
     """
@@ -102,6 +100,9 @@ async def extract_upload(
     and returns lightweight results to the frontend.
     """
     t0 = time.time()
+    config = ConfigManager()
+    github_username = config.preferences.get("github_username")
+    github_email = config.preferences.get("github_email")
     logger.info("[EXTRACT] === Request received ===")
     logger.info("[EXTRACT] file=%s, size=%s, username=%s, email=%s",
                 file.filename, file.size, github_username, github_email)
@@ -116,7 +117,6 @@ async def extract_upload(
     try:
         # Initialize pipeline
         t1 = time.time()
-        config = ConfigManager()
         pipeline = AnalysisPipeline(config, db)
         logger.info("[EXTRACT] Pipeline initialized (%.2fs)", time.time() - t1)
 
@@ -647,8 +647,6 @@ async def bulk_update_configs(req: BulkConfigRequest):
 async def extract_update(
     analysis_id: str,
     file: UploadFile = File(...),
-    github_username: Optional[str] = Form(None),
-    github_email: Optional[str] = Form(None),
     db: DatabaseManager = Depends(get_db),
 ):
     """
@@ -709,7 +707,10 @@ async def extract_update(
             )
 
         # Phase 1: run extraction
-        pipeline = AnalysisPipeline(ConfigManager(), db)
+        config = ConfigManager()
+        github_username = config.preferences.get("github_username")
+        github_email = config.preferences.get("github_email")
+        pipeline = AnalysisPipeline(config, db)
         extract_result = pipeline.run_analysis_extract(
             filepath=tmp_path,
             existing_analysis_id=analysis_id,
