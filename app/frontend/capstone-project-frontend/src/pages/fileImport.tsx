@@ -166,11 +166,11 @@ const FileImport: React.FC<FileImportProps> = ({ activeAnalysisId, onComplete, g
       const fetchStart = performance.now();
 
       // url depends on whether this is an incremental or new analysis
-      const url = activeAnalysisId ? `http://localhost:8080/projects/${activeAnalysisId}/upload/extract` : `http://localhost:8080/projects/upload/extract`;
+      const url = activeAnalysisId ? `http://localhost:8080/projects/${activeAnalysisId}/update/extract` : `http://localhost:8080/projects/upload/extract`;
 
 
       const response = await fetch(url, {
-        method: 'POST',
+        method: activeAnalysisId ? 'PUT' : 'POST',
         body: formData,
       });
       console.log('[UPLOAD] Response received in', ((performance.now() - fetchStart) / 1000).toFixed(1), 's — status:', response.status);

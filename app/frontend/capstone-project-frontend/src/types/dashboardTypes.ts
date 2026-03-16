@@ -14,10 +14,15 @@ export interface Analysis {
   status: AnalysisStatus;
 }
 
-export interface NewAnalysisPayload {
-  label: string;
-  repos: string[];
+export interface ModalProps {
+  title: string;
+  description: string;
+  confirmLabel: string;
+  confirmColor?: "red" | "indigo";
+  onConfirm: () => void;
+  onCancel: () => void;
 }
+
 
 export interface DashboardProps {
   onNewAnalysis: () => void;

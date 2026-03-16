@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
-// import { useNavigate } from "react-router-dom";
-import type { Analysis, EmptyStateProps, ToastProps, RawProject, RawResume, RawPortfolio, DashboardProps } from "../types/dashboardTypes";
-// import { NewAnalysisModal } from "../components/modals";
+import type { Analysis, EmptyStateProps,  ToastProps, RawProject, RawResume, RawPortfolio, DashboardProps } from "../types/dashboardTypes";
 import { AnalysisCard } from "../components/analysisCard";
 
 const API_BASE = "http://localhost:8080";
@@ -43,7 +41,6 @@ function mapProject(
 export default function Dashboard( {onNewAnalysis, onIncremental}: DashboardProps ) {
   const [analyses, setAnalyses] = useState<Analysis[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showNewModal, setShowNewModal] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
