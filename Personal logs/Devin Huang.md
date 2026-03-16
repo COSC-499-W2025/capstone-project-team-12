@@ -34,7 +34,7 @@ Set up onboarding and upload file page to use the actual API
 We have connected most of the different pages to their respective API endpoints, but we still need to connect the different pages together to create a better experience for the user. As for the file upload I believe that we need to connect the analysis pipeline process to the loading screen to provide more visual cues about the actual process. Generally it will be more about connecting everything together and making the experience flow better.
 
 #### Reflection
-
+I got my PRs in early this week, but for the API implementation for my pages, I had done it in a way that was different than what was expected, which made me have to refactor it a bit later on in the week. Except from that I think we did pretty good progress!
 
 
 ### T2 Week 9
