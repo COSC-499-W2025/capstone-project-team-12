@@ -1,5 +1,7 @@
 # Sithara Chari Personal Log (22066401)
 
+![alt text](<imgs/Sithara Chari T2 Week 10.png>)
+
 ## Term 2 Week 9 (03/01/2026 - 03/08/2026)
 ### TODOs:
 - Start working on a static progress page 
