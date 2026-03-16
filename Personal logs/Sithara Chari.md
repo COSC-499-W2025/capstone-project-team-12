@@ -1,6 +1,6 @@
 # Sithara Chari Personal Log (22066401)
 
-## Term 2 Week 9 (03/01/2026 - 03/08/2026)
+## Term 2 Week 10 (03/09/2026 - 03/015/2026)
 ### TODOs:
 - work on finetuning page
     - issue 498 and 499 https://github.com/COSC-499-W2025/capstone-project-team-12/issues/498 , https://github.com/COSC-499-W2025/capstone-project-team-12/issues/499 
