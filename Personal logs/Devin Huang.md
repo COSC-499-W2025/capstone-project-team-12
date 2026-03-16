@@ -37,6 +37,7 @@ We have connected most of the different pages to their respective API endpoints,
 I got my PRs in early this week, but for the API implementation for my pages, I had done it in a way that was different than what was expected, which made me have to refactor it a bit later on in the week. Except from that I think we did pretty good progress!
 
 
+
 ### T2 Week 9
 Decouple analysis CLI
 - Refactored analysis pipeline to remove dependency on the CLI.
