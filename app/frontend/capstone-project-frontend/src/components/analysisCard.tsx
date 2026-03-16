@@ -61,8 +61,8 @@ export function AnalysisCard({
 }: AnalysisCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [confirmDeleteResume, setConfirmDeleteResume] = useState(false);
-  const [confirmDeletePortfolio, setConfirmDeletePortfolio] = useState(false);
+  const [confirmDeleteResume, setConfirmDeleteResume] = useState<number | null>(null);
+  const [confirmDeletePortfolio, setConfirmDeletePortfolio] = useState<number | null>(null);
   const [showIncremental, setShowIncremental] = useState(false);
 
   return (
@@ -115,57 +115,81 @@ export function AnalysisCard({
               <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">Generated Outputs</p>
               <div className="space-y-2">
 
-                {/* Resume */}
+                {/* Resumes */}
+              {analysis.resumeIds.length === 0 ? (
                 <div className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 border border-slate-100 px-3 py-2.5">
                   <div className="flex items-center gap-2">
                     <span className="text-base">📄</span>
                     <div>
                       <p className="text-xs font-semibold text-slate-700">Resume</p>
-                      {!analysis.hasResume && <p className="text-xs text-slate-400">Not generated</p>}
+                      <p className="text-xs text-slate-400">Not generated</p>
                     </div>
                   </div>
-                  {analysis.hasResume ? (
+                  <span className="text-xs text-slate-400 italic">—</span>
+                </div>
+              ) : (
+                analysis.resumeIds.map((resumeId, i) => (
+                  <div key={resumeId} className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 border border-slate-100 px-3 py-2.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">📄</span>
+                      <div>
+                        <p className="text-xs font-semibold text-slate-700">
+                          Resume {analysis.resumeIds.length > 1 ? `#${i + 1}` : ""}
+                        </p>
+                      </div>
+                    </div>
                     <div className="flex items-center gap-1">
                       <button
-                        onClick={() => onViewResume(analysis)}
+                        onClick={() => onViewResume(analysis, resumeId)}
                         className="text-xs font-semibold text-indigo-600 border border-indigo-200 rounded-lg px-3 py-1 hover:bg-indigo-50 transition-all"
                       >
                         View
                       </button>
-                      <IconButton onClick={() => setConfirmDeleteResume(true)} title="Delete resume">
+                      <IconButton onClick={() => setConfirmDeleteResume(resumeId)} title="Delete resume">
                         <TrashIcon />
                       </IconButton>
                     </div>
-                  ) : (
-                    <span className="text-xs text-slate-400 italic">—</span>
-                  )}
-                </div>
+                  </div>
+                ))
+              )}
 
-                {/* Portfolio */}
+              {/* Portfolios */}
+              {analysis.portfolioIds.length === 0 ? (
                 <div className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 border border-slate-100 px-3 py-2.5">
                   <div className="flex items-center gap-2">
                     <span className="text-base">🗂️</span>
                     <div>
                       <p className="text-xs font-semibold text-slate-700">Portfolio</p>
-                      {!analysis.hasPortfolio && <p className="text-xs text-slate-400">Not generated</p>}
+                      <p className="text-xs text-slate-400">Not generated</p>
                     </div>
                   </div>
-                  {analysis.hasPortfolio ? (
+                  <span className="text-xs text-slate-400 italic">—</span>
+                </div>
+              ) : (
+                analysis.portfolioIds.map((portfolioId, i) => (
+                  <div key={portfolioId} className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 border border-slate-100 px-3 py-2.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">🗂️</span>
+                      <div>
+                        <p className="text-xs font-semibold text-slate-700">
+                          Portfolio {analysis.portfolioIds.length > 1 ? `#${i + 1}` : ""}
+                        </p>
+                      </div>
+                    </div>
                     <div className="flex items-center gap-1">
                       <button
-                        onClick={() => onViewPortfolio(analysis)}
+                        onClick={() => onViewPortfolio(analysis, portfolioId)}
                         className="text-xs font-semibold text-emerald-600 border border-emerald-200 rounded-lg px-3 py-1 hover:bg-emerald-50 transition-all"
                       >
                         View
                       </button>
-                      <IconButton onClick={() => setConfirmDeletePortfolio(true)} title="Delete portfolio">
+                      <IconButton onClick={() => setConfirmDeletePortfolio(portfolioId)} title="Delete portfolio">
                         <TrashIcon />
                       </IconButton>
                     </div>
-                  ) : (
-                    <span className="text-xs text-slate-400 italic">—</span>
-                  )}
-                </div>
+                  </div>
+                ))
+              )}
 
                 {/* Skills & Insights */}
                 <div className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 border border-slate-100 px-3 py-2.5">
@@ -223,22 +247,22 @@ export function AnalysisCard({
           onCancel={() => setConfirmDelete(false)}
         />
       )}
-      {confirmDeleteResume && (
+      {confirmDeleteResume !== null && (
         <Modal
           title="Delete Resume?"
-          description={`This will permanently delete the resume generated for "${analysis.label}".`}
+          description={`This will permanently delete this resume for "${analysis.label}".`}
           confirmLabel="Delete"
-          onConfirm={() => { onDeleteResume(analysis.id); setConfirmDeleteResume(false); }}
-          onCancel={() => setConfirmDeleteResume(false)}
+          onConfirm={() => { onDeleteResume(confirmDeleteResume); setConfirmDeleteResume(null); }}
+          onCancel={() => setConfirmDeleteResume(null)}
         />
       )}
-      {confirmDeletePortfolio && (
+      {confirmDeletePortfolio !== null && (
         <Modal
           title="Delete Portfolio?"
-          description={`This will permanently delete the portfolio generated for "${analysis.label}".`}
+          description={`This will permanently delete this portfolio for "${analysis.label}".`}
           confirmLabel="Delete"
-          onConfirm={() => { onDeletePortfolio(analysis.id); setConfirmDeletePortfolio(false); }}
-          onCancel={() => setConfirmDeletePortfolio(false)}
+          onConfirm={() => { onDeletePortfolio(confirmDeletePortfolio); setConfirmDeletePortfolio(null); }}
+          onCancel={() => setConfirmDeletePortfolio(null)}
         />
       )}
       {showIncremental && (

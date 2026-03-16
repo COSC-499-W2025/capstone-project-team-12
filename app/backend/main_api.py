@@ -266,6 +266,8 @@ async def get_projects(db: DatabaseManager = Depends(get_db)):
         # Convert UUID objects to strings for JSON serialization
         for row in results:
             row['analysis_id'] = str(row.pop('analysis_id'))
+            if row.get('creation_date') and hasattr(row['creation_date'], 'isoformat'):
+                row['creation_date'] = row['creation_date'].isoformat()
         return JSONResponse(status_code=200,content=results)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {e}")
