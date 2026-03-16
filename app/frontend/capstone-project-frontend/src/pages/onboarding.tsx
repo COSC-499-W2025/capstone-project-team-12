@@ -3,14 +3,18 @@ import React, { useState } from 'react';
 interface OnboardingProps {
   initialData?: { llmMode: 'online' | 'local'; githubUsername: string; email: string } | null;
   onComplete?: (data: { llmMode: 'online' | 'local'; githubUsername: string; email: string }) => void;
+  mode?: 'setup' | 'new-analysis';
 }
 
-const Onboarding: React.FC<OnboardingProps> = ({ initialData, onComplete }) => {
+const Onboarding: React.FC<OnboardingProps> = ({ initialData, onComplete, mode = 'setup' }) => {
   const [llmMode, setLlmMode] = useState<'online' | 'local'>(initialData?.llmMode ?? 'online');
   const [githubUsername, setGithubUsername] = useState(initialData?.githubUsername ?? '');
   const [email, setEmail] = useState(initialData?.email ?? '');
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [showConsentPopup, setShowConsentPopup] = useState(false);
+
+
+  const isNewAnalysis = mode === 'new-analysis';
 
   const isValid = githubUsername.trim() !== '' && email.trim() !== '';
 
@@ -48,7 +52,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ initialData, onComplete }) => {
             
           </p>
           <h1 style={{ fontSize: '26px', fontWeight: '800', color: '#0f1629', margin: '0 0 8px', letterSpacing: '-0.02em', lineHeight: 1.25 }}>
-            Let's get you set up
+            {isNewAnalysis ? 'Ready to run a new analysis?' : "Let's get you set up" }
           </h1>
           <p style={{ fontSize: '14px', color: '#6b7280', margin: 0, lineHeight: 1.6 }}>
             Choose your summary generation AI model and provide your github info.

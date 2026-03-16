@@ -19,6 +19,10 @@ export interface NewAnalysisPayload {
   repos: string[];
 }
 
+export interface DashboardProps {
+  onNewAnalysis: () => void;
+}
+
 export interface AnalysisCardProps {
   analysis: Analysis;
   onDelete: (id: string) => void;

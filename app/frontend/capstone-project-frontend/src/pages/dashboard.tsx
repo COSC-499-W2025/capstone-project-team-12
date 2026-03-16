@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import type { Analysis, EmptyStateProps, NewAnalysisPayload, ToastProps, RawProject, RawResume, RawPortfolio } from "../types/dashboardTypes";
+import type { Analysis, EmptyStateProps, NewAnalysisPayload, ToastProps, RawProject, RawResume, RawPortfolio, DashboardProps } from "../types/dashboardTypes";
 import { NewAnalysisModal } from "../components/modals";
 import { AnalysisCard } from "../components/analysisCard";
 
@@ -40,8 +40,7 @@ function mapProject(
 }
 
 
-export default function Dashboard() {
-  const navigate = useNavigate();
+export default function Dashboard( {onNewAnalysis}: DashboardProps ) {
   const [analyses, setAnalyses] = useState<Analysis[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNewModal, setShowNewModal] = useState(false);
@@ -185,24 +184,24 @@ export default function Dashboard() {
     // place holder
   };
 
-  const handleNew = (payload: NewAnalysisPayload) => {
-    const newAnalysis: Analysis = {
-      id: `analysis-${Date.now()}`,
-      label: payload.label,
-      createdAt: new Date().toISOString(),
-      repos: payload.repos,
-      resumeIds: [],
-      portfolioIds: [],
-      hasResume: false,
-      hasPortfolio: false,
-      hasInsights: true,
-      status: "complete",
-    };
+  // const handleNew = (payload: NewAnalysisPayload) => {
+  //   const newAnalysis: Analysis = {
+  //     id: `analysis-${Date.now()}`,
+  //     label: payload.label,
+  //     createdAt: new Date().toISOString(),
+  //     repos: payload.repos,
+  //     resumeIds: [],
+  //     portfolioIds: [],
+  //     hasResume: false,
+  //     hasPortfolio: false,
+  //     hasInsights: true,
+  //     status: "complete",
+  //   };
 
-    setAnalyses(prev => [newAnalysis, ...prev]);
-    setShowNewModal(false);
-    showToast("Analysis created.");
-  };
+  //   setAnalyses(prev => [newAnalysis, ...prev]);
+  //   setShowNewModal(false);
+  //   showToast("Analysis created.");
+  // };
 
   // place holders for later implementation
   const handleViewResume    = () => "do nothing";
@@ -229,7 +228,7 @@ export default function Dashboard() {
             <p className="text-sm text-slate-400 mt-1">Manage past analyses, view generated outputs, and run new ones.</p>
           </div>
           <button
-            onClick={() => setShowNewModal(true)}
+            onClick={ onNewAnalysis }
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 shadow-sm hover:bg-indigo-700 hover:shadow-md transition-all mt-1"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -284,13 +283,6 @@ export default function Dashboard() {
           </div>
         )}
       </div>
-
-      {showNewModal && (
-        <NewAnalysisModal
-          onConfirm={handleNew}
-          onCancel={() => setShowNewModal(false)}
-        />
-      )}
 
       {toast !== null && <Toast message={toast} onDismiss={() => setToast(null)} />}
     </div>
