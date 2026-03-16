@@ -24,9 +24,12 @@ Created file upload page:
 - Allows single file and folder upload or batch file and folder upload.
 - Allows user to remove uploaded files/folders.
 - Zips all uploaded file/folders
+
+
 Implement state persistance for onboarding and upload page:
 - Github Username and email will persist through tab changes
 - Same thing with uploaded files/folders
+
 Set up onboarding and upload file page to use the actual API
 - Once the files are uploaded, continuing will send the github username, email, selected model and zipped files to the extract API endpoint
 - Able to successfully receive the response bundle
