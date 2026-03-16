@@ -18,6 +18,25 @@
 [Week 4](#week-4)  
 [Week 3](#week-3)
 
+### T2 Week 10
+Created file upload page:
+- Allows single file and folder upload or batch file and folder upload.
+- Allows user to remove uploaded files/folders.
+- Zips all uploaded file/folders
+Implement state persistance for onboarding and upload page:
+- Github Username and email will persist through tab changes
+- Same thing with uploaded files/folders
+Set up onboarding and upload file page to use the actual API
+- Once the files are uploaded, continuing will send the github username, email, selected model and zipped files to the extract API endpoint
+- Able to successfully receive the response bundle
+
+#### Next week
+We have connected most of the different pages to their respective API endpoints, but we still need to connect the different pages together to create a better experience for the user. As for the file upload I believe that we need to connect the analysis pipeline process to the loading screen to provide more visual cues about the actual process. Generally it will be more about connecting everything together and making the experience flow better.
+
+#### Reflection
+
+
+
 ### T2 Week 9
 Decouple analysis CLI
 - Refactored analysis pipeline to remove dependency on the CLI.
