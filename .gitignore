@@ -18,4 +18,8 @@ __pycache__/
 #ignore api cache files
 /app/backend/cache
 /app/backend/tests_backend/log.txt
+
+# ignore package-lock.json in frontend
+/app/node_modules
+app/package-lock.json
 app/backend/configs/user_prefs.json
