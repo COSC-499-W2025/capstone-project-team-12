@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
 import SectionCard from "../components/SectionCard";
 import type { Resume, Project, Language, EducationEntry, WorkEntry, AwardEntry } from "../types/resumeTypes";
 
@@ -612,11 +611,9 @@ function DownloadButton() {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-export default function ResumeDisplay( {onPrevious, onComplete} : {onPrevious?: () => void, onComplete?: () => void}) {
-  const {resumeId} = useParams<{ resumeId?: string }>();
-  const params = new URLSearchParams(window.location.search);
-  const devId = params.get("resumeId");
-  const parsedId = resumeId ? parseInt(resumeId, 10) : (devId ? parseInt(devId, 10) : null);
+export default function ResumeDisplay( {onPrevious, onComplete, resumeId: resumeIdProp} : {onPrevious?: () => void, onComplete?: () => void, resumeId?: number | null}) {
+  const parsedId = resumeIdProp ?? null;
+
   const [resume, setResume] = useState<Resume>(mockResume);
   const [loading, setLoading] = useState(parsedId !== null);
     const [error,   setError]   = useState<string | null>(null);

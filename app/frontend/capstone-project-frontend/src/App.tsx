@@ -23,6 +23,14 @@ function App() {
   const [uploads, setUploads] = useState<UploadEntry[]>([]);
   const [analysisMode, setAnalysisMode] = useState<'setup' | 'new-analysis'>('setup');
   const [activeAnalysisId, setActiveAnalysisId] = useState<string | null>(null);
+  const [viewResumeId, setViewResumeId] = useState<number | null>(null);
+
+  const handleViewResume = (resumeId: number) => {
+    setViewResumeId(resumeId);
+    setShowDashboard(false);
+    setCurrentStep(5); 
+  };
+
 
   const handleNewAnalysis = () => {
     setShowDashboard(false);
@@ -42,7 +50,7 @@ function App() {
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f0f2f8' }}>
       <Sidebar currentStep={currentStep} onStepChange={(step) => { setShowDashboard(false); setCurrentStep(step); }} onDashboard={() => setShowDashboard(true)} />
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        {showDashboard ? (<Dashboard onNewAnalysis={handleNewAnalysis} onIncremental={handleIncremental} />) : (
+        {showDashboard ? (<Dashboard onNewAnalysis={handleNewAnalysis} onIncremental={handleIncremental} onViewResume={handleViewResume}/>) : (
         <>
           {currentStep === 1 && (
           <Onboarding
@@ -66,7 +74,15 @@ function App() {
           {currentStep === 2.5 && <ProgressPage onComplete={() => setCurrentStep(3)} />}
           {currentStep === 3 && <FinetunePage onComplete ={() => setCurrentStep(4)} />}
           {currentStep === 4 && <ProjectInsights onPrevious={() => setCurrentStep(3)} onComplete={() => setCurrentStep(5)} />}
-          {currentStep === 5 && <ResumeDisplay onPrevious={() => setCurrentStep(4)} onComplete={() => setCurrentStep(6)} />}
+          
+          {currentStep === 5 && (
+            <ResumeDisplay 
+              resumeId={viewResumeId}
+              onPrevious={() => setCurrentStep(4)} 
+              onComplete={() => setCurrentStep(6)} 
+            /> 
+          )}
+          
           {currentStep === 6 && <Portfolio onPrevious={() => setCurrentStep(5)} onComplete={() => setShowDashboard(true)} />}
           {/* add other pages/components for other steps */}
         </>      

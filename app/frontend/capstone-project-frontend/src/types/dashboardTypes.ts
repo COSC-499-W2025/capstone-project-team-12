@@ -27,6 +27,7 @@ export interface ModalProps {
 export interface DashboardProps {
   onNewAnalysis: () => void;
   onIncremental: (id: string) => void;
+  onViewResume: (resumeId: number) => void;
 }
 
 export interface AnalysisCardProps {

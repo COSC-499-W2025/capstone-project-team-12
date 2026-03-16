@@ -38,7 +38,7 @@ function mapProject(
 }
 
 
-export default function Dashboard( {onNewAnalysis, onIncremental}: DashboardProps ) {
+export default function Dashboard( {onNewAnalysis, onIncremental, onViewResume}: DashboardProps ) {
   const [analyses, setAnalyses] = useState<Analysis[]>([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
@@ -182,7 +182,7 @@ export default function Dashboard( {onNewAnalysis, onIncremental}: DashboardProp
   };
 
   // place holders for later implementation
-  const handleViewResume    = () => "do nothing";
+  const handleViewResume = (analysis: Analysis, resumeId: number) => onViewResume(resumeId);
   const handleViewPortfolio = () => "do nada";
   const handleViewInsights  = () => "do nothing";
 
