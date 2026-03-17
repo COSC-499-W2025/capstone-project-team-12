@@ -1,29 +1,33 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import SectionCard from "../components/SectionCard";
-import type { Resume, Project, Language } from "../resumeTypes";
+import type { Resume, Project, Language, EducationEntry, WorkEntry, AwardEntry } from "../types/resumeTypes";
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
 
-const mockResume: Resume = {
+export const mockResume: Resume = {
   analysis_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   // TODO (backend): pass github_username and user_email through _build_resume()
   github_username: "yourusername",
   user_email: "you@example.com",
-  summary: "Full-stack developer with experience building collaborative web and mobile applications. Strong version control practices and a focus on clean, maintainable code.",
+  summary: [
+    "Full-stack developer with experience building collaborative web and mobile applications. Strong version control practices and a focus on clean, maintainable code.",
+    "Passionate about learning new technologies and applying them to solve real-world problems. Seeking opportunities to contribute to impactful projects and grow as a software engineer.",
+  ],
   projects: [
     {
       name: "Capstone Analysis Tool", date_range: "Jan 2025 - Apr 2025",
-      collaboration_insight: "Contributed a substantial amount of new code, indicating a strong role in implementing features and expanding the project's functionality.",
+      collaboration: "Contributed a substantial amount of new code, indicating a strong role in implementing features and expanding the project's functionality.",
       frameworks: ["Python", "FastAPI", "PostgreSQL", "Docker", "Flask"],
     },
     {
       name: "COSC 360 – Android App", date_range: "Apr 2025 - Present",
-      collaboration_insight: "Most contributions involved modifying existing files, suggesting a maintenance-focused role aimed at improving correctness and performance.",
+      collaboration: "Most contributions involved modifying existing files, suggesting a maintenance-focused role aimed at improving correctness and performance.",
       frameworks: ["Java", "Android SDK", "XML", "SQLite"],
     },
     {
       name: "Personal Portfolio", date_range: "Feb 2025 - Mar 2025",
-      collaboration_insight: "Balanced contribution pattern across additions, modifications, and deletions throughout the codebase.",
+      collaboration: "Balanced contribution pattern across additions, modifications, and deletions throughout the codebase.",
       frameworks: ["React", "TypeScript", "Tailwind CSS", "Vite"],
     },
   ],
@@ -34,7 +38,75 @@ const mockResume: Resume = {
     { name: "Python",     file_count: 11 }, { name: "XML",  file_count: 50 },
     { name: "SQL",        file_count: 3  },
   ],
+  education: [
+    { 
+      institution: "University of British Columbia Okanagan",
+      degree: "Bachelor of Science",
+      major: "Computer Science",
+      date_range: "Sep 2022 – Apr 2026",
+      notes: "Dean's List 2023, 2024 · Relevant coursework: Algorithms, Databases, Software Engineering",
+    },
+  ],
+  awards: [
+    {
+      title: "Test Scholars Award",
+      issuer: "University of British Columbia Okanagan",
+      date: "Apr 2024",
+      description: [
+        "Awarded to top 5% of students in each faculty based on academic performance and extracurricular involvement.",
+        "Recognizes consistent excellence across all courses and contributions to the university community.",
+      ],
+    },
+  ],
+  work_experience: [
+    {
+      company: "UBC Okanagan Computer Science Department",
+      role: "Undergraduate Teaching Assistant",
+      date_range: "Sep 2023 – Apr 2024",
+      location: "Kelowna, BC",
+      description: [
+        "Led weekly lab sessions for 30+ students in an introductory programming course, providing guidance on Java and Python assignments.",
+        "Held regular office hours to assist students with debugging and understanding core programming concepts.",
+        "Collaborated with course instructors to develop new lab exercises and improve existing materials based on student feedback.",
+      ],
+    },
+  ],
 };
+
+// ─── API ───────────────────────────────────────────────────────────────
+const API_BASE = "http://localhost:8080";
+
+async function fetchResume(resumeId: string): Promise<Resume> {
+  const res = await fetch(`${API_BASE}/resume/${resumeId}`);
+  if (!res.ok) throw new Error(`Failed to fetch resume: ${res.status} ${res.statusText}`);
+  const data = await res.json();
+  console.log("Raw API response", data)
+  const r = data.resume_data ?? data;
+  console.log("parsed resume data", r)
+  // Normalize fields to ensure they exist and have the expected structure
+  return {
+    analysis_id: r.analysis_id,
+    summary: Array.isArray(r.summary) ? r.summary : [r.summary].filter(Boolean),
+    education: Array.isArray(r.education) ? r.education : [],
+    work_experience: Array.isArray(r.work_experience) ? r.work_experience : [],
+    awards: Array.isArray(r.awards) ? r.awards : [],
+    projects: Array.isArray(r.projects) ? r.projects : [],
+    skills: Array.isArray(r.skills) ? r.skills : [],
+    languages: Array.isArray(r.languages) ? r.languages : [],
+    github_username: r.github_username ?? "",
+    user_email: r.user_email ?? "",
+  };
+}
+
+async function putResume(resumeId: string, resume: Resume): Promise<void> {
+  const {resume_id, analysis_id, ...resumeData} = resume;
+  const res = await fetch(`${API_BASE}/resume/${resumeId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ resume_data: resumeData }),
+  });
+  if (!res.ok) throw new Error(`Failed to update resume: ${res.status} ${res.statusText}`);
+}
 
 // ─── Primitives ───────────────────────────────────────────────────────────────
 
@@ -73,34 +145,61 @@ function AddChip({ placeholder, onAdd }: { placeholder: string; onAdd: (v: strin
   );
 }
 
-function EditControls({ editing, onEdit, onSave, onCancel }: {
-  editing: boolean; onEdit: () => void; onSave: () => void; onCancel: () => void;
+function AddNewButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button onClick={onClick}
+      className="text-xs font-semibold text-indigo-500 border border-indigo-200 rounded-lg px-3 py-1 hover:bg-indigo-50 transition-all">
+      {label}
+    </button>
+  );
+}
+
+function EditControls({ editing, onEdit, onSave, onCancel, saving = false }: {
+  editing: boolean; onEdit: () => void; onSave: () => void; onCancel: () => void; saving?: boolean;
 }) {
   if (!editing) return (
     <button onClick={onEdit} className="text-xs font-semibold text-indigo-500 border border-indigo-200 rounded-lg px-3 py-1 hover:bg-indigo-50 transition-all">Edit</button>
   );
   return (
     <div className="flex gap-2">
-      <button onClick={onSave}   className="text-xs font-bold text-white bg-indigo-600 rounded-lg px-3 py-1 hover:bg-indigo-700 transition-all">Save</button>
+      <button onClick={onSave} disabled = {saving}  className="text-xs font-bold text-white bg-indigo-600 rounded-lg px-3 py-1 hover:bg-indigo-700 transition-all disabled:opacity-50">{saving?"Saving...":"Save"}</button>
       <button onClick={onCancel} className="text-xs font-semibold text-slate-500 border border-slate-200 rounded-lg px-3 py-1 hover:bg-slate-50 transition-all">Cancel</button>
     </div>
   );
 }
 
-function useEditState<T>(value: T) {
-  const [editing, setEditing] = useState(false);
+function useEditState<T>(value: T, initialEditing = false) {
+  const [editing, setEditing] = useState(initialEditing);
   const [draft, setDraft] = useState<T>(value);
   const open   = () => { setDraft(value); setEditing(true); };
   const cancel = () => { setDraft(value); setEditing(false); };
   return { editing, draft, setDraft, open, cancel, close: () => setEditing(false) };
 }
 
+// Bullet list editor (used for Work Experience and Awards)
+
+function BulletEditor({ bullets, onChange }: { bullets: string[]; onChange: (b: string[]) => void }) {
+  return (
+    <div className="space-y-2 mt-2">
+      {bullets.map((b, i) => (
+        <div key={i} className="flex gap-2 items-start">
+          <span className="text-indigo-400 text-xs font-bold mt-2 shrink-0">▸</span>
+          <Field value={b} onChange={v => { const n = [...bullets]; n[i] = v; onChange(n); }} multiline rows={2} />
+          <button onClick={() => onChange(bullets.filter((_, idx) => idx !== i))}
+            className="!bg-transparent !border-none text-red-300 hover:text-red-400 text-xl mt-1 shrink-0">×</button>
+        </div>
+      ))}
+      <button onClick={() => onChange([...bullets, ""])}
+        className="text-xs font-semibold text-indigo-500 border border-indigo-200 rounded-lg px-3 py-1 hover:bg-indigo-50 transition-all">
+        + Add bullet
+      </button>
+    </div>
+  );
+}
 // ─── Contact ──────────────────────────────────────────────────────────────────
-// TODO (backend): pre-fill from _build_resume() once github_username and user_email are wired through
 
 function ContactSection({ github_username, user_email, onChange }: {
-  github_username: string; user_email: string;
-  onChange: (u: string, e: string) => void;
+  github_username: string; user_email: string; onChange: (u: string, e: string) => void;
 }) {
   const { editing, draft, setDraft, open, cancel, close } = useEditState({ github_username, user_email });
   return (
@@ -127,15 +226,22 @@ function ContactSection({ github_username, user_email, onChange }: {
 
 // ─── Summary ──────────────────────────────────────────────────────────────────
 
-function SummarySection({ summary, onChange }: { summary: string; onChange: (v: string) => void }) {
+function SummarySection({ summary, onChange }: { summary: string[]; onChange: (v: string[]) => void }) {
   const { editing, draft, setDraft, open, cancel, close } = useEditState(summary);
   return (
     <SectionCard title="Summary" icon="📝">
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
           {editing
-            ? <Field value={draft} onChange={setDraft} multiline rows={4} />
-            : <p className="text-sm text-slate-600 leading-relaxed">{summary}</p>
+            ? <BulletEditor bullets={draft} onChange={setDraft} />
+            : <ul className="space-y-1">
+                {summary.map((s, i) => (
+                  <li key={i} className="flex items-start gap-2">
+                  <span className="text-indigo-400 text-xs font-bold mt-0.5 shrink-0">▸</span>
+                  <span className="text-sm text-slate-600 leading-relaxed">{s}</span>
+                </li>
+              ))}
+            </ul>
           }
         </div>
         <EditControls editing={editing} onEdit={open} onSave={() => { onChange(draft); close(); }} onCancel={cancel} />
@@ -144,52 +250,119 @@ function SummarySection({ summary, onChange }: { summary: string; onChange: (v: 
   );
 }
 
-// ─── Education & Awards ───────────────────────────────────────────────────────
-// TODO (backend): no backend source for this data — fully user-populated.
-// EducationEntry is intentionally excluded from resumeTypes.ts.
+// ─── Work Experience ───────────────────────────────────────────────────────
 
-interface EducationEntry { institution: string; degree: string; date_range: string; notes: string; }
+function WorkEntryCard({ entry, onSave, onDelete, autoEdit = false, onCancelNew }: {
+  entry: WorkEntry; onSave: (e: WorkEntry) => void; onDelete: () => void; autoEdit?: boolean; onCancelNew?: () => void;
+}) {
+  const { editing, draft, setDraft, open, cancel, close } = useEditState(entry, autoEdit);
+  const handleCancel = onCancelNew ?? cancel;
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1">
+          {editing ? (
+            <div className="space-y-2">
+              <div className="flex gap-2 flex-wrap">
+                <Field value={draft.company} onChange={v => setDraft(d => ({ ...d, company: v }))} placeholder="Company" className="flex-1 font-semibold" />
+                <Field value={draft.role}    onChange={v => setDraft(d => ({ ...d, role: v }))}    placeholder="Role"    className="flex-1" />
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                <Field value={draft.date_range}     onChange={v => setDraft(d => ({ ...d, date_range: v }))}  placeholder="May YYYY – Aug YYYY"    className="flex-1" />
+                <Field value={draft.location ?? ""} onChange={v => setDraft(d => ({ ...d, location: v }))}    placeholder="Location (optional)"    className="flex-1" />
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div className="flex items-baseline justify-between flex-wrap gap-2">
+                <span className="text-sm font-semibold text-slate-700">{entry.company}</span>
+                <span className="text-xs text-slate-400">{entry.date_range}</span>
+              </div>
+              <p className="text-sm text-slate-500">{entry.role}{entry.location ? ` · ${entry.location}` : ""}</p>
+            </div>
+          )}
+        </div>
+        <div className="flex gap-1.5 shrink-0">
+          <EditControls editing={editing} onEdit={open} onSave={() => { onSave(draft); close(); }} onCancel={handleCancel} />
+          {!editing && (
+            <button onClick={onDelete} className="text-xs font-semibold text-red-400 border border-red-100 rounded-lg px-2.5 py-1 hover:bg-red-50 transition-all">✕</button>
+          )}
+        </div>
+      </div>
+      {editing
+        ? <BulletEditor bullets={draft.description} onChange={v => setDraft(d => ({ ...d, description: v }))} />
+        : <ul className="space-y-1">
+            {entry.description.map((b, i) => (
+              <li key={i} className="flex items-start gap-2">
+                <span className="text-indigo-400 text-xs font-bold mt-0.5 shrink-0">▸</span>
+                <span className="text-sm text-slate-600 leading-relaxed">{b}</span>
+              </li>
+            ))}
+          </ul>
+      }
+    </div>
+  );
+}
 
-const defaultEducation: EducationEntry[] = [{
-  institution: "University of British Columbia Okanagan",
-  degree: "Bachelor of Science, Computer Science",
-  date_range: "Sep 2022 – Apr 2026",
-  notes: "Dean's List 2023, 2024 · Relevant coursework: Algorithms, Databases, Software Engineering",
-}];
+function WorkExperienceSection({ work, onChange }: { work: WorkEntry[]; onChange: (w: WorkEntry[]) => void }) {
+  const [newIdx, setNewIdx] = useState<number | null>(null);
+  const blank: WorkEntry = { company: "", role: "", date_range: "", location: "", description: [""] };
+  const addNew = () => {
+    setNewIdx(work.length);
+    onChange([...work, blank]);
+  };
+  return (
+    <SectionCard title="Work Experience" icon="💼">
+      <div className="space-y-3">
+        {work.map((entry, i) => (
+          <WorkEntryCard key={i} entry={entry} autoEdit={i === newIdx}
+            onSave={e  => { setNewIdx(null); const n = [...work]; n[i] = e; onChange(n); }}
+            onDelete={() => { setNewIdx(null); onChange(work.filter((_, idx) => idx !== i))}}
+            onCancelNew={i === newIdx ? () => { setNewIdx(null); onChange(work.filter((_, idx) => idx !== i))} : undefined}
+          />
+        ))}
+        <AddNewButton label="+ Add Position" onClick={addNew} />
+      </div>
+    </SectionCard>
+  );
+}
 
-function EducationSection() {
-  const [entries, setEntries] = useState<EducationEntry[]>(defaultEducation);
+// ─── Education ───────────────────────────────────────────────────────
+// no backend source for this data — fully user-populated.
+
+function EducationSection({ education, onChange }: { education: EducationEntry[]; onChange: (e: EducationEntry[]) => void }) {
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [draft, setDraft] = useState<EducationEntry | null>(null);
-
-  const fields: { key: keyof EducationEntry; placeholder: string }[] = [
-    { key: "institution", placeholder: "Institution" },
-    { key: "degree",      placeholder: "Degree & Field of Study" },
-    { key: "date_range",  placeholder: "Sep YYYY – Apr YYYY" },
-    { key: "notes",       placeholder: "GPA, awards, honours…" },
-  ];
+  const blank: EducationEntry = { institution: "", degree: "", major: "", minor: "", date_range: "", notes: "" };
 
   const save = () => {
     if (draft === null || editingIdx === null) return;
-    setEntries(e => { const n = [...e]; n[editingIdx] = draft; return n; });
-    setEditingIdx(null);
+    const next = [...education]; next[editingIdx] = draft; onChange(next); setEditingIdx(null); setDraft(null);
   };
   const add = () => {
-    const blank = { institution: "Institution Name", degree: "Degree, Field of Study", date_range: "MMM YYYY – MMM YYYY", notes: "" };
-    setEntries(e => [...e, blank]); setDraft(blank); setEditingIdx(entries.length);
+    onChange([...education, { ...blank}]);
+    setDraft({ ...blank });
+    setEditingIdx(education.length);
   };
 
   return (
-    <SectionCard title="Education & Awards" icon="🎓">
+    <SectionCard title="Education" icon="🎓">
       <div className="space-y-4">
-        {entries.map((entry, i) => (
+        {education.map((entry, i) => (
           <div key={i}>
             {editingIdx === i && draft ? (
               <div className="space-y-2 p-3 rounded-xl bg-slate-50 border border-slate-200">
-                {fields.map(({ key, placeholder }) => (
-                  <Field key={key} value={draft[key]} onChange={v => setDraft(d => d ? { ...d, [key]: v } : d)} placeholder={placeholder} />
-                ))}
-                <EditControls editing onEdit={() => {}} onSave={save} onCancel={() => setEditingIdx(null)} />
+                <Field value={draft.institution} onChange={v => setDraft(d => d && ({ ...d, institution: v }))} placeholder="Institution" />
+                <div className="flex gap-2">
+                  <Field value={draft.degree}    onChange={v => setDraft(d => d && ({ ...d, degree: v }))}     placeholder="Degree (e.g. Bachelor of Science)" className="flex-1" />
+                  <Field value={draft.date_range} onChange={v => setDraft(d => d && ({ ...d, date_range: v }))} placeholder="Date Range: ex:Sep 2020 – May 2024"              className="flex-1" />
+                </div>
+                <div className="flex gap-2">
+                  <Field value={draft.major ?? ""} onChange={v => setDraft(d => d && ({ ...d, major: v }))} placeholder="Major (optional)" className="flex-1" />
+                  <Field value={draft.minor ?? ""} onChange={v => setDraft(d => d && ({ ...d, minor: v }))} placeholder="Minor (optional)" className="flex-1" />
+                </div>
+                <Field value={draft.notes} onChange={v => setDraft(d => d && ({ ...d, notes: v }))} placeholder="Other Notes: (e.g. GPA, honours, relevant coursework…)" />
+                <EditControls editing onEdit={() => {}} onSave={save} onCancel={() => { setEditingIdx(null); setDraft(null); }} />
               </div>
             ) : (
               <div className="flex items-start justify-between gap-3">
@@ -198,12 +371,12 @@ function EducationSection() {
                     <span className="text-sm font-semibold text-slate-700">{entry.institution}</span>
                     <span className="text-xs text-slate-400">{entry.date_range}</span>
                   </div>
-                  <p className="text-sm text-slate-600 mt-0.5">{entry.degree}</p>
+                  <p className="text-sm text-slate-600 mt-0.5">{entry.degree} {entry.major ? `Major in ${entry.major}` : ""} {entry.minor ? ` · Minor in ${entry.minor}` : ""}</p>
                   {entry.notes && <p className="text-xs text-slate-400 mt-1 italic">{entry.notes}</p>}
                 </div>
                 <div className="flex gap-1.5 shrink-0">
                   <button onClick={() => { setDraft({ ...entry }); setEditingIdx(i); }} className="text-xs font-semibold text-indigo-500 border border-indigo-200 rounded-lg px-2.5 py-1 hover:bg-indigo-50 transition-all">Edit</button>
-                  <button onClick={() => setEntries(e => e.filter((_, idx) => idx !== i))}  className="text-xs font-semibold text-red-400 border border-red-100 rounded-lg px-2.5 py-1 hover:bg-red-50 transition-all">✕</button>
+                  <button onClick={() => onChange(education.filter((_, idx) => idx !== i))}  className="text-xs font-semibold text-red-400 border border-red-100 rounded-lg px-2.5 py-1 hover:bg-red-50 transition-all">✕</button>
                 </div>
               </div>
             )}
@@ -215,6 +388,75 @@ function EducationSection() {
   );
 }
 
+// ─── Awards ───────────────────────────────────────────────────────────────────
+function AwardEntryCard({ entry, onSave, onDelete, autoEdit = false, onCancelNew }: {
+  entry: AwardEntry; onSave: (e: AwardEntry) => void; onDelete: () => void;
+  autoEdit?: boolean; onCancelNew?: () => void;
+}) {
+  const { editing, draft, setDraft, open, cancel, close } = useEditState(entry, autoEdit);
+  const handleCancel = onCancelNew ?? cancel;
+ 
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1">
+          {editing ? (
+            <div className="flex gap-2 flex-wrap">
+              <Field value={draft.title}  onChange={v => setDraft(d => ({ ...d, title: v }))}  placeholder="Award title"  className="flex-1 font-semibold" />
+              <Field value={draft.issuer} onChange={v => setDraft(d => ({ ...d, issuer: v }))} placeholder="Issuer"       className="flex-1" />
+              <Field value={draft.date}   onChange={v => setDraft(d => ({ ...d, date: v }))}   placeholder="Year or date" className="w-32" />
+            </div>
+          ) : (
+            <div className="flex items-baseline justify-between flex-wrap gap-2">
+              <span className="text-sm font-semibold text-slate-700">{entry.title}</span>
+              <span className="text-xs text-slate-400">{entry.issuer} · {entry.date}</span>
+            </div>
+          )}
+        </div>
+        <div className="flex gap-1.5 shrink-0">
+          <EditControls editing={editing} onEdit={open} onSave={() => { onSave(draft); close(); }} onCancel={handleCancel} />
+          {!editing && (
+            <button onClick={onDelete} className="text-xs font-semibold text-red-400 border border-red-100 rounded-lg px-2.5 py-1 hover:bg-red-50 transition-all">✕</button>
+          )}
+        </div>
+      </div>
+      {editing
+        ? <BulletEditor bullets={draft.description} onChange={v => setDraft(d => ({ ...d, description: v }))} />
+        : <ul className="space-y-1">
+            {entry.description.map((b, i) => (
+              <li key={i} className="flex items-start gap-2">
+                <span className="text-indigo-400 text-xs font-bold mt-0.5 shrink-0">▸</span>
+                <span className="text-sm text-slate-600 leading-relaxed">{b}</span>
+              </li>
+            ))}
+          </ul>
+      }
+    </div>
+  );
+}
+ 
+function AwardsSection({ awards, onChange }: { awards: AwardEntry[]; onChange: (a: AwardEntry[]) => void }) {
+  const [newIdx, setNewIdx] = useState<number | null>(null);
+  const blank: AwardEntry = { title: "", issuer: "", date: "", description: [""] };
+ 
+  const addNew = () => { setNewIdx(awards.length); onChange([...awards, { ...blank }]); };
+ 
+  return (
+    <SectionCard title="Awards & Honours" icon="🏆">
+      <div className="space-y-3">
+        {awards.map((entry, i) => (
+          <AwardEntryCard key={i} entry={entry}
+            autoEdit={i === newIdx}
+            onSave={e  => { setNewIdx(null); const n = [...awards]; n[i] = e; onChange(n); }}
+            onDelete={() => { setNewIdx(null); onChange(awards.filter((_, idx) => idx !== i)); }}
+            onCancelNew={i === newIdx ? () => { setNewIdx(null); onChange(awards.filter((_, idx) => idx !== i)); } : undefined}
+          />
+        ))}
+        <AddNewButton label="+ Add Award" onClick={addNew} />
+      </div>
+    </SectionCard>
+  );
+}
 // ─── Skills ───────────────────────────────────────────────────────────────────
 // TODO (backend): aggregate skills across analyses; tiering needs future work
 
@@ -238,8 +480,6 @@ function SkillsSection({ skills, onChange }: { skills: string[]; onChange: (s: s
 }
 
 // ─── Projects ─────────────────────────────────────────────────────────────────
-// collaboration_insight = user_role.blurb from infer_user_role() — serves as contribution evidence (prof requirement)
-// TODO (milestone 3): decide what additional contribution fields to surface here
 
 function ProjectEntry({ project, onSave }: { project: Project; onSave: (p: Project) => void }) {
   const { editing, draft, setDraft, open, cancel, close } = useEditState(project);
@@ -285,8 +525,8 @@ function ProjectEntry({ project, onSave }: { project: Project; onSave: (p: Proje
       <div className="flex items-start gap-2 pt-1">
         <span className="text-indigo-500 text-xs font-bold mt-0.5 shrink-0">▸</span>
         {editing
-          ? <Field value={draft.collaboration_insight} onChange={v => setDraft(d => ({ ...d, collaboration_insight: v }))} multiline rows={2} placeholder="Role description and contribution evidence…" />
-          : <p className="text-sm text-slate-600 leading-relaxed">{project.collaboration_insight}</p>
+          ? <Field value={draft.collaboration} onChange={v => setDraft(d => ({ ...d, collaboration: v }))} multiline rows={2} placeholder="Role description and contribution evidence…" />
+          : <p className="text-sm text-slate-600 leading-relaxed">{project.collaboration}</p>
         }
       </div>
     </div>
@@ -372,27 +612,93 @@ function DownloadButton() {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-export default function ResumeDisplay() {
+export default function ResumeDisplay( {onPrevious, onComplete} : {onPrevious?: () => void, onComplete?: () => void}) {
+  const {resumeId} = useParams<{ resumeId?: string }>();
+  const params = new URLSearchParams(window.location.search);
+  const devId = params.get("resumeId");
+  const parsedId = resumeId ? parseInt(resumeId, 10) : (devId ? parseInt(devId, 10) : null);
   const [resume, setResume] = useState<Resume>(mockResume);
+  const [loading, setLoading] = useState(parsedId !== null);
+    const [error,   setError]   = useState<string | null>(null);
+    const [saving,  setSaving]  = useState(false);
+  
+    useEffect(() => {
+      if (parsedId === null) return;
+      fetchResume(parsedId.toString())
+        .then(r  => { setResume(r); setLoading(false); })
+        .catch(e => { setError(e.message); setLoading(false); });
+    }, [parsedId]);
+  
+    // Merges a partial update into state and immediately PUTs to the backend.
+    // In mock mode (no parsedId) the PUT is skipped — changes are session-only.
+    const update = async (patch: Partial<Resume>) => {
+      const next = { ...resume, ...patch };
+      setResume(next);
+      if (parsedId === null) return;
+      setSaving(true);
+      try   { await putResume(parsedId.toString(), next); }
+      catch (e) { setError(e instanceof Error ? e.message : "Save failed"); }
+      finally   { setSaving(false); }
+    };
+  
+    if (loading) return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <p className="text-sm text-slate-400">Loading resume…</p>
+      </div>
+    );
+  
   return (
     <div className="min-h-screen bg-slate-50 font-sans">
       <div className="max-w-4xl mx-auto px-6 py-10">
         <div className="mb-6">
           <p className="text-xs font-semibold uppercase tracking-widest text-indigo-500 mb-1">Resume Display &amp; Editor</p>
           <div className="flex items-center justify-between flex-wrap gap-3">
-            <h1 className="text-3xl font-bold text-slate-800">Your generated résumé.</h1>
+            <h1 className="text-3xl font-bold text-slate-800">Your generated resume.</h1>
             <DownloadButton />
           </div>
+          {saving && <p className="text-xs text-indigo-400 mt-1">Saving…</p>}
+          {error  && <p className="text-xs text-red-400   mt-1">Error: {error}</p>}
         </div>
         <div className="space-y-5">
-          <ContactSection github_username={resume.github_username ?? ""} user_email={resume.user_email ?? ""} onChange={(u, e) => setResume(r => ({ ...r, github_username: u, user_email: e }))} />
-          <SummarySection  summary={resume.summary}   onChange={s => setResume(r => ({ ...r, summary: s }))} />
-          <EducationSection />
-          <SkillsSection   skills={resume.skills}     onChange={s => setResume(r => ({ ...r, skills: s }))} />
-          <ProjectsSection projects={resume.projects} onChange={p => setResume(r => ({ ...r, projects: p }))} />
-          <LanguagesSection languages={resume.languages} onChange={l => setResume(r => ({ ...r, languages: l }))} />
+          <ContactSection github_username={resume.github_username ?? ""} user_email={resume.user_email ?? ""} onChange={(u, e) => update({github_username: u, user_email: e })} />
+          <SummarySection  summary={resume.summary} onChange={s => update({summary: s })} />
+          <WorkExperienceSection
+            work={resume.work_experience}
+            onChange={w => update({ work_experience: w })} />
+          <EducationSection
+            education={resume.education}
+            onChange={e => update({ education: e })} />
+          <AwardsSection
+            awards={resume.awards}
+            onChange={a => update({ awards: a })} />
+          <SkillsSection   skills={resume.skills}     onChange={s => update({skills: s })} />
+          <ProjectsSection projects={resume.projects} onChange={p => update({ projects: p })} />
+          <LanguagesSection languages={resume.languages} onChange={l => update({languages: l })} />
+          </div>
+         {/* Back button */}
+          <div className="flex justify-between mt-8">
+            <button
+              onClick={onPrevious}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 shadow-sm hover:bg-indigo-700 transition-all"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+              Back
+            </button>
+          
+            {/* Next button */}
+            <button
+              onClick={onComplete}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 shadow-sm hover:bg-indigo-700 transition-all"
+            >
+              Next
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </button>
         </div>
-        <p className="text-center text-xs text-slate-300 mt-8">Edits are session-only · Export available in a future release</p>
+        <p className="text-center text-xs text-slate-300 mt-8">{parsedId ? "Changes save automatically" : "Edits are session-only · connect a resume ID to persist"}</p>
       </div>
     </div>
   );

@@ -6,7 +6,7 @@ from typing import Dict
 SKILL_HIGHLIGHT_TEMPLATE: str = (
     "\n\nCRITICAL: The user has explicitly requested to highlight the following "
     "technical skills: {skills}. You must look for evidence of these "
-    "in the provided code topics and emphasize them in the summary."
+    "in the provided code topics and emphasize them in the summary. Do not mention the topic id explicitly, only cover the content they represent."
 )
 
 #prompt dictionary organized by summary type

@@ -503,15 +503,15 @@ Delete a portfolio by ID.
 
 ---
 
-### Privacy / Consent
+### Configs - Privacy Consent and Arbitrary configs
 
-#### `POST /privacy-consent`
-Record the user's LLM consent preference. Must be called before resume or portfolio generation (alternatively, pass `online_llm_consent` inline in the commit body).
+#### `POST /configs`
+Record the user's configs including LLM consent preference. Must be called before resume or portfolio generation (alternatively, pass `online_llm_consent` inline in the commit body).
 
-**Request Body** (`application/json`) — [`ConsentRequest`](#consentrequest)
+**Request Body** (`application/json`) — [`ConfigRequest`](#consentrequest)
 ```json
 {
-  "consent_type": "online_llm_consent",
+  "config_type": "online_llm_consent",
   "value": true
 }
 ```
@@ -525,6 +525,27 @@ Record the user's LLM consent preference. Must be called before resume or portfo
 |---|---|
 | `200` | Preference saved |
 | `422` | Malformed request body |
+
+#### `GET /configs`
+
+Retrieves all user_configs currently set including `online-llm-consent`.Any unset values are ommited in response.
+
+Example shows primary intended config fields, arbritary fields can be set via `POST/ configs` and will be returned if set.
+
+**Response `200`**
+```json
+{ 
+"online-llm-consent":"True",
+"file-access-consent":"True",
+"github-username":"username",
+"github--email":"user@website.com" 
+}
+```
+
+| Code | Meaning |
+|---|---|
+| `200` | Successfully retrieved configs |
+| `500` | Internal Server Error during config retrieval |
 
 ---
 

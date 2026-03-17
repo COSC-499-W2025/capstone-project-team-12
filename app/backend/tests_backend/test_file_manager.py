@@ -252,3 +252,51 @@ def test_deduplication_different_metadata(tmp_path):
     #both nodes should still exist with different last_modified timestamps
     nodes = [n for n in fm.file_tree.descendants if n.type == "file"]
     assert nodes[0].file_data['last_modified'] != nodes[1].file_data['last_modified']
+
+def test_file_hash_in_metadata(tmp_path):
+    """
+    Test that a generated hash string is successfully assigned to 
+    the file's metadata dictionary inside the tree.
+    """
+    fm = FileManager()
+    file1 = tmp_path / "file1.txt"
+    file1.write_bytes(b"hash test content")
+    
+    result = fm.load_from_filepath(str(tmp_path))
+    assert result['status'] == 'success'
+    
+    file_nodes = [n for n in fm.file_tree.descendants if n.type == "file"]
+    assert 'file_hash' in file_nodes[0].file_data
+    assert isinstance(file_nodes[0].file_data['file_hash'], str)
+
+
+def test_cross_session_deduplication(tmp_path):
+    """
+    Test that a newly initialized FileManager correctly deduplicates
+    content when provided with state from a previous session.
+    """
+    # 1. Simulate the first session processing files
+    fm1 = FileManager()
+    file1 = tmp_path / "file1.txt"
+    content = b"persistent content"
+    file1.write_bytes(content)
+    
+    fm1.load_from_filepath(str(tmp_path))
+    prev_binary = fm1.get_binary_array()
+    prev_hashes = fm1.seen_hashes
+    original_hash = fm1.file_objects[0]['file_hash']
+    
+    # 2. Simulate the second (editing) session
+    fm2 = FileManager()
+    # Pre-load the state 
+    fm2.set_previous_state(prev_binary, prev_hashes)
+    
+    # Load the same file again, ensuring we pass reset_state=False
+    # so we don't wipe out the state we just set
+    fm2.load_from_filepath(str(tmp_path), reset_state=False)
+    
+    # 3. Verify that it correctly recognized the old file data 
+    # instead of creating a duplicate binary entry
+    assert len(fm2.get_binary_array()) == 1
+    assert fm2.file_objects[0]['binary_index'] == 0
+    assert fm2.file_objects[0]['file_hash'] == original_hash

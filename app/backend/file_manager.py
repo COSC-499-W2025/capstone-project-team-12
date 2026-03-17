@@ -17,11 +17,22 @@ class FileManager:
         self.binary_data_array: List[bytes] = []
         self.seen_hashes: Dict[str, int] = {} #added to keep track of files that are in the system already 
 
-    def load_from_filepath(self, filepath: str | Path) -> Dict[str, Any]:
+    def set_previous_state(self, previous_binary_data: List[bytes], previous_hashes: Dict[str, int]) -> None:
+        """
+        Loads the binary data and hash registry from a previous session.
+        This enables cross-session deduplication.
+        """
+        self.binary_data_array = previous_binary_data.copy()
+        self.seen_hashes = previous_hashes.copy()
+
+    def load_from_filepath(self, filepath: str | Path, reset_state: bool = True) -> Dict[str, Any]:
         try:
             self.file_objects = []
-            self.binary_data_array = []
             self.file_tree = None
+            
+            if reset_state:
+                self.binary_data_array = []
+                self.seen_hashes = {}
 
             # Accept both string and Path inputs
             path: Path = Path(filepath).resolve()
@@ -196,7 +207,8 @@ class FileManager:
                     'size_bytes': len(binary_data),
                     'extension': file_path.suffix.lower(),
                     'binary_index': binary_index, #points to either new or existing data
-                    'last_modified': last_modified
+                    'last_modified': last_modified,
+                    'file_hash': file_hash
                 }
                 return file_obj, binary_index
         except Exception as e:

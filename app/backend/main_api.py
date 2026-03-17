@@ -3,10 +3,14 @@ import shutil
 import tempfile
 import json
 import pickle
+import logging
+import time
 from typing import Optional, Dict, Any, List
 from pathlib import Path
 import uuid
 from input_validation import validate_uuid
+
+logger = logging.getLogger("uvicorn.error")
 
 from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Form
 from fastapi.middleware.cors import CORSMiddleware
@@ -57,9 +61,9 @@ class PortfolioEditRequest(BaseModel):
     portfolio_data:Dict[str,Any]
 
 
-class ConsentRequest(BaseModel):
-    consent_type: str
-    value: bool
+class ConfigRequest(BaseModel):
+    config_type: str
+    value: bool|str
 
 class TopicEditRequest(BaseModel):
     topic_keywords: List[Dict[str, Any]] 
@@ -94,27 +98,39 @@ async def extract_upload(
     a new analysis ID internally), caches heavy state for the commit step,
     and returns lightweight results to the frontend.
     """
+    t0 = time.time()
+    logger.info("[EXTRACT] === Request received ===")
+    logger.info("[EXTRACT] file=%s, size=%s, username=%s, email=%s",
+                file.filename, file.size, github_username, github_email)
+
     # Save uploaded file to a temporary path
     suffix = Path(file.filename).suffix
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         shutil.copyfileobj(file.file, tmp)
         tmp_path = tmp.name
+    logger.info("[EXTRACT] File saved to %s (%.2fs)", tmp_path, time.time() - t0)
 
     try:
         # Initialize pipeline
+        t1 = time.time()
         config = ConfigManager()
         pipeline = AnalysisPipeline(config, db)
+        logger.info("[EXTRACT] Pipeline initialized (%.2fs)", time.time() - t1)
 
         # Run extraction – no existing_analysis_id or preloaded data,
         # so the pipeline creates a brand-new analysis ID and saves
         # the initial fileset to the database automatically.
+        t2 = time.time()
+        logger.info("[EXTRACT] Starting run_analysis_extract...")
         extract_result = pipeline.run_analysis_extract(
             filepath=tmp_path,
             github_username=github_username,
             github_email=github_email,
         )
+        logger.info("[EXTRACT] run_analysis_extract finished (%.2fs)", time.time() - t2)
 
         if extract_result is None:
+            logger.error("[EXTRACT] extract_result is None — extraction failed")
             raise HTTPException(status_code=500, detail="Extraction phase failed")
 
         analysis_id, topic_vector_bundle, detected_skills, text_analysis_data = extract_result
@@ -160,11 +176,12 @@ async def extract_upload(
     except HTTPException:
         raise
     except Exception as e:
+        logger.exception("[EXTRACT] Unhandled exception after %.2fs", time.time() - t0)
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         if os.path.exists(tmp_path):
             os.remove(tmp_path)
-
+        logger.info("[EXTRACT] === Request complete (%.2fs) ===", time.time() - t0)
 
 @app.post("/projects/{analysis_id}/upload/commit")
 async def commit_upload(
@@ -248,6 +265,8 @@ async def get_projects(db: DatabaseManager = Depends(get_db)):
         # Convert UUID objects to strings for JSON serialization
         for row in results:
             row['analysis_id'] = str(row.pop('analysis_id'))
+            if row.get('creation_date') and hasattr(row['creation_date'], 'isoformat'):
+                row['creation_date'] = row['creation_date'].isoformat()
         return JSONResponse(status_code=200,content=results)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {e}")
@@ -345,7 +364,6 @@ async def get_all_resumes(db:DatabaseManager = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail =f"Internal Server Error:{e}")
     
-
 @app.get("/resumes/{analysis_id}")
 async def get_resumes(analysis_id: str, db: DatabaseManager = Depends(get_db)):
     """
@@ -486,7 +504,6 @@ async def get_all_portfolios(db:DatabaseManager = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail =f"Internal Server Error:{e}")
     
-
 @app.get("/portfolios/{analysis_id}")
 async def get_portfolios(analysis_id: str, db: DatabaseManager = Depends(get_db)):
     """
@@ -603,12 +620,18 @@ async def edit_portfolio(portfolio_id: int, new: PortfolioEditRequest, db: Datab
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"{e}")
 
-@app.post("/privacy-consent")
-async def update_consent(req: ConsentRequest):
+@app.post("/configs")
+async def update_consent(req: ConfigRequest):
     """Updates user preferences file."""
     cfg = ConfigManager()
-    cfg.save_prefs({req.consent_type: req.value})
+    cfg.save_prefs({req.config_type: req.value})
     return {"status": "success"}
+
+@app.get("/configs")
+async def update_consent():
+    """Updates user preferences file."""
+    cfg = ConfigManager()
+    return JSONResponse(status_code=200,content=cfg.preferences)
 
 @app.put("/projects/{analysis_id}/update/extract")
 async def extract_update(
@@ -655,12 +678,18 @@ async def extract_update(
         # Merge with existing analysis data
         try:
             merged_tree, merged_binary_list = perform_update_merge(
-                analysis_id, new_tree, new_binary_list, db, tree_manager, importer, exporter
+                analysis_id, tmp_path, file_manager, db, importer
             )
         except LookupError:
             raise HTTPException(
                 status_code=404,
                 detail=f"No existing analysis found for ID {analysis_id}",
+            )
+        except RuntimeError as e:
+            # Catch the load error specifically thrown by perform_update_merge
+            raise HTTPException(
+                status_code=400,
+                detail=str(e),
             )
 
         if merged_tree is None:
@@ -731,7 +760,6 @@ async def extract_update(
     finally:
         if os.path.exists(tmp_path):
             os.remove(tmp_path)
-
 
 @app.post("/projects/{analysis_id}/update/commit")
 async def commit_update(
@@ -810,6 +838,7 @@ async def commit_update(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 @app.delete("/projects/{analysis_id}")
 async def delete_project(analysis_id: str, db: DatabaseManager = Depends(get_db)):
     """
@@ -833,7 +862,6 @@ async def delete_project(analysis_id: str, db: DatabaseManager = Depends(get_db)
         raise HTTPException(status_code=400, detail="Invalid UUID format")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {e}")
-
 
 @app.delete("/projects")
 async def delete_all_projects(db: DatabaseManager = Depends(get_db)):

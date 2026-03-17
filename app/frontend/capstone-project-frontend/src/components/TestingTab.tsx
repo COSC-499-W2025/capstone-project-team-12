@@ -1,6 +1,6 @@
 import StatCard from "./StatCard";
 import SectionCard from "./SectionCard";
-import type { Project } from "../insightTypes";
+import type { Project } from "../types/insightTypes";
 
 interface TestingTabProps {
   p: Project;
