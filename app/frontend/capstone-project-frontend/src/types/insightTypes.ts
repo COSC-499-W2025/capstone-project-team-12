@@ -51,6 +51,7 @@ export interface VersionControl {
 export interface Pacing {
   avgLinesPerCommit: number;
   endHeavyPercent: number;
+  commitConsistency: string;
 }
 
 export interface UserRole {

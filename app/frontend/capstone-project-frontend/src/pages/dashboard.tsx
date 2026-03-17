@@ -38,7 +38,7 @@ function mapProject(
 }
 
 
-export default function Dashboard( {onNewAnalysis, onIncremental, onViewResume, onViewPortfolio}: DashboardProps ) {
+export default function Dashboard( {onNewAnalysis, onIncremental, onViewResume, onViewPortfolio, onViewInsights}: DashboardProps ) {
   const [analyses, setAnalyses] = useState<Analysis[]>([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
@@ -184,7 +184,7 @@ export default function Dashboard( {onNewAnalysis, onIncremental, onViewResume, 
 
   const handleViewResume = (analysis: Analysis, resumeId: number) => onViewResume(resumeId);
   const handleViewPortfolio = (anlysis: Analysis, portfolioId: number) => onViewPortfolio(portfolioId);
-  const handleViewInsights  = () => "do nothing";
+  const handleViewInsights  = (analysis: Analysis) => onViewInsights(analysis.id);
 
   // derive counts for top stat component
   const totalResumes    = analyses.reduce((n, a) => n + a.resumeIds.length, 0);

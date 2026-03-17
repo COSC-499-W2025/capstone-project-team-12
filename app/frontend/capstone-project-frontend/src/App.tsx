@@ -25,6 +25,13 @@ function App() {
   const [activeAnalysisId, setActiveAnalysisId] = useState<string | null>(null);
   const [viewResumeId, setViewResumeId] = useState<number | null>(null);
   const [viewPortfolioId, setViewPortfolioId] = useState<number | null>(null);
+  const [viewInsightsAnalysisId, setViewInsightsAnalysisId] = useState<string | null>(null);
+
+  const handleViewInsights = (analysisId: string) => {
+    setViewInsightsAnalysisId(analysisId);
+    setShowDashboard(false);
+    setCurrentStep(4);
+  };
 
   const handleViewPortfolio = (portfolioId: number) => {
     setViewPortfolioId(portfolioId);
@@ -57,7 +64,14 @@ function App() {
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f0f2f8' }}>
       <Sidebar currentStep={currentStep} onStepChange={(step) => { setShowDashboard(false); setCurrentStep(step); }} onDashboard={() => setShowDashboard(true)} />
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        {showDashboard ? (<Dashboard onNewAnalysis={handleNewAnalysis} onIncremental={handleIncremental} onViewResume={handleViewResume} onViewPortfolio={handleViewPortfolio}/>) : (
+        {showDashboard ? (
+          <Dashboard 
+            onNewAnalysis={handleNewAnalysis} 
+            onIncremental={handleIncremental} 
+            onViewResume={handleViewResume} 
+            onViewPortfolio={handleViewPortfolio}
+            onViewInsights={handleViewInsights}
+          />) : (
         <>
           {currentStep === 1 && (
           <Onboarding
@@ -65,22 +79,28 @@ function App() {
             mode={analysisMode}
             onComplete={(data) => { setOnboardingData(data); setCurrentStep(2); }}
           />
-        )}
-          {currentStep === 2 && (
-            <FileImport
-              activeAnalysisId={activeAnalysisId}
-              onComplete={() => setCurrentStep(2.5)}
-              githubUsername={onboardingData?.githubUsername || ''}
-              githubEmail={onboardingData?.email || ''}
-              model={onboardingData?.llmMode || 'online'}
-              uploads={uploads}
-              onUploadsChange={setUploads}
-            />
           )}
+            {currentStep === 2 && (
+              <FileImport
+                activeAnalysisId={activeAnalysisId}
+                onComplete={() => setCurrentStep(2.5)}
+                githubUsername={onboardingData?.githubUsername || ''}
+                githubEmail={onboardingData?.email || ''}
+                model={onboardingData?.llmMode || 'online'}
+                uploads={uploads}
+                onUploadsChange={setUploads}
+              />
+            )}
 
           {currentStep === 2.5 && <ProgressPage onComplete={() => setCurrentStep(3)} />}
           {currentStep === 3 && <FinetunePage onComplete ={() => setCurrentStep(4)} />}
-          {currentStep === 4 && <ProjectInsights onPrevious={() => setCurrentStep(3)} onComplete={() => setCurrentStep(5)} />}
+          {currentStep === 4 && 
+            (<ProjectInsights 
+              onPrevious={() => setCurrentStep(3)} 
+              onComplete={() => setCurrentStep(5)} 
+              analysisId={viewInsightsAnalysisId}
+              /> 
+            )}
           
           {currentStep === 5 && (
             <ResumeDisplay 

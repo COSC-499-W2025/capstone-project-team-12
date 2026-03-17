@@ -29,6 +29,7 @@ export interface DashboardProps {
   onIncremental: (id: string) => void;
   onViewResume: (resumeId: number) => void;
   onViewPortfolio: (portfolioId: number) => void;
+  onViewInsights: (analysisId: string) => void;
 }
 
 export interface AnalysisCardProps {
