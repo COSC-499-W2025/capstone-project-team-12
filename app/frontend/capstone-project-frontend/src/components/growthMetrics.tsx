@@ -8,13 +8,16 @@ interface GrowthMetricsProps {
 
 function GrowthBadge({ value, label, sub }: { value: number; label: string; sub?: string }) {
   const positive = value >= 0;
+  const direction = positive ? 'went up' : 'went down';
+  const generatedSub = `${sub} ${direction} over time`;
+
   return (
     <div className="bg-white rounded-2xl border border-slate-100 p-4 flex flex-col gap-1">
       <span className="text-xs font-semibold uppercase tracking-widest text-slate-400">{label}</span>
       <span className={`text-2xl font-bold ${positive ? 'text-blue-600' : 'text-gray-600'}`}>
         {positive ? '+' : ''}{value.toFixed(1)}%
       </span>
-      {sub && <span className="text-xs text-slate-400">{sub}</span>}
+      {sub && <span className="text-xs text-slate-400">{generatedSub}</span>}
     </div>
   );
 }
@@ -40,23 +43,23 @@ export default function GrowthMetrics({ g }: GrowthMetricsProps) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <GrowthBadge
             value={g.code_metrics.commit_growth}
-            label="Total Commits"
-            sub="across whole team"
+            label="Project Commits"
+            sub="Total number of commits across all users"
           />
           <GrowthBadge
             value={g.code_metrics.file_growth}
             label="Files Touched"
-            sub="across whole team"
+            sub="Total number of files touched by all users"
           />
           <GrowthBadge
             value={g.code_metrics.lines_growth}
-            label="Net Lines"
-            sub="across whole team"
+            label="Project Size"
+            sub="Project size"
           />
           <GrowthBadge
             value={g.code_metrics.user_lines_growth}
             label="Your Net Lines"
-            sub="your personal output"
+            sub="Your personal output"
           />
         </div>
       </div>
@@ -94,9 +97,9 @@ export default function GrowthMetrics({ g }: GrowthMetricsProps) {
       {/* Collaboration */}
       <div className="bg-white rounded-2xl border border-slate-100 p-5">
         <h3 className="text-sm font-semibold text-slate-600 mb-2">Collaboration</h3>
-        {g.collaboration_evolution.collaboration_summary && (
+        {/* {g.collaboration_evolution.collaboration_summary && (
           <p className="text-sm text-slate-500 mb-3">{g.collaboration_evolution.collaboration_summary}</p>
-        )}
+        )} */}
         <div className="flex gap-6">
           <div>
             <p className="text-xs text-slate-400">First project</p>
