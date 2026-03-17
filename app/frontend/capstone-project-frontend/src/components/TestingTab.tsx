@@ -17,7 +17,7 @@ export default function TestingTab({ p }: TestingTabProps) {
         <StatCard label="Testing % (files)"    value={`${p.testing.testingPercentageFiles}%`} />
         <StatCard label="Testing % (lines)"    value={`${p.testing.testingPercentageLines}%`} />
       </div>
-      <SectionCard title="Test Coverage Status" icon="🧪">
+      <SectionCard title="Test Status" icon="🧪">
         <div className="flex items-center gap-3">
           <span className={`w-3 h-3 rounded-full shrink-0 ${p.testing.hasTests ? "bg-green-500" : "bg-red-400"}`} />
           <span className="text-sm font-semibold text-slate-700">
