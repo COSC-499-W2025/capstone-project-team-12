@@ -75,10 +75,19 @@ function mapToProjects(raw: any): Project[] {
       description: p.user_role?.blurb ?? '',
     },
     timeline: {
-      start: p.dates?.start_date ?? '',
-      end: p.dates?.end_date ?? '',
+      start: formatDate(p.dates?.start_date ?? ''),
+      end: formatDate(p.dates?.end_date ?? ''),
     },
   }));
+}
+
+function formatDate(iso: string): string {
+  if (!iso) return '';
+  return new Date(iso).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
 }
 
 export default function ProjectInsights( { onComplete, onPrevious, analysisId }: { onComplete?: () => void, onPrevious?: () => void, analysisId?: string | null }) {
