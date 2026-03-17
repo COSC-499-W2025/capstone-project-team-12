@@ -3,6 +3,7 @@ import { useState } from 'react';
 import Sidebar from './components/sidebar';
 import Portfolio from './pages/portfolio';
 import Onboarding from './pages/onboarding';
+import ProjectInsights from "./pages/ProjectInsights";
 import ProgressPage from './pages/progress';
 import ResumeDisplay from './pages/resume_display';
 import Dashboard from './pages/dashboard';
