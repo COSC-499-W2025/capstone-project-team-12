@@ -39,9 +39,11 @@ function mapToProjects(raw: any): Project[] {
     deployment: {
       ciFiles: p.success_indicators?.deployment?.has_cicd ? 1 : 0,
       dockerFiles: p.success_indicators?.deployment?.has_containerization ? 1 : 0,
-      infraFiles: 0,
       hasCI: p.success_indicators?.deployment?.has_cicd ?? false,
       hasDocker: p.success_indicators?.deployment?.has_containerization ?? false,
+      cicdTools: p.success_indicators?.deployment?.cicd_tools ?? [],
+      containerizationTools: p.success_indicators?.deployment?.containerization_tools ?? [],
+      hostingPlatforms: p.success_indicators?.deployment?.hosting_platforms ?? [],
     },
     versionControl: {
       totalCommits: p.statistics?.user_commits ?? p.user_commits?.length ?? 0,
