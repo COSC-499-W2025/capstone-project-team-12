@@ -2,49 +2,50 @@ import { type PortfolioData } from "../types/types";
 import { useEffect, useState } from "react";
 import ProjectCard from "../components/projectcard";
 import LangBar from "../components/langbar";
+import GrowthMetrics from "../components/growthMetrics";
 
 // SAMPLE DATA
-const PORTFOLIO_DATA: PortfolioData = {
-  developer: "Your Name",
-  coreCompetencies: ["Mobile App Development", "Backend Development", "Web Development"],
-  languages: [
-    { name: "XML",          pct: 34.7, files: 50 },
-    { name: "Java",         pct: 18.8, files: 27 },
-    { name: "PHP",          pct: 11.8, files: 17 },
-    { name: "CSS",          pct:  9.7, files: 14 },
-    { name: "JavaScript",   pct:  9.0, files: 13 },
-    { name: "HTML",         pct:  6.9, files: 10 },
-    { name: "Kotlin",       pct:  2.1, files:  3 },
-    { name: "Transact-SQL", pct:  1.4, files:  2 },
-    { name: "Markdown",     pct:  0.7, files:  1 },
-  ],
-  projects: [
-    {
-      id: 1,
-      name: "COSC360-project-piggybank",
-      timeline: "Feb 2025 – Apr 2025",
-      duration: "41 days",
-      role: "Feature Developer",
-      insight: "Contributed a substantial amount of new code, indicating a strong role in implementing features and expanding the project's functionality.",
-      contribution: { level: "Top Contributor", teamSize: 3, rank: 1, percentile: 66.67, share: 46.0 },
-      totals: { commits: 63,  files: 362, added: 11560, deleted: 3144, net: 8416 },
-      mine:   { commits: 29,  added: 6523, deleted: 2096, net: 4427, files: 162 },
-      technologies: [],
-    },
-    {
-      id: 2,
-      name: "341-FarmToTableApp",
-      timeline: "Apr 2025 – Apr 2025",
-      duration: "3 days",
-      role: "Feature Developer",
-      insight: "Contributed a substantial amount of new code, indicating a strong role in implementing features and expanding the project's functionality.",
-      contribution: { level: "Significant Contributor", teamSize: 4, rank: 2, percentile: 50.0, share: 15.6 },
-      totals: { commits: 32,  files: 326, added: 16669, deleted: 857,  net: 15812 },
-      mine:   { commits: 5,   added: 836,  deleted: 16,   net: 820,  files: 26 },
-      technologies: ["android.os", "java.util", "androidx.annotation"],
-    },
-  ],
-};
+// const PORTFOLIO_DATA: PortfolioData = {
+//   developer: "Your Name",
+//   coreCompetencies: ["Mobile App Development", "Backend Development", "Web Development"],
+//   languages: [
+//     { name: "XML",          pct: 34.7, files: 50 },
+//     { name: "Java",         pct: 18.8, files: 27 },
+//     { name: "PHP",          pct: 11.8, files: 17 },
+//     { name: "CSS",          pct:  9.7, files: 14 },
+//     { name: "JavaScript",   pct:  9.0, files: 13 },
+//     { name: "HTML",         pct:  6.9, files: 10 },
+//     { name: "Kotlin",       pct:  2.1, files:  3 },
+//     { name: "Transact-SQL", pct:  1.4, files:  2 },
+//     { name: "Markdown",     pct:  0.7, files:  1 },
+//   ],
+//   projects: [
+//     {
+//       id: 1,
+//       name: "COSC360-project-piggybank",
+//       timeline: "Feb 2025 – Apr 2025",
+//       duration: "41 days",
+//       role: "Feature Developer",
+//       insight: "Contributed a substantial amount of new code, indicating a strong role in implementing features and expanding the project's functionality.",
+//       contribution: { level: "Top Contributor", teamSize: 3, rank: 1, percentile: 66.67, share: 46.0 },
+//       totals: { commits: 63,  files: 362, added: 11560, deleted: 3144, net: 8416 },
+//       mine:   { commits: 29,  added: 6523, deleted: 2096, net: 4427, files: 162 },
+//       technologies: [],
+//     },
+//     {
+//       id: 2,
+//       name: "341-FarmToTableApp",
+//       timeline: "Apr 2025 – Apr 2025",
+//       duration: "3 days",
+//       role: "Feature Developer",
+//       insight: "Contributed a substantial amount of new code, indicating a strong role in implementing features and expanding the project's functionality.",
+//       contribution: { level: "Significant Contributor", teamSize: 4, rank: 2, percentile: 50.0, share: 15.6 },
+//       totals: { commits: 32,  files: 326, added: 16669, deleted: 857,  net: 15812 },
+//       mine:   { commits: 5,   added: 836,  deleted: 16,   net: 820,  files: 26 },
+//       technologies: ["android.os", "java.util", "androidx.annotation"],
+//     },
+//   ],
+// };
 
 
 // --------- ENDPOINT ---------------
@@ -92,20 +93,23 @@ async function fetchPortfolio(portfolioId: number): Promise<PortfolioData> {
         net: p.statistics?.user_net_lines ?? 0,
         files: p.statistics?.user_files_modified ?? 0,
       },
-      technologies: p.frameworks_summary?.top_frameworks ?? [],
+      technologies: p.frameworks_summary?.top_frameworks ?? [],     
     })),
+    growthMetrics: d.growth_metrics ? {
+      ...d.growth_metrics,
+      framework_timeline_list: d.skill_timeline?.framework_timeline_list ?? [],
+    } : null,
   };
 }
 
 
-export default function DevPortfolio({ data: dataProp, onComplete, onPrevious, portfolioId } : {
-  data?: PortfolioData;
+export default function DevPortfolio({ onComplete, onPrevious, portfolioId } : {
   onComplete?: () => void;
   onPrevious?: () => void;
   portfolioId?: number | null;
 }) {
 
-  const [data, setData] = useState<PortfolioData>(dataProp ?? PORTFOLIO_DATA);
+  const [data, setData] = useState<PortfolioData | null>(null);
   const [loading, setLoading] = useState(portfolioId != null);
   const [error, setError] = useState<string | null>(null);
 
@@ -121,6 +125,11 @@ export default function DevPortfolio({ data: dataProp, onComplete, onPrevious, p
       <p className="text-sm text-slate-400">Loading portfolio…</p>
     </div>
   );
+
+  if (error) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><p className="text-red-500">Error: {error}</p></div>;
+
+  if (!data) return null;
+
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans">
@@ -166,6 +175,14 @@ export default function DevPortfolio({ data: dataProp, onComplete, onPrevious, p
             {data.languages.map((l, i) => <LangBar key={l.name} {...l} index={i} />)}
           </div>
         </div>
+
+        {data.growthMetrics && (
+          <GrowthMetrics
+            g={data.growthMetrics}
+            earliestProject={data.growthMetrics.earliest_project}
+            latestProject={data.growthMetrics.latest_project}
+          />
+        )}
 
         {/* Back button */}
           <div className="flex justify-between mt-8">
