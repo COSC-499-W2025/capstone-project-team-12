@@ -27,12 +27,53 @@ export default function GrowthMetrics({ g }: GrowthMetricsProps) {
 
   return (
     <div className="mt-10 space-y-6">
+
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-widest text-indigo-500 mb-1">Skills Timeline</p>
+        <h2 className="text-2xl font-bold text-slate-800">Technology evolution over time</h2>
+        <p className="text-sm text-slate-500 mt-1">
+          Based on <span className="font-semibold text-slate-700">{g.framework_timeline_list?.length ?? 0} projects</span>
+        </p>
+      </div>
+
+
+      {/* Technology Timeline */}
+      <div className="bg-white rounded-2xl border border-slate-100 p-5 mb-10">
+        <h3 className="text-sm font-semibold text-slate-600 mb-4">Technology Progression</h3>
+        <div className="space-y-4">
+          {(g.framework_timeline_list ?? []).map((proj) => (
+            <div key={proj.project_name} className="flex items-start gap-3">
+              <div className="text-xs text-slate-400 w-32 shrink-0 pt-1">{proj.date_range}</div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-slate-700 mb-1.5">{proj.project_name}</p>
+                <div className="flex flex-wrap gap-1">
+                  {proj.frameworks.length > 0
+                    ? proj.frameworks.map((f: string) => (
+                        <span key={f} className="text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 font-medium">
+                          {f}
+                        </span>
+                      ))
+                    : <span className="text-xs text-slate-400 italic">No frameworks detected</span>
+                  }
+                  {proj.total_frameworks > proj.frameworks.length && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-400">
+                      +{proj.total_frameworks - proj.frameworks.length} more
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+
       <div>
         <p className="text-xs font-semibold uppercase tracking-widest text-indigo-500 mb-1">Growth & Evolution</p>
         <h2 className="text-2xl font-bold text-slate-800">Progress over time</h2>
         <p className="text-sm text-slate-500 mt-1">
-          Comparing <span className="font-semibold text-slate-700">{g.earliest_project}</span>
-          {" → "}
+          Comparing your first project, <span className="font-semibold text-slate-700">{g.earliest_project}</span>
+          {", with your last project, "}
           <span className="font-semibold text-slate-700">{g.latest_project}</span>
         </p>
       </div>
@@ -64,42 +105,10 @@ export default function GrowthMetrics({ g }: GrowthMetricsProps) {
         </div>
       </div>
 
-      {/* Technology Timeline */}
-      <div className="bg-white rounded-2xl border border-slate-100 p-5">
-        <h3 className="text-sm font-semibold text-slate-600 mb-4">Technology Progression</h3>
-        <div className="space-y-4">
-          {(g.framework_timeline_list ?? []).map((proj) => (
-            <div key={proj.project_name} className="flex items-start gap-3">
-              <div className="text-xs text-slate-400 w-32 shrink-0 pt-1">{proj.date_range}</div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-slate-700 mb-1.5">{proj.project_name}</p>
-                <div className="flex flex-wrap gap-1">
-                  {proj.frameworks.length > 0
-                    ? proj.frameworks.map((f: string) => (
-                        <span key={f} className="text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 font-medium">
-                          {f}
-                        </span>
-                      ))
-                    : <span className="text-xs text-slate-400 italic">No frameworks detected</span>
-                  }
-                  {proj.total_frameworks > proj.frameworks.length && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-400">
-                      +{proj.total_frameworks - proj.frameworks.length} more
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
 
       {/* Collaboration */}
       <div className="bg-white rounded-2xl border border-slate-100 p-5">
         <h3 className="text-sm font-semibold text-slate-600 mb-2">Collaboration</h3>
-        {/* {g.collaboration_evolution.collaboration_summary && (
-          <p className="text-sm text-slate-500 mb-3">{g.collaboration_evolution.collaboration_summary}</p>
-        )} */}
         <div className="flex gap-6">
           <div>
             <p className="text-xs text-slate-400">First project</p>
@@ -146,6 +155,6 @@ export default function GrowthMetrics({ g }: GrowthMetricsProps) {
           </div>
         </div>
       )}
-    </div>
+    </div>   
   );
 }
