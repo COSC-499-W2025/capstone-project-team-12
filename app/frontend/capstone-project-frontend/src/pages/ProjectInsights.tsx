@@ -3,7 +3,7 @@ import OverviewTab from "../components/OverviewTab";
 import TestingTab from "../components/TestingTab";
 import DeploymentTab from "../components/DeploymentTab";
 import PacingTab from "../components/PacingTab";
-import type { Project, Technology, FileExtension } from "../types/insightTypes";
+import type { Project } from "../types/insightTypes";
 
 
 type Tab = "overview" | "testing" | "deployment" | "pacing & role";
@@ -47,9 +47,6 @@ function mapToProjects(raw: any): Project[] {
     },
     versionControl: {
       totalCommits: p.statistics?.user_commits ?? p.user_commits?.length ?? 0,
-      branches: 1,
-      mergeCommits: 0,
-      avgCommitMessageLength: 0,
     },
     technologies: Object.entries(raw.metadata_insights?.language_stats ?? {})
       .map(([name, stats]: [string, any]) => ({ name, uses: stats.file_count })),
