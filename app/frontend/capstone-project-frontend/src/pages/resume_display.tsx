@@ -15,17 +15,12 @@ export const mockResume: Resume = {
   ],
   projects: [
     {
-      name: "Capstone Analysis Tool", date_range: "Jan 2025 - Apr 2025",
+      name: "example-1", date_range: "Jan 2025 - Apr 2025",
       collaboration: "Contributed a substantial amount of new code, indicating a strong role in implementing features and expanding the project's functionality.",
       frameworks: ["Python", "FastAPI", "PostgreSQL", "Docker", "Flask"],
     },
     {
-      name: "COSC 360 – Android App", date_range: "Apr 2025 - Present",
-      collaboration: "Most contributions involved modifying existing files, suggesting a maintenance-focused role aimed at improving correctness and performance.",
-      frameworks: ["Java", "Android SDK", "XML", "SQLite"],
-    },
-    {
-      name: "Personal Portfolio", date_range: "Feb 2025 - Mar 2025",
+      name: "example-2", date_range: "Feb 2025 - Mar 2025",
       collaboration: "Balanced contribution pattern across additions, modifications, and deletions throughout the codebase.",
       frameworks: ["React", "TypeScript", "Tailwind CSS", "Vite"],
     },
