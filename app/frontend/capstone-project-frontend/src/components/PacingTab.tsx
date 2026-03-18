@@ -12,10 +12,10 @@ export default function PacingTab({ p }: PacingTabProps) {
     <div className="space-y-5">
       <div className="grid md:grid-cols-2 gap-4">
         <StatCard label="Avg Lines per Commit" value={p.pacing.avgLinesPerCommit} accent />
-        <StatCard label="End-Heavy Commits"    value={`${p.pacing.endHeavyPercent}%`} sub="made in the last quarter" accent />
+        <StatCard label="Commits Made in the Last 1/4 of Project"    value={`${p.pacing.endHeavyPercent}%`} accent />
       </div>
       <SectionCard title="Commit Distribution" icon="📊">
-        <PacingBar percent={p.pacing.endHeavyPercent} />
+        <PacingBar percent={p.pacing.endHeavyPercent} message={p.pacing.commitConsistency} />
       </SectionCard>
       <SectionCard title="Contribution Level" icon="🏅">
         <div className="flex items-center gap-3">

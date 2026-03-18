@@ -9,6 +9,7 @@ export interface UploadEntry {
 }
 
 interface FileImportProps {
+  activeAnalysisId?: string | null;
   onComplete: () => void;
   model: string;
   uploads: UploadEntry[];
@@ -45,7 +46,7 @@ function readAllEntries(dirEntry: FileSystemDirectoryEntry): Promise<File[]> {
   });
 }
 
-const FileImport: React.FC<FileImportProps> = ({ onComplete, model: _model, uploads, onUploadsChange }) => {
+const FileImport: React.FC<FileImportProps> = ({ activeAnalysisId, onComplete, model: _model, uploads, onUploadsChange }) => {
   const setUploads = onUploadsChange;
   const [isDragging, setIsDragging] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
@@ -159,8 +160,13 @@ const FileImport: React.FC<FileImportProps> = ({ onComplete, model: _model, uplo
 
       console.log('[UPLOAD] Sending POST http://localhost:8080/projects/upload/extract ...');
       const fetchStart = performance.now();
-      const response = await fetch('http://localhost:8080/projects/upload/extract', {
-        method: 'POST',
+
+      // url depends on whether this is an incremental or new analysis
+      const url = activeAnalysisId ? `http://localhost:8080/projects/${activeAnalysisId}/update/extract` : `http://localhost:8080/projects/upload/extract`;
+
+
+      const response = await fetch(url, {
+        method: activeAnalysisId ? 'PUT' : 'POST',
         body: formData,
       });
       console.log('[UPLOAD] Response received in', ((performance.now() - fetchStart) / 1000).toFixed(1), 's — status:', response.status);

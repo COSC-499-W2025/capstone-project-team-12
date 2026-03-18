@@ -1,82 +1,123 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import OverviewTab from "../components/OverviewTab";
 import TestingTab from "../components/TestingTab";
 import DeploymentTab from "../components/DeploymentTab";
 import PacingTab from "../components/PacingTab";
 import type { Project, Technology, FileExtension } from "../types/insightTypes";
 
-const projects: Project[] = [
-  {
-    id: 1,
-    repoName: "COSC 360 Project",
-    contribution: { level: "Top Contributor", rank: 1, percentile: 66.67 },
-    collaboration: { teamSize: 3, isCollaborative: true, contributionShare: 46.03 },
-    testing: {
-      testFilesModified: 0, codeFilesModified: 26,
-      testingPercentageFiles: 0.0, testLinesAdded: 0,
-      codeLinesAdded: 836, testingPercentageLines: 0.0, hasTests: false,
-    },
-    deployment: { ciFiles: 0, dockerFiles: 0, infraFiles: 1, hasCI: false, hasDocker: false },
-    versionControl: { totalCommits: 14, branches: 2, mergeCommits: 1, avgCommitMessageLength: 42 },
-    technologies: [
-      { name: "android.os", uses: 8 }, { name: "android.content", uses: 8 },
-      { name: "android.widget", uses: 7 }, { name: "java.util", uses: 4 },
-      { name: "android.graphics", uses: 4 }, { name: "android.view", uses: 4 },
-    ] as Technology[],
-    fileExtensions: [
-      { ext: ".md",   count: 1,  size: 3987,   percentage: 0.69,  category: "Documentation" },
-      { ext: ".xml",  count: 50, size: 2345,   percentage: 34.72, category: "Mobile App Dev" },
-      { ext: ".json", count: 3,  size: 589406, percentage: 0.69,  category: "Other" },
-      { ext: ".sql",  count: 1,  size: 564,    percentage: 18.75, category: "Database" },
-      { ext: ".yml",  count: 1,  size: 345,    percentage: 6.94,  category: "DevOps" },
-    ] as FileExtension[],
-    pacing: { avgLinesPerCommit: 230, endHeavyPercent: 76 },
-    userRole: {
-      title: "Feature Developer",
-      description: "Contributed a substantial amount of new code, indicating a strong role in implementing features and expanding the project's functionality.",
-    },
-    timeline: { start: "2025-04-01", end: "2025-04-05" },
-  },
-  {
-    id: 2,
-    repoName: "Personal Portfolio",
-    contribution: { level: "Sole Contributor", rank: 1, percentile: 100 },
-    collaboration: { teamSize: 1, isCollaborative: false, contributionShare: 100 },
-    testing: {
-      testFilesModified: 2, codeFilesModified: 14,
-      testingPercentageFiles: 12.5, testLinesAdded: 120,
-      codeLinesAdded: 540, testingPercentageLines: 18.2, hasTests: true,
-    },
-    deployment: { ciFiles: 1, dockerFiles: 0, infraFiles: 2, hasCI: true, hasDocker: false },
-    versionControl: { totalCommits: 28, branches: 4, mergeCommits: 5, avgCommitMessageLength: 61 },
-    technologies: [
-      { name: "react", uses: 12 }, { name: "tailwindcss", uses: 10 },
-      { name: "typescript", uses: 9 }, { name: "vite", uses: 5 },
-      { name: "framer-motion", uses: 3 },
-    ] as Technology[],
-    fileExtensions: [
-      { ext: ".tsx",  count: 18, size: 42000, percentage: 55.2, category: "Frontend" },
-      { ext: ".css",  count: 4,  size: 8200,  percentage: 12.3, category: "Styling" },
-      { ext: ".json", count: 2,  size: 1500,  percentage: 4.5,  category: "Other" },
-      { ext: ".yml",  count: 2,  size: 980,   percentage: 6.0,  category: "DevOps" },
-      { ext: ".md",   count: 3,  size: 5400,  percentage: 8.1,  category: "Documentation" },
-    ] as FileExtension[],
-    pacing: { avgLinesPerCommit: 98, endHeavyPercent: 38 },
-    userRole: {
-      title: "Full Stack Developer",
-      description: "Sole contributor with broad ownership across the entire codebase, from UI components to deployment configuration.",
-    },
-    timeline: { start: "2025-02-10", end: "2025-03-28" },
-  },
-];
 
 type Tab = "overview" | "testing" | "deployment" | "pacing & role";
 const tabs: Tab[] = ["overview", "testing", "deployment", "pacing & role"];
 
-export default function ProjectInsights( { onComplete, onPrevious }: { onComplete?: () => void, onPrevious?: () => void }) {
-  const [selectedProject, setSelectedProject] = useState<Project>(projects[0]);
+
+// ---- Mapping Function ----
+function mapToProjects(raw: any): Project[] {
+  const insights = raw.project_insights?.analyzed_insights ?? [];
+  return insights.map((p: any, i: number) => ({
+    id: i + 1,
+    repoName: p.repository_name ?? 'Unknown',
+    contribution: {
+      level: p.contribution_analysis?.contribution_level ?? '',
+      rank: p.contribution_analysis?.rank_by_commits ?? 1,
+      percentile: p.contribution_analysis?.percentile ?? 0,
+    },
+    collaboration: {
+      teamSize: p.repository_context?.all_commits_dates ? 
+        Object.keys(p.repository_context?.all_authors_stats ?? {}).length : 1,
+      isCollaborative: p.collaboration_insights?.is_collaborative ?? false,
+      contributionShare: p.collaboration_insights?.user_contribution_share_percentage ?? 100,
+    },
+    testing: {
+      testFilesModified: p.testing_insights?.test_files_modified ?? 0,
+      codeFilesModified: p.testing_insights?.code_files_modified ?? 0,
+      testingPercentageFiles: p.testing_insights?.testing_percentage_files ?? 0,
+      testLinesAdded: p.testing_insights?.test_lines_added ?? 0,
+      codeLinesAdded: p.testing_insights?.code_lines_added ?? 0,
+      testingPercentageLines: p.testing_insights?.testing_percentage_lines ?? 0,
+      hasTests: p.testing_insights?.has_tests ?? false,
+    },
+    deployment: {
+      ciFiles: p.success_indicators?.deployment?.has_cicd ? 1 : 0,
+      dockerFiles: p.success_indicators?.deployment?.has_containerization ? 1 : 0,
+      hasCI: p.success_indicators?.deployment?.has_cicd ?? false,
+      hasDocker: p.success_indicators?.deployment?.has_containerization ?? false,
+      cicdTools: p.success_indicators?.deployment?.cicd_tools ?? [],
+      containerizationTools: p.success_indicators?.deployment?.containerization_tools ?? [],
+      hostingPlatforms: p.success_indicators?.deployment?.hosting_platforms ?? [],
+    },
+    versionControl: {
+      totalCommits: p.statistics?.user_commits ?? p.user_commits?.length ?? 0,
+      branches: 1,
+      mergeCommits: 0,
+      avgCommitMessageLength: 0,
+    },
+    technologies: Object.entries(raw.metadata_insights?.language_stats ?? {})
+      .map(([name, stats]: [string, any]) => ({ name, uses: stats.file_count })),
+    fileExtensions: Object.entries(raw.metadata_insights?.extension_stats ?? {})
+      .map(([ext, stats]: [string, any]) => ({
+        ext,
+        count: stats.count,
+        size: stats.total_size,
+        percentage: stats.percentage,
+        category: stats.category,
+      })),
+    pacing: {
+      avgLinesPerCommit: p.success_indicators?.version_control?.avg_lines_per_commit ?? 0,
+      endHeavyPercent: (() => {
+        const msg = p.success_indicators?.version_control?.commit_consistency ?? '';
+        const match = msg.match(/(\d+\.?\d*)%/);
+        return match ? parseFloat(match[1]) : 0;
+      })(),
+      commitConsistency: p.success_indicators?.version_control?.commit_consistency ?? '',
+    },
+    userRole: {
+      title: p.user_role?.role ?? '',
+      description: p.user_role?.blurb ?? '',
+    },
+    timeline: {
+      start: formatDate(p.dates?.start_date ?? ''),
+      end: formatDate(p.dates?.end_date ?? ''),
+    },
+  }));
+}
+
+function formatDate(iso: string): string {
+  if (!iso) return '';
+  return new Date(iso).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+export default function ProjectInsights( { onComplete, onPrevious, analysisId }: { onComplete?: () => void, onPrevious?: () => void, analysisId?: string | null }) {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(analysisId != null);
+  const [error, setError] = useState<string | null>(null);
+  
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>("overview");
+
+  useEffect(() => {
+    if (analysisId == null) return;
+    fetch('http://localhost:8080/projects')
+      .then(r => { if (!r.ok) throw new Error(`${r.status}`); return r.json(); })
+      .then((data: any[]) => {
+        const match = data.find(d => d.analysis_id === analysisId);
+        if (!match) throw new Error('Analysis not found');
+        const mapped = mapToProjects(match);
+        setProjects(mapped);
+        setSelectedProject(mapped[0] ?? null);  // set initial selection here
+        setLoading(false);
+      })
+      .catch(e => { setError(e.message); setLoading(false); });
+  }, [analysisId]);
+
+  if (loading) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><p className="text-slate-500">Loading insights...</p></div>;
+  if (error) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><p className="text-red-500">Error: {error}</p></div>;
+
   const p = selectedProject;
+  if (!p) return null;
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans">
@@ -96,7 +137,7 @@ export default function ProjectInsights( { onComplete, onPrevious }: { onComplet
                 key={proj.id}
                 onClick={() => { setSelectedProject(proj); setActiveTab("overview"); }}
                 className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${
-                  selectedProject.id === proj.id
+                  selectedProject?.id === proj.id
                     ? "bg-indigo-600 text-white border-indigo-600 shadow-md"
                     : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-600"
                 }`}

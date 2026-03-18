@@ -39,6 +39,9 @@ export interface Deployment {
   infraFiles: number;
   hasCI: boolean;
   hasDocker: boolean;
+  cicdTools: string[];
+  containerizationTools: string[];
+  hostingPlatforms: string[];
 }
 
 export interface VersionControl {
@@ -51,6 +54,7 @@ export interface VersionControl {
 export interface Pacing {
   avgLinesPerCommit: number;
   endHeavyPercent: number;
+  commitConsistency: string;
 }
 
 export interface UserRole {

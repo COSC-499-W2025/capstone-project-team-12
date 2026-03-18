@@ -14,9 +14,22 @@ export interface Analysis {
   status: AnalysisStatus;
 }
 
-export interface NewAnalysisPayload {
-  label: string;
-  repos: string[];
+export interface ModalProps {
+  title: string;
+  description: string;
+  confirmLabel: string;
+  confirmColor?: "red" | "indigo";
+  onConfirm: () => void;
+  onCancel: () => void;
+}
+
+
+export interface DashboardProps {
+  onNewAnalysis: () => void;
+  onIncremental: (id: string) => void;
+  onViewResume: (resumeId: number) => void;
+  onViewPortfolio: (portfolioId: number) => void;
+  onViewInsights: (analysisId: string) => void;
 }
 
 export interface AnalysisCardProps {
@@ -24,7 +37,7 @@ export interface AnalysisCardProps {
   onDelete: (id: string) => void;
   onDeleteResume: (resumeId: number) => void;
   onDeletePortfolio: (portfolioId: number) => void;
-  onIncremental: (id: string, files: string[]) => void;
+  onIncremental: (id: string) => void;
   onViewResume: (analysis: Analysis, resumeId: number) => void;
   onViewPortfolio: (analysis: Analysis, portfolioId: number) => void;
   onViewInsights: (analysis: Analysis) => void;

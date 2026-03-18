@@ -1,4 +1,5 @@
 import { type PortfolioData } from "../types/types";
+import { useEffect, useState } from "react";
 import ProjectCard from "../components/projectcard";
 import LangBar from "../components/langbar";
 
@@ -45,11 +46,82 @@ const PORTFOLIO_DATA: PortfolioData = {
   ],
 };
 
-export default function DevPortfolio({ data = PORTFOLIO_DATA, onComplete, onPrevious }: {
+
+// --------- ENDPOINT ---------------
+const API_BASE = "http://localhost:8080";
+
+async function fetchPortfolio(portfolioId: number): Promise<PortfolioData> {
+  const res = await fetch(`${API_BASE}/portfolio/${portfolioId}`);
+  if (!res.ok) throw new Error(`Failed to fetch portfolio: ${res.status} ${res.statusText}`);
+  const data = await res.json();
+  const d = data.portfolio_data;
+
+  return {
+    developer: d.result_id ?? "Developer",
+    coreCompetencies: d.skill_timeline?.high_level_skills ?? [],
+    languages: (d.skill_timeline?.language_progression ?? []).map((l: any) => ({
+      name: l.name,
+      pct: l.percentage,
+      files: l.file_count,
+    })),
+    projects: (d.projects_detail ?? []).map((p: any) => ({
+      id: p.name,
+      name: p.name,
+      timeline: p.date_range,
+      duration: `${p.duration_days} days`,
+      role: p.user_role?.role ?? "",
+      insight: p.user_role?.blurb ?? "",
+      contribution: {
+        level: p.contribution?.level ?? "",
+        teamSize: p.contribution?.team_size ?? 1,
+        rank: p.contribution?.rank ?? 1,
+        percentile: p.contribution?.percentile ?? 0,
+        share: p.contribution?.contribution_share ?? 0,
+      },
+      totals: {
+        commits: p.statistics?.commits ?? 0,
+        files: p.statistics?.files ?? 0,
+        added: p.statistics?.additions ?? 0,
+        deleted: p.statistics?.deletions ?? 0,
+        net: p.statistics?.net_lines ?? 0,
+      },
+      mine: {
+        commits: p.statistics?.user_commits ?? 0,
+        added: p.statistics?.user_lines_added ?? 0,
+        deleted: p.statistics?.user_lines_deleted ?? 0,
+        net: p.statistics?.user_net_lines ?? 0,
+        files: p.statistics?.user_files_modified ?? 0,
+      },
+      technologies: p.frameworks_summary?.top_frameworks ?? [],
+    })),
+  };
+}
+
+
+export default function DevPortfolio({ data: dataProp, onComplete, onPrevious, portfolioId } : {
   data?: PortfolioData;
   onComplete?: () => void;
   onPrevious?: () => void;
+  portfolioId?: number | null;
 }) {
+
+  const [data, setData] = useState<PortfolioData>(dataProp ?? PORTFOLIO_DATA);
+  const [loading, setLoading] = useState(portfolioId != null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (portfolioId == null) return;
+    fetchPortfolio(portfolioId)
+      .then(d  => { setData(d); setLoading(false); })
+      .catch(e => { setError(e.message); setLoading(false); });
+  }, [portfolioId]);
+
+  if (loading) return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <p className="text-sm text-slate-400">Loading portfolio…</p>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans">
       <div className="max-w-4xl mx-auto px-6 py-10">
