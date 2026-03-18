@@ -7,8 +7,8 @@ import type { Resume, Project, Language, EducationEntry, WorkEntry, AwardEntry }
 export const mockResume: Resume = {
   analysis_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   // TODO (backend): pass github_username and user_email through _build_resume()
-  github_username: "yourusername",
-  user_email: "you@example.com",
+  github_username: "sitharachari",
+  user_email: "sithara12.chari@gmail.com",
   summary: [
     "Full-stack developer with experience building collaborative web and mobile applications. Strong version control practices and a focus on clean, maintainable code.",
     "Passionate about learning new technologies and applying them to solve real-world problems. Seeking opportunities to contribute to impactful projects and grow as a software engineer.",
