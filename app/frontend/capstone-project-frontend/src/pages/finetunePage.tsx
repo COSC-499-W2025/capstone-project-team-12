@@ -36,9 +36,8 @@ export default function FinetunePage({ onComplete, onBack, extractedData }: Fine
 
   // --- 1. Projects State & Drag-and-Drop ---
   const [projects, setProjects] = useState<Project[]>([
-    { id: "p1", name: "Capstone Analysis Tool", commits: 140, selected: true },
-    { id: "p2", name: "COSC 360 - Android App", commits: 85, selected: true },
-    { id: "p3", name: "Personal Portfolio", commits: 42, selected: true },
+    { id: "p1", name: "example-1", commits: 142, selected: true },
+    { id: "p2", name: "example-2", commits: 87, selected: true },
   ]);
 
   const dragItem = useRef<number | null>(null);
