@@ -336,7 +336,7 @@ const FileImport: React.FC<FileImportProps> = ({ activeAnalysisId, onComplete, m
             }
           `}
         >
-          {isUploading ? 'Processing...' : 'Confirm & Continue'}
+          {isUploading ? 'Processing files...' : 'Confirm & Continue'}
           {isUploading ? (
             <svg
               className="animate-spin"
