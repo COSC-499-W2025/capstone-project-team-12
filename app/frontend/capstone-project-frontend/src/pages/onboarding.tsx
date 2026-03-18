@@ -18,11 +18,24 @@ const Onboarding: React.FC<OnboardingProps> = ({ initialData, onComplete, mode =
 
   const isValid = githubUsername.trim() !== '' && email.trim() !== '';
 
-  const handleContinue = () => {
+  const saveUserConfigs = async () => {
+    try {
+      await fetch('http://localhost:8080/configs/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ preferences: { llm_mode: llmMode, github_username: githubUsername, github_email: email } }),
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleContinue = async () => {
     if (!isValid) return;
     if (llmMode === 'online') {
       setShowConsentPopup(true);
     } else {
+      await saveUserConfigs();
       onComplete?.({ llmMode, githubUsername, email });
     }
   };
@@ -190,8 +203,9 @@ const Onboarding: React.FC<OnboardingProps> = ({ initialData, onComplete, mode =
                 No
               </button>
               <button
-                onClick={() => {
+                onClick={async () => {
                   setShowConsentPopup(false);
+                  await saveUserConfigs();
                   onComplete?.({ llmMode, githubUsername, email });
                 }}
                 style={{
