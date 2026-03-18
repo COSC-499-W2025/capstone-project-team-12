@@ -23,7 +23,7 @@ const PORTFOLIO_DATA: PortfolioData = {
   projects: [
     {
       id: 1,
-      name: "COSC360-project-piggybank",
+      name: "Example-1",
       timeline: "Feb 2025 – Apr 2025",
       duration: "41 days",
       role: "Feature Developer",
@@ -35,7 +35,7 @@ const PORTFOLIO_DATA: PortfolioData = {
     },
     {
       id: 2,
-      name: "341-FarmToTableApp",
+      name: "Example-2",
       timeline: "Apr 2025 – Apr 2025",
       duration: "3 days",
       role: "Feature Developer",
@@ -48,8 +48,8 @@ const PORTFOLIO_DATA: PortfolioData = {
   ],
   growthMetrics: {
   has_comparison: true,
-  earliest_project: "COSC360-project-piggybank",
-  latest_project: "341-FarmToTableApp",
+  earliest_project: "Example-1",
+  latest_project: "Example-2",
   code_metrics: {
     commit_growth: 49.2,
     file_growth: -10.1,
@@ -81,13 +81,13 @@ const PORTFOLIO_DATA: PortfolioData = {
   },
   framework_timeline_list: [
     {
-      project_name: "COSC360-project-piggybank",
+      project_name: "Example-1",
       date_range: "Feb 2025 – Apr 2025",
       frameworks: ["PHP", "CSS", "JavaScript", "MySQL"],
       total_frameworks: 4,
     },
     {
-      project_name: "341-FarmToTableApp",
+      project_name: "Example-2",
       date_range: "Apr 2025 – Apr 2025",
       frameworks: ["android.os", "java.util", "androidx.annotation"],
       total_frameworks: 3,
