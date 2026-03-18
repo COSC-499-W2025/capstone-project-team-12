@@ -3,16 +3,37 @@ import OverviewTab from "../components/OverviewTab";
 import TestingTab from "../components/TestingTab";
 import DeploymentTab from "../components/DeploymentTab";
 import PacingTab from "../components/PacingTab";
-import type { Project, Technology, FileExtension } from "../types/insightTypes";
+import type { Project } from "../types/insightTypes";
 
 
 type Tab = "overview" | "testing" | "deployment" | "pacing & role";
 const tabs: Tab[] = ["overview", "testing", "deployment", "pacing & role"];
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
+
+function asObject(value: unknown): Record<string, any> {
+  if (value && typeof value === "object") return value as Record<string, any>;
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      if (parsed && typeof parsed === "object") {
+        return parsed as Record<string, any>;
+      }
+    } catch {
+      // Ignore malformed JSON and return an empty object.
+    }
+  }
+  return {};
+}
 
 
 // ---- Mapping Function ----
 function mapToProjects(raw: any): Project[] {
-  const insights = raw.project_insights?.analyzed_insights ?? [];
+  const projectInsights = asObject(raw?.project_insights);
+  const metadataInsights = asObject(raw?.metadata_insights);
+  const insights = Array.isArray(projectInsights.analyzed_insights)
+    ? projectInsights.analyzed_insights
+    : [];
+
   return insights.map((p: any, i: number) => ({
     id: i + 1,
     repoName: p.repository_name ?? 'Unknown',
@@ -39,6 +60,7 @@ function mapToProjects(raw: any): Project[] {
     deployment: {
       ciFiles: p.success_indicators?.deployment?.has_cicd ? 1 : 0,
       dockerFiles: p.success_indicators?.deployment?.has_containerization ? 1 : 0,
+      infraFiles: 0,
       hasCI: p.success_indicators?.deployment?.has_cicd ?? false,
       hasDocker: p.success_indicators?.deployment?.has_containerization ?? false,
       cicdTools: p.success_indicators?.deployment?.cicd_tools ?? [],
@@ -51,9 +73,9 @@ function mapToProjects(raw: any): Project[] {
       mergeCommits: 0,
       avgCommitMessageLength: 0,
     },
-    technologies: Object.entries(raw.metadata_insights?.language_stats ?? {})
+    technologies: Object.entries(metadataInsights.language_stats ?? {})
       .map(([name, stats]: [string, any]) => ({ name, uses: stats.file_count })),
-    fileExtensions: Object.entries(raw.metadata_insights?.extension_stats ?? {})
+    fileExtensions: Object.entries(metadataInsights.extension_stats ?? {})
       .map(([ext, stats]: [string, any]) => ({
         ext,
         count: stats.count,
@@ -131,25 +153,53 @@ export default function ProjectInsights( { onComplete, onPrevious, analysisId }:
   const [activeTab, setActiveTab] = useState<Tab>("overview");
 
   useEffect(() => {
-    // TEMPORARY: Use mock data if no analysisId provided. Remove when real backend flow wired.
-    if (analysisId == null) {
+    const shouldUseMock = analysisId == null || analysisId.startsWith("mock-");
+
+    // TEMPORARY: Use mock data for direct nav and dashboard mock analyses.
+    if (shouldUseMock) {
       setProjects(MOCK_PROJECTS);
       setSelectedProject(MOCK_PROJECTS[0] ?? null);
       setLoading(false);
+      setError(null);
       return;
     }
-    
-    fetch('http://localhost:8080/projects')
-      .then(r => { if (!r.ok) throw new Error(`${r.status}`); return r.json(); })
-      .then((data: any[]) => {
+
+    let cancelled = false;
+
+    async function loadInsights() {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await fetch(`${API_BASE}/projects`);
+        if (!response.ok) throw new Error(`${response.status}`);
+
+        const data: any[] = await response.json();
         const match = data.find(d => d.analysis_id === analysisId);
-        if (!match) throw new Error('Analysis not found');
+        if (!match) throw new Error("Analysis not found");
+
         const mapped = mapToProjects(match);
-        setProjects(mapped);
-        setSelectedProject(mapped[0] ?? null);  // set initial selection here
-        setLoading(false);
-      })
-      .catch(e => { setError(e.message); setLoading(false); });
+        if (mapped.length === 0) throw new Error("No project insights available");
+
+        if (!cancelled) {
+          setProjects(mapped);
+          setSelectedProject(mapped[0] ?? null);
+        }
+      } catch (e) {
+        if (cancelled) return;
+        // Keep UI usable in development when backend or payload parsing fails.
+        setProjects(MOCK_PROJECTS);
+        setSelectedProject(MOCK_PROJECTS[0] ?? null);
+        setError(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    loadInsights();
+
+    return () => {
+      cancelled = true;
+    };
   }, [analysisId]);
 
   if (loading) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><p className="text-slate-500">Loading insights...</p></div>;

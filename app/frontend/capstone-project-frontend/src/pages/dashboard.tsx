@@ -4,6 +4,22 @@ import { AnalysisCard } from "../components/analysisCard";
 
 const API_BASE = "http://localhost:8080";
 
+//Mock data for demo
+const MOCK_ANALYSES: Analysis[] = [
+  {
+    id: "mock-analysis-001",
+    label: "d53c0449-40cb-419b-b3f9-7e116260a9a7",
+    createdAt: "2026-03-18",
+    repos: ["example-1", "example-2"],
+    resumeIds: [1],
+    portfolioIds: [1],
+    hasResume: true,
+    hasPortfolio: true,
+    hasInsights: true,
+    status: "complete",
+  },
+];
+
 
 // Mapping function
 
@@ -98,7 +114,8 @@ export default function Dashboard( {onNewAnalysis, onIncremental, onViewResume, 
           )
         );
       } catch (err) {
-        showToast(err instanceof Error ? err.message : "Failed to load dashboard.");
+        // TEMPORARY: Fall back to mock data when backend is unavailable.
+        setAnalyses(MOCK_ANALYSES);
       } finally {
         setLoading(false);
       }

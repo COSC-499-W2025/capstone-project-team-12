@@ -10,8 +10,9 @@ export const mockResume: Resume = {
   github_username: "sitharachari",
   user_email: "sithara12.chari@gmail.com",
   summary: [
-    "Full-stack developer with experience building collaborative web and mobile applications. Strong version control practices and a focus on clean, maintainable code.",
-    "Passionate about learning new technologies and applying them to solve real-world problems. Seeking opportunities to contribute to impactful projects and grow as a software engineer.",
+    "Contributed to a range of projects spanning full-stack web development and front-end engineering, working with technologies including Python, FastAPI, PostgreSQL, Docker, React, TypeScript, and Tailwind CSS.",
+    "Demonstrated consistent commit practices across both collaborative and solo codebases, taking on feature development and UI/UX responsibilities with a focus on clean, maintainable code.",
+    "Experienced with containerization, CI/CD pipelines, and version control workflows, with a track record of delivering well-structured contributions across projects of varying team sizes.",
   ],
   projects: [
     {
