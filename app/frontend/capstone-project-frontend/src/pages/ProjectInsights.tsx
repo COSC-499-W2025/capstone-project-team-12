@@ -90,6 +90,38 @@ function formatDate(iso: string): string {
   });
 }
 
+// TEMPORARY: Mock data for demo/development. Remove or comment out when integrating real backend flow.
+const MOCK_PROJECTS: Project[] = [
+  {
+    id: 1,
+    repoName: "capstone-project-team-12",
+    contribution: { level: "High contributor", rank: 2, percentile: 85 },
+    collaboration: { teamSize: 5, isCollaborative: true, contributionShare: 65 },
+    testing: { testFilesModified: 12, codeFilesModified: 45, testingPercentageFiles: 21, testLinesAdded: 340, codeLinesAdded: 1250, testingPercentageLines: 21, hasTests: true },
+    deployment: { ciFiles: 1, dockerFiles: 2, infraFiles: 0, hasCI: true, hasDocker: true, cicdTools: ["GitHub Actions"], containerizationTools: ["Docker"], hostingPlatforms: ["Heroku"] },
+    versionControl: { totalCommits: 142, branches: 8, mergeCommits: 15, avgCommitMessageLength: 45 },
+    technologies: [{ name: "TypeScript", uses: 38 }, { name: "React", uses: 35 }, { name: "Python", uses: 28 }, { name: "Docker", uses: 12 }],
+    fileExtensions: [{ ext: "tsx", count: 28, size: 125000, percentage: 32, category: "Frontend" }, { ext: "py", count: 19, size: 85000, percentage: 22, category: "Backend" }, { ext: "json", count: 15, size: 45000, percentage: 11, category: "Config" }],
+    pacing: { avgLinesPerCommit: 45, endHeavyPercent: 15, commitConsistency: "Consistent (80% of commits within 5-50 line range)" },
+    userRole: { title: "Full-Stack Developer", description: "Led frontend architecture and database schema design" },
+    timeline: { start: "Jan 2025", end: "Mar 2026" },
+  },
+  {
+    id: 2,
+    repoName: "personal-portfolio",
+    contribution: { level: "Solo developer", rank: 1, percentile: 100 },
+    collaboration: { teamSize: 1, isCollaborative: false, contributionShare: 100 },
+    testing: { testFilesModified: 4, codeFilesModified: 22, testingPercentageFiles: 15, testLinesAdded: 120, codeLinesAdded: 680, testingPercentageLines: 15, hasTests: true },
+    deployment: { ciFiles: 1, dockerFiles: 0, infraFiles: 0, hasCI: true, hasDocker: false, cicdTools: ["GitHub Pages"], containerizationTools: [], hostingPlatforms: ["GitHub Pages", "Vercel"] },
+    versionControl: { totalCommits: 87, branches: 3, mergeCommits: 0, avgCommitMessageLength: 32 },
+    technologies: [{ name: "React", uses: 24 }, { name: "TypeScript", uses: 20 }, { name: "Tailwind CSS", uses: 16 }, { name: "Next.js", uses: 14 }],
+    fileExtensions: [{ ext: "tsx", count: 18, size: 92000, percentage: 55, category: "Frontend" }, { ext: "css", count: 8, size: 42000, percentage: 25, category: "Styling" }],
+    pacing: { avgLinesPerCommit: 28, endHeavyPercent: 8, commitConsistency: "Very consistent (92% of commits within 3-30 line range)" },
+    userRole: { title: "UI/UX Developer", description: "Designed and built responsive portfolio showcasing web development skills" },
+    timeline: { start: "Jun 2024", end: "Jan 2025" },
+  },
+];
+
 export default function ProjectInsights( { onComplete, onPrevious, analysisId }: { onComplete?: () => void, onPrevious?: () => void, analysisId?: string | null }) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(analysisId != null);
@@ -99,7 +131,14 @@ export default function ProjectInsights( { onComplete, onPrevious, analysisId }:
   const [activeTab, setActiveTab] = useState<Tab>("overview");
 
   useEffect(() => {
-    if (analysisId == null) return;
+    // TEMPORARY: Use mock data if no analysisId provided. Remove when real backend flow wired.
+    if (analysisId == null) {
+      setProjects(MOCK_PROJECTS);
+      setSelectedProject(MOCK_PROJECTS[0] ?? null);
+      setLoading(false);
+      return;
+    }
+    
     fetch('http://localhost:8080/projects')
       .then(r => { if (!r.ok) throw new Error(`${r.status}`); return r.json(); })
       .then((data: any[]) => {
