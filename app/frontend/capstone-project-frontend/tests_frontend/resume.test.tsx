@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, within } from "@testing-library/react";
 import { describe, it, expect, afterEach, vi } from "vitest";
 import ResumeDisplay, {mockResume} from "../src/pages/resume_display";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter } from "react-router-dom";
 import '@testing-library/jest-dom';
 
 const setup = () => render(<ResumeDisplay />);
@@ -337,14 +337,14 @@ describe("Awards section", () => {
     expect(within(getCard("Awards & Honours")).queryAllByText("✕").length).toBe(countBefore);
   });
 });
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+// setupWithId passes resumeId as a prop — the component no longer reads from useParams
 const setupWithId = () =>
   render(
-    <MemoryRouter initialEntries={["/resume/1"]}>
-      <Routes>
-        <Route path="/resume/:resumeId" element={<ResumeDisplay />} />
-      </Routes>
+    <MemoryRouter>
+      <ResumeDisplay resumeId={1} />
     </MemoryRouter>
   );
 
