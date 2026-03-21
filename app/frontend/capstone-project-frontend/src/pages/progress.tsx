@@ -67,25 +67,25 @@ const ProgressPage: React.FC<ProgressPageProps> = ({ analysisId, commitPayload, 
     };
   }, [analysisId, commitPayload, apiAction]);
 
-  //effect 1: just handle the counting
+  // effect 1: handle the steady counting
   useEffect(() => {
+    // A constant 600ms interval ensures the user can actually read the texts
+    // as it will naturally take ~6-8 seconds to reach 100%.
     const interval = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 100) return 100;
         
-        let next;
-        if (apiFinished) {
-          // If the API finished, gracefully speed up to 100%
-          next = prev + Math.floor(Math.random() * 15) + 10;
-        } else {
-          // Proceed normally but stall at 90% while waiting for API
-          next = prev + Math.floor(Math.random() * 10) + 5;
-          if (next > 90) next = 90;
+        // Steady readable progression (adds between 4% and 10% each tick)
+        let next = prev + Math.floor(Math.random() * 7) + 4;
+        
+        // If the API isn't finished yet, stall it at 95%
+        if (!apiFinished && next > 95) {
+          return 95;
         }
         
         return next > 100 ? 100 : next;
       });
-    }, apiFinished ? 150 : 800); // Speed up the interval duration if API is finished
+    }, 600);
 
     return () => clearInterval(interval);
   }, [apiFinished]);
