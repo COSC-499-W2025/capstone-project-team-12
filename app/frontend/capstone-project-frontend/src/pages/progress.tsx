@@ -1,12 +1,71 @@
 import React, { useState, useEffect } from "react";
 
 interface ProgressPageProps {
-  onComplete: () => void;
+  analysisId?: string | null;
+  commitPayload?: any;
+  apiAction?: () => Promise<any>; // Fallback prop for versatility
+  onComplete: (data?: any) => void;
 }
 
-const ProgressPage: React.FC<ProgressPageProps> = ({ onComplete }) => {
+const ProgressPage: React.FC<ProgressPageProps> = ({ analysisId, commitPayload, apiAction, onComplete }) => {
   const [progress, setProgress] = useState<number>(0);
   const [statusText, setStatusText] = useState<string>("Initializing pipeline...");
+  const [apiFinished, setApiFinished] = useState<boolean>(false);
+  const [apiResult, setApiResult] = useState<any>(null);
+
+  // effect 0: handle the API call
+  useEffect(() => {
+    let isMounted = true;
+
+    const runApi = async () => {
+      try {
+        let data;
+        if (apiAction) {
+          // Alternative custom API action
+          data = await apiAction();
+        } else if (analysisId && commitPayload) {
+          // Standard commit API process
+          const url = `http://localhost:8080/projects/${analysisId}/upload/commit`;
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(commitPayload),
+          });
+          
+          if (!response.ok) {
+            console.error('[PROGRESS] API failed:', response.status);
+          } else {
+            data = await response.json();
+          }
+        }
+        
+        if (isMounted) {
+          setApiResult(data);
+        }
+      } catch (error) {
+        console.error('[PROGRESS] Error during data generation:', error);
+      } finally {
+        if (isMounted) {
+          setApiFinished(true);
+        }
+      }
+    };
+
+    // Slight delay to ensure the UI paints before blocking async requests
+    const timer = setTimeout(() => {
+      if (apiAction || (analysisId && commitPayload)) {
+        runApi();
+      } else {
+        // Fallback to instantly mark as finished if no API props are passed yet
+        setApiFinished(true);
+      }
+    }, 500);
+
+    return () => { 
+      isMounted = false; 
+      clearTimeout(timer);
+    };
+  }, [analysisId, commitPayload, apiAction]);
 
   //effect 1: just handle the counting
   useEffect(() => {
@@ -14,13 +73,22 @@ const ProgressPage: React.FC<ProgressPageProps> = ({ onComplete }) => {
       setProgress((prev) => {
         if (prev >= 100) return 100;
         
-        const next = prev + Math.floor(Math.random() * 10) + 5;
+        let next;
+        if (apiFinished) {
+          // If the API finished, gracefully speed up to 100%
+          next = prev + Math.floor(Math.random() * 15) + 10;
+        } else {
+          // Proceed normally but stall at 90% while waiting for API
+          next = prev + Math.floor(Math.random() * 10) + 5;
+          if (next > 90) next = 90;
+        }
+        
         return next > 100 ? 100 : next;
       });
-    }, 800);
+    }, apiFinished ? 150 : 800); // Speed up the interval duration if API is finished
 
     return () => clearInterval(interval);
-  }, []);
+  }, [apiFinished]);
 
   // effect 2: watch the progress number and update text
   useEffect(() => {
@@ -37,6 +105,10 @@ const ProgressPage: React.FC<ProgressPageProps> = ({ onComplete }) => {
       setStatusText("Generating LLM insights...");
     }
   }, [progress]);
+
+  const handleComplete = () => {
+    onComplete(apiResult);
+  };
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-8 bg-[#f8f9fc] relative overflow-hidden font-sans">
@@ -90,7 +162,7 @@ const ProgressPage: React.FC<ProgressPageProps> = ({ onComplete }) => {
 
         {/* next button */}
         <button
-          onClick={onComplete}
+          onClick={handleComplete}
           disabled={progress < 100}
           className={`w-full py-3.5 px-6 rounded-xl font-bold transition-all duration-300 mt-2 border-none flex items-center justify-center gap-2
             ${
