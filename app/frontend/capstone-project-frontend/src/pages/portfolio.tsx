@@ -7,7 +7,7 @@ import GrowthMetrics from "../components/growthMetrics";
 
 // SAMPLE DATA
 const PORTFOLIO_DATA: PortfolioData = {
-  developer: "Your Name",
+  title: "Portfolio Name",
   coreCompetencies: ["Mobile App Development", "Backend Development", "Web Development"],
   languages: [
     { name: "XML",          pct: 34.7, files: 50 },
@@ -106,7 +106,7 @@ async function fetchPortfolio(portfolioId: number): Promise<{ data: PortfolioDat
   const d = json.portfolio_data;
 
   const normalised: PortfolioData = {
-    developer: d.developer ?? d.result_id ?? "Developer",
+    title: json.portfolio_title ?? d.result_id ?? "Portfolio Name",
     coreCompetencies: d.skill_timeline?.high_level_skills ?? [],
     languages: (d.skill_timeline?.language_progression ?? []).map((l: any) => ({
       name: l.name,
@@ -157,7 +157,6 @@ async function fetchPortfolio(portfolioId: number): Promise<{ data: PortfolioDat
 async function putPortfolio(portfolioId: number, data: PortfolioData, raw: any): Promise<void> {
   const payload = {
     ...raw,
-    developer: data.developer,
     skill_timeline: {
       ...raw.skill_timeline,
       high_level_skills: data.coreCompetencies,
@@ -191,7 +190,7 @@ async function putPortfolio(portfolioId: number, data: PortfolioData, raw: any):
   const res = await fetch(`${API_BASE}/portfolio/${portfolioId}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ portfolio_data: payload }),
+    body: JSON.stringify({ portfolio_title: data.title, portfolio_data: payload }),
   });
   if (!res.ok) throw new Error(`Failed to update portfolio: ${res.status} ${res.statusText}`);
 }
@@ -226,20 +225,20 @@ function NumberField({ value, onChange, className = "" }: {
   );
 }
 
-function EditControls({ editing, onEdit, onSave, onCancel, saving = false }: {
-  editing: boolean; onEdit: () => void; onSave: () => void; onCancel: () => void; saving?: boolean;
+function EditControls({ editing, onEdit, onSave, onCancel, saving = false, label }: {
+  editing: boolean; onEdit: () => void; onSave: () => void; onCancel: () => void; saving?: boolean; label: string;
 }) {
   if (!editing) return (
-    <button onClick={onEdit} className="text-[11px] font-bold tracking-[0.08em] uppercase text-[#6378ff] border border-[#6378ff]/25 rounded-lg px-3 py-1 hover:bg-[#6378ff]/5 transition-all">
+    <button onClick={onEdit} aria-label={`Edit ${label}`} className="text-[11px] font-bold tracking-[0.08em] uppercase text-[#6378ff] border border-[#6378ff]/25 rounded-lg px-3 py-1 hover:bg-[#6378ff]/5 transition-all">
       Edit
     </button>
   );
   return (
     <div className="flex gap-2">
-      <button onClick={onSave} disabled={saving} className="text-[11px] font-bold tracking-[0.08em] uppercase text-white bg-[#6378ff] rounded-lg px-3 py-1 hover:bg-[#4f63e7] transition-all disabled:opacity-50">
+      <button onClick={onSave} disabled={saving} aria-label={`Save ${label}`} className="text-[11px] font-bold tracking-[0.08em] uppercase text-white bg-[#6378ff] rounded-lg px-3 py-1 hover:bg-[#4f63e7] transition-all disabled:opacity-50">
         {saving ? "Saving…" : "Save"}
       </button>
-      <button onClick={onCancel} className="text-[11px] font-bold tracking-[0.08em] uppercase text-[#64748b] border border-slate-200 rounded-lg px-3 py-1 hover:bg-slate-50 transition-all">
+      <button onClick={onCancel} aria-label={`Cancel ${label}`} className="text-[11px] font-bold tracking-[0.08em] uppercase text-[#64748b] border border-slate-200 rounded-lg px-3 py-1 hover:bg-slate-50 transition-all">
         Cancel
       </button>
     </div>
@@ -383,7 +382,7 @@ function ProjectsSection({ projects, onChange, saving }: {
                 </div>
 
                 <div className="flex justify-end pt-1">
-                  <EditControls editing onEdit={() => {}} onSave={() => save(i)} onCancel={cancel} saving={saving} />
+                  <EditControls editing onEdit={() => {}} onSave={() => save(i)} onCancel={cancel} saving={saving} label={`project ${i}`} />
                 </div>
               </div>
             ) : (
@@ -428,7 +427,7 @@ export default function DevPortfolio({ onComplete, onPrevious, portfolioId }: {
   };
 
   const headerEdit = useEditState(
-    data ? { developer: data.developer, coreCompetencies: data.coreCompetencies } : { developer: "", coreCompetencies: [] }
+    data ? { title: data.title, coreCompetencies: data.coreCompetencies } : { title: "", coreCompetencies: [] }
   );
   const langEdit = useEditState(data?.languages ?? []);
 
@@ -450,7 +449,7 @@ export default function DevPortfolio({ onComplete, onPrevious, portfolioId }: {
               <div className="space-y-3">
                 <div>
                   <p className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#64748b] mb-1.5">Name</p>
-                  <Field value={headerEdit.draft.developer} onChange={v => headerEdit.setDraft(d => ({ ...d, developer: v }))} placeholder="Your name" />
+                  <Field value={headerEdit.draft.title} onChange={v => headerEdit.setDraft(d => ({ ...d, title: v }))} placeholder="Enter Portfolio name" />
                 </div>
                 <div>
                   <p className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#64748b] mb-2">Core Competencies</p>
@@ -462,14 +461,14 @@ export default function DevPortfolio({ onComplete, onPrevious, portfolioId }: {
                   <AddTag placeholder="Add competency…" onAdd={v => { if (!headerEdit.draft.coreCompetencies.includes(v)) headerEdit.setDraft(d => ({ ...d, coreCompetencies: [...d.coreCompetencies, v] })); }} />
                 </div>
                 <div className="flex justify-end pt-1">
-                  <EditControls editing onEdit={headerEdit.open} onSave={() => { update({ developer: headerEdit.draft.developer, coreCompetencies: headerEdit.draft.coreCompetencies }); headerEdit.close(); }} onCancel={headerEdit.cancel} saving={saving} />
+                  <EditControls editing onEdit={headerEdit.open} onSave={() => { update({ title: headerEdit.draft.title, coreCompetencies: headerEdit.draft.coreCompetencies }); headerEdit.close(); }} onCancel={headerEdit.cancel} saving={saving} label="header" />
                 </div>
               </div>
             ) : (
               <>
                 <div className="flex items-center gap-3">
-                  <h1 className="text-3xl font-bold text-slate-800">{data.developer}</h1>
-                  <EditControls editing={false} onEdit={headerEdit.open} onSave={() => {}} onCancel={headerEdit.cancel} />
+                  <h1 className="text-3xl font-bold text-slate-800">{data.title || "Untitled Portfolio"}</h1>
+                  <EditControls editing={false} onEdit={headerEdit.open} onSave={() => {}} onCancel={headerEdit.cancel} label="header" />
                 </div>
                 <div className="flex gap-2 flex-wrap mt-3">
                   {data.coreCompetencies.map(c => (
@@ -496,7 +495,7 @@ export default function DevPortfolio({ onComplete, onPrevious, portfolioId }: {
             <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 flex items-center gap-2">
               <span className="inline-block w-5 h-0.5 bg-indigo-400 rounded" />Language Proficiency
             </p>
-            <EditControls editing={langEdit.editing} onEdit={langEdit.open} onSave={() => { update({ languages: langEdit.draft }); langEdit.close(); }} onCancel={langEdit.cancel} saving={saving} />
+            <EditControls editing={langEdit.editing} onEdit={langEdit.open} onSave={() => { update({ languages: langEdit.draft }); langEdit.close(); }} onCancel={langEdit.cancel} saving={saving} label="languages" />
           </div>
           <div className="bg-white rounded-2xl border border-slate-200 px-6 py-5 flex flex-col gap-3.5">
             {(langEdit.editing ? langEdit.draft : data.languages).map((l, i) => (
