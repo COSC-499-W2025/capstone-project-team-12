@@ -106,7 +106,7 @@ async function fetchPortfolio(portfolioId: number): Promise<{ data: PortfolioDat
   const d = json.portfolio_data;
 
   const normalised: PortfolioData = {
-    title: json.portfolio_title ?? d.result_id ?? "Portfolio Name",
+    title: json.portfolio_title ?? "",
     coreCompetencies: d.skill_timeline?.high_level_skills ?? [],
     languages: (d.skill_timeline?.language_progression ?? []).map((l: any) => ({
       name: l.name,

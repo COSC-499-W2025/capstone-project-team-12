@@ -1,12 +1,12 @@
-import { render, screen, fireEvent, within } from "@testing-library/react";
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import "@testing-library/jest-dom";
 import Portfolio from "../src/pages/Portfolio";
 
 // ─── MOCK DATA ───────────────────────────────────────────────────────────────
 // Minimal but realistic — mirrors the real data shape
 const mockData = {
-  developer: "Jane Doe",
+  title: "Jane Doe",
   coreCompetencies: ["Web Development", "Backend Development"],
   languages: [
     { name: "JavaScript", pct: 55.0, files: 30 },
@@ -59,6 +59,10 @@ beforeEach(() => {
     unobserve() {}
     takeRecords() { return []; }
   };
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 // ─── TESTS ───────────────────────────────────────────────────────────────────
@@ -194,5 +198,107 @@ describe("Portfolio — data prop", () => {
     const data = { ...mockData, languages: [] };
     render(<Portfolio data={data} />);
     expect(screen.getByText("Language Proficiency")).toBeInTheDocument();
+  });
+});
+
+// ─── EDIT TESTS SETUP ────────────────────────────────────────────────────────
+
+const mockApiResponse = {
+  portfolio_title: null,
+  portfolio_data: {
+    result_id: "00000000-0000-0000-0000-000000000000",
+    skill_timeline: {
+      high_level_skills: ["Web Development", "Backend Development"],
+      language_progression: [
+        { name: "JavaScript", percentage: 55.0, file_count: 30 },
+        { name: "Python",     percentage: 45.0, file_count: 24 },
+      ],
+      framework_timeline_list: [],
+    },
+    projects_detail: [{
+      name: "my-cool-project",
+      date_range: "Jan 2025 – Mar 2025",
+      duration_days: 60,
+      user_role: { role: "Lead Developer", blurb: "Primary contributor." },
+      contribution: { level: "Top Contributor", team_size: 3, rank: 1, percentile: 100, contribution_share: 72.0 },
+      statistics: {
+        commits: 50, files: 200, additions: 8000, deletions: 1000, net_lines: 7000,
+        user_commits: 36, user_lines_added: 5800, user_lines_deleted: 700, user_net_lines: 5100, user_files_modified: 140,
+      },
+      frameworks_summary: { top_frameworks: ["react", "node.js"] },
+    }],
+    growth_metrics: null,
+  },
+};
+
+async function renderEditing() {
+  vi.spyOn(globalThis, "fetch").mockImplementation(() =>
+    Promise.resolve({ ok: true, json: async () => mockApiResponse } as Response)
+  );
+  render(<Portfolio portfolioId={1} />);
+  await screen.findByText("Untitled Portfolio");
+}
+
+// ─── EDITING ─────────────────────────────────────────────────────────────────
+
+describe("Portfolio — edit header", () => {
+  it("enters edit mode and saves new title", async () => {
+    await renderEditing();
+    fireEvent.click(screen.getByRole("button", { name: "Edit header" }));
+    fireEvent.change(screen.getByPlaceholderText("Enter Portfolio name"), { target: { value: "My Portfolio" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save header" }));
+    expect(screen.getByText("My Portfolio")).toBeInTheDocument();
+  });
+
+  it("discards changes on cancel", async () => {
+    await renderEditing();
+    fireEvent.click(screen.getByRole("button", { name: "Edit header" }));
+    fireEvent.change(screen.getByPlaceholderText("Enter Portfolio name"), { target: { value: "Discarded" } });
+    fireEvent.click(screen.getByRole("button", { name: "Cancel header" }));
+    expect(screen.queryByText("Discarded")).not.toBeInTheDocument();
+  });
+
+  it("can remove a competency and save", async () => {
+    await renderEditing();
+    fireEvent.click(screen.getByRole("button", { name: "Edit header" }));
+    fireEvent.click(screen.getAllByText("×")[0]);
+    fireEvent.click(screen.getByRole("button", { name: "Save header" }));
+    await waitFor(() => expect(screen.queryByText("Web Development")).not.toBeInTheDocument());
+  });
+});
+
+describe("Portfolio — edit languages", () => {
+  it("can remove a language and save", async () => {
+    await renderEditing();
+    fireEvent.click(screen.getByRole("button", { name: "Edit languages" }));
+    fireEvent.click(screen.getAllByText("×")[0]);
+    fireEvent.click(screen.getByRole("button", { name: "Save languages" }));
+    await waitFor(() => expect(screen.queryByText("JavaScript")).not.toBeInTheDocument());
+  });
+
+  it("discards changes on cancel", async () => {
+    await renderEditing();
+    fireEvent.click(screen.getByRole("button", { name: "Edit languages" }));
+    fireEvent.click(screen.getAllByText("×")[0]);
+    fireEvent.click(screen.getByRole("button", { name: "Cancel languages" }));
+    expect(screen.getByText("JavaScript")).toBeInTheDocument();
+  });
+});
+
+describe("Portfolio — edit projects", () => {
+  it("saves updated project name", async () => {
+    await renderEditing();
+    fireEvent.click(screen.getByRole("button", { name: "Edit project 0" }));
+    fireEvent.change(screen.getByDisplayValue("my-cool-project"), { target: { value: "renamed-project" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save project 0" }));
+    await waitFor(() => expect(screen.getByText("renamed-project")).toBeInTheDocument());
+  });
+
+  it("discards changes on cancel", async () => {
+    await renderEditing();
+    fireEvent.click(screen.getByRole("button", { name: "Edit project 0" }));
+    fireEvent.change(screen.getByDisplayValue("my-cool-project"), { target: { value: "should-not-appear" } });
+    fireEvent.click(screen.getByRole("button", { name: "Cancel project 0" }));
+    expect(screen.queryByText("should-not-appear")).not.toBeInTheDocument();
   });
 });
