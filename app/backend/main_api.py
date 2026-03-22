@@ -867,6 +867,37 @@ async def commit_update(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.delete("/projects/{analysis_id}/upload/abort")
+async def abort_upload(analysis_id: str):
+    """
+    Explicitly abort a pending upload and remove any associated cache files.
+    """
+    try:
+        validate_uuid(analysis_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid UUID format")
+
+    target_files = [
+        os.path.join("cache", f"pending_new_{analysis_id}.pkl"),
+        os.path.join("cache", f"pending_update_{analysis_id}.pkl"),
+    ]
+
+    deleted_any = False
+    for path in target_files:
+        if os.path.exists(path):
+            try:
+                os.remove(path)
+                logger.info("[ABORT] Deleted cached file: %s", path)
+                deleted_any = True
+            except Exception as exc:
+                logger.error("[ABORT] Failed to delete cached file %s: %s", path, exc)
+                raise HTTPException(status_code=500, detail=f"Failed to delete cache file: {path}")
+
+    if not deleted_any:
+        return JSONResponse(status_code=404, content={"message": "No pending upload found to abort."})
+
+    return JSONResponse(status_code=200, content={"message": "Upload aborted and cache cleared."})
+
 @app.delete("/projects/{analysis_id}")
 async def delete_project(analysis_id: str, db: DatabaseManager = Depends(get_db)):
     """
