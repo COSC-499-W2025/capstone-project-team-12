@@ -1,4 +1,5 @@
 import os
+import glob
 import shutil
 import tempfile
 import json
@@ -50,6 +51,20 @@ def get_db():
 def location_header(location:str):
     """Returns dict with location header with given location string"""
     return {"location": location}
+
+
+def cleanup_stale_cache(cache_dir: str = "cache", max_age_seconds: int = 3600):
+    """Delete pending_*.pkl files older than max_age_seconds (lazy cleanup)."""
+    if not os.path.isdir(cache_dir):
+        return
+    now = time.time()
+    for path in glob.glob(os.path.join(cache_dir, "pending_*.pkl")):
+        try:
+            if now - os.path.getmtime(path) > max_age_seconds:
+                os.remove(path)
+                logger.info("[CACHE] Deleted stale cache file: %s", path)
+        except Exception as exc:
+            logger.error("[CACHE] Failed to delete stale cache file %s: %s", path, exc)
     
 
 class ResumeEditRequest(BaseModel):
@@ -99,6 +114,7 @@ async def extract_upload(
     a new analysis ID internally), caches heavy state for the commit step,
     and returns lightweight results to the frontend.
     """
+    cleanup_stale_cache()
     t0 = time.time()
     config = ConfigManager()
     github_username = config.preferences.get("github_username")
@@ -654,6 +670,7 @@ async def extract_update(
     Merges the uploaded file with the existing analysis, runs extraction,
     and caches the heavy state for the subsequent commit step.
     """
+    cleanup_stale_cache()
     try:
         validate_uuid(analysis_id)
     except ValueError:
