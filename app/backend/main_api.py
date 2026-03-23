@@ -53,7 +53,7 @@ def location_header(location:str):
     return {"location": location}
 
 
-def cleanup_stale_cache(cache_dir: str = "cache", max_age_seconds: int = 3600):
+def cleanup_stale_cache(cache_dir: str = "cache", max_age_seconds: int = 1):
     """Delete pending_*.pkl files older than max_age_seconds (lazy cleanup)."""
     if not os.path.isdir(cache_dir):
         return
