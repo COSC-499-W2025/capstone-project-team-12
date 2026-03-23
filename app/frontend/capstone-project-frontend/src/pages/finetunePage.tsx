@@ -6,6 +6,7 @@ interface FinetunePageProps {
   activeAnalysisId?: string | null;
   llmMode?: 'online' | 'local';
   onBack?: () => void;
+  onStateChange?: (state: any) => void;
   onComplete: (state: any, resumeLocation: string | null, portfolioLocation: string | null, resumeId: number | null, portfolioId: number | null) => void;
 }
 
@@ -27,7 +28,7 @@ interface Skill {
   selected: boolean;
 }
 
-export default function FinetunePage({ extractedData, initialState, activeAnalysisId, llmMode, onComplete, onBack }: FinetunePageProps) {
+export default function FinetunePage({ extractedData, initialState, activeAnalysisId, llmMode, onComplete, onBack, onStateChange }: FinetunePageProps) {
   // --- UI State ---
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -39,7 +40,6 @@ export default function FinetunePage({ extractedData, initialState, activeAnalys
   };
 
   // --- 1. Projects State & Drag-and-Drop ---
-  // Start empty, will be populated by useEffect
   const [projects, setProjects] = useState<Project[]>([]);
 
   const dragItem = useRef<number | null>(null);
@@ -66,7 +66,6 @@ export default function FinetunePage({ extractedData, initialState, activeAnalys
   };
 
   // --- 2. Topics State & Logic ---
-  // Start empty, will be populated by useEffect
   const [topics, setTopics] = useState<TopicGroup[]>([]);
   const [newKeywordInputs, setNewKeywordInputs] = useState<Record<string, string>>({});
 
@@ -109,7 +108,6 @@ export default function FinetunePage({ extractedData, initialState, activeAnalys
   };
 
   // --- 3. Skills State & Logic ---
-  // Start empty, will be populated by useEffect
   const [skills, setSkills] = useState<Skill[]>([]);
   const [customSkillInput, setCustomSkillInput] = useState("");
 
@@ -148,7 +146,8 @@ export default function FinetunePage({ extractedData, initialState, activeAnalys
 
   // --- 4. Initialization & Persistence ---
   useEffect(() => {
-    if (initialState) {
+    // We check if the saved global state has actual data 
+    if (initialState && (initialState.projects?.length > 0 || initialState.topics?.length > 0 || initialState.skills?.length > 0)) {
       setProjects(initialState.projects || []);
       setTopics(initialState.topics || []);
       setSkills(initialState.skills || []);
@@ -176,7 +175,20 @@ export default function FinetunePage({ extractedData, initialState, activeAnalys
         })));
       }
     }
-  }, [extractedData, initialState]);
+    // EMPTY dependency array forces this to only run exactly ONCE on mount.
+    // This stops it from constantly overriding your edits with the raw extractedData.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Sync state continuously upwards to App.tsx on every change
+  const isMounted = useRef(false);
+  useEffect(() => {
+    if (isMounted.current && onStateChange) {
+      onStateChange({ projects, topics, skills });
+    } else {
+      isMounted.current = true;
+    }
+  }, [projects, topics, skills, onStateChange]);
 
   const handleSubmit = async () => {
     if (!extractedData?.analysis_id) {

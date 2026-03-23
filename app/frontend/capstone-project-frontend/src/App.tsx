@@ -28,7 +28,7 @@ function App() {
   const [viewPortfolioId, setViewPortfolioId] = useState<number | null>(null);
   const [viewInsightsAnalysisId, setViewInsightsAnalysisId] = useState<string | null>(null);
 
-  // --- New Global States for Persistence & API ---
+  // --- Global States for Persistence & API ---
   const [extractedData, setExtractedData] = useState<any>(null);
   const [finetuneState, setFinetuneState] = useState<any>(null);
   const [resumeLocation, setResumeLocation] = useState<string | null>(null);
@@ -90,7 +90,6 @@ function App() {
             {currentStep === 2 && (
               <FileImport
                 activeAnalysisId={activeAnalysisId}
-                // Modified to receive the extraction data from FileImport
                 onComplete={(data?: any) => { 
                   if (data) setExtractedData(data);
                   setCurrentStep(2.5); 
@@ -110,6 +109,8 @@ function App() {
               activeAnalysisId={activeAnalysisId}
               llmMode={onboardingData?.llmMode}
               onBack={() => setCurrentStep(2.5)}
+              // Continuously sync state upwards so nothing is lost if user navigates away via sidebar
+              onStateChange={(state) => setFinetuneState(state)}
               onComplete={(state, resLoc, portLoc, rId, pId) => {
                 setFinetuneState(state);
                 if (resLoc) setResumeLocation(resLoc);
