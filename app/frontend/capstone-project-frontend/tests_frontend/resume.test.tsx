@@ -4,7 +4,7 @@ import ResumeDisplay, {mockResume} from "../src/pages/resume_display";
 import { MemoryRouter } from "react-router-dom";
 import '@testing-library/jest-dom';
 
-const setup = () => render(<ResumeDisplay />);
+const setup = () => render(<MemoryRouter><ResumeDisplay /></MemoryRouter>);
 
 const getCard = (title: string) =>
   screen.getByText(title).closest(".rounded-2xl") as HTMLElement;
