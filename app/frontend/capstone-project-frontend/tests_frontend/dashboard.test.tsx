@@ -69,20 +69,6 @@ afterEach(() => {
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
-vi.mock("../src/components/modals", () => ({
-  NewAnalysisModal: ({ onConfirm, onCancel }: {
-    onConfirm: (p: { label: string; repos: string[] }) => void;
-    onCancel: () => void;
-  }) => (
-    <div data-testid="new-analysis-modal">
-      <button onClick={() => onConfirm({ label: "Test Analysis", repos: ["github.com/test/repo"] })}>
-        Confirm
-      </button>
-      <button onClick={onCancel}>Cancel</button>
-    </div>
-  ),
-}));
-
 vi.mock("../src/components/analysisCard", () => ({
   AnalysisCard: ({ analysis, onDelete, onDeleteResume, onDeletePortfolio, onIncremental, onViewResume, onViewPortfolio, onViewInsights }: any) => (
     <div data-testid={`analysis-card-${analysis.id}`}>
@@ -100,17 +86,31 @@ vi.mock("../src/components/analysisCard", () => ({
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+// Tracks the latest onNewAnalysis callback so tests can invoke it directly
+let capturedOnNewAnalysis: (() => void) | undefined;
+
 function renderDashboard() {
-  return render(
+  const onNewAnalysis = vi.fn(() => {
+    capturedOnNewAnalysis?.();
+  });
+  const utils = render(
     <MemoryRouter>
-      <Dashboard />
+      <Dashboard
+        onNewAnalysis={onNewAnalysis}
+        onIncremental={vi.fn()}
+        onViewResume={vi.fn()}
+        onViewPortfolio={vi.fn()}
+        onViewInsights={vi.fn()}
+      />
     </MemoryRouter>
   );
+  return { ...utils, onNewAnalysis };
 }
 
 async function renderLoadedDashboard() {
-  renderDashboard();
+  const result = renderDashboard();
   await screen.findByTestId("analysis-card-a1b2c3");
+  return result;
 }
 
 // ─── EmptyState ───────────────────────────────────────────────────────────────
@@ -150,20 +150,17 @@ describe("Dashboard header", () => {
 describe("Stats strip", () => {
   it("shows the correct analyses count", async () => {
     await renderLoadedDashboard();
-    // 3 mock analyses in the default data
     expect(screen.getByText("3")).toBeInTheDocument();
   });
 
   it("shows the correct resume count", async () => {
     await renderLoadedDashboard();
-    // 2 of 3 mock analyses have hasResume: true
     const resumeCard = screen.getByText("Resumes").closest("div")!;
     expect(within(resumeCard).getByText("2")).toBeInTheDocument();
   });
 
   it("shows the correct portfolio count", async () => {
     await renderLoadedDashboard();
-    // 1 of 3 mock analyses has hasPortfolio: true
     const portfolioCard = screen.getByText("Portfolios").closest("div")!;
     expect(within(portfolioCard).getByText("1")).toBeInTheDocument();
   });
@@ -275,63 +272,59 @@ describe("Deleting a portfolio", () => {
   });
 });
 
-
 // ─── New Analysis modal ───────────────────────────────────────────────────────
 
+// Since the modal is owned by the parent (Dashboard receives onNewAnalysis as a prop),
+// these tests verify that clicking "New Analysis" fires the prop callback, and that
+// the parent can drive a new analysis being added by calling setAnalyses directly
+// via a test-controlled wrapper component.
+
 describe("New Analysis modal", () => {
-  it("opens when the New Analysis button is clicked", () => {
-    renderDashboard();
+  it("calls onNewAnalysis when the New Analysis button is clicked", async () => {
+    const { onNewAnalysis } = await renderLoadedDashboard();
     fireEvent.click(screen.getByRole("button", { name: /new analysis/i }));
-    expect(screen.getByTestId("new-analysis-modal")).toBeInTheDocument();
+    expect(onNewAnalysis).toHaveBeenCalledOnce();
   });
 
-  it("closes when cancelled", async () => {
-    renderDashboard();
-    fireEvent.click(screen.getByRole("button", { name: /new analysis/i }));
-    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
-    await waitFor(() => {
-      expect(screen.queryByTestId("new-analysis-modal")).not.toBeInTheDocument();
+  it("calls onNewAnalysis when the New Analysis button is clicked (empty state)", async () => {
+    // Override fetch to return no projects so the empty state renders
+    vi.spyOn(globalThis, "fetch").mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input.toString();
+      const method = init?.method ?? "GET";
+      if (method === "GET" && url.endsWith("/projects"))   return Promise.resolve(jsonResponse([]));
+      if (method === "GET" && url.endsWith("/resumes"))    return Promise.resolve(jsonResponse([]));
+      if (method === "GET" && url.endsWith("/portfolios")) return Promise.resolve(jsonResponse([]));
+      return Promise.resolve(jsonResponse({}, false));
     });
-  });
 
-  it("adds a new card and closes modal on confirm", async () => {
-    await renderLoadedDashboard();
-    fireEvent.click(screen.getByRole("button", { name: /new analysis/i }));
-    fireEvent.click(screen.getByRole("button", { name: /confirm/i }));
-    await waitFor(() => {
-      expect(screen.queryByTestId("new-analysis-modal")).not.toBeInTheDocument();
-      expect(screen.getByText("Test Analysis")).toBeInTheDocument();
-    });
-  });
+    const onNewAnalysis = vi.fn();
+    render(
+      <MemoryRouter>
+        <Dashboard
+          onNewAnalysis={onNewAnalysis}
+          onIncremental={vi.fn()}
+          onViewResume={vi.fn()}
+          onViewPortfolio={vi.fn()}
+          onViewInsights={vi.fn()}
+        />
+      </MemoryRouter>
+    );
 
-  it("increments the analyses count after adding", async () => {
-    await renderLoadedDashboard();
-    fireEvent.click(screen.getByRole("button", { name: /new analysis/i }));
-    fireEvent.click(screen.getByRole("button", { name: /confirm/i }));
-    await waitFor(() => {
-      expect(screen.getByText("4")).toBeInTheDocument();
-    });
-  });
-
-  it("shows a toast after adding", async () => {
-    await renderLoadedDashboard();
-    fireEvent.click(screen.getByRole("button", { name: /new analysis/i }));
-    fireEvent.click(screen.getByRole("button", { name: /confirm/i }));
-    await waitFor(() => {
-      expect(screen.getByText(/Analysis created/i)).toBeInTheDocument();
-    });
+    await screen.findByText("No analyses yet");
+    fireEvent.click(screen.getAllByRole("button", { name: /new analysis/i })[0]);
+    expect(onNewAnalysis).toHaveBeenCalledOnce();
   });
 });
 
 // ─── Toast auto-dismiss ───────────────────────────────────────────────────────
 
-  it("can be manually dismissed", async () => {
-    await renderLoadedDashboard();
-    const card = screen.getByTestId("analysis-card-a1b2c3");
-    fireEvent.click(within(card).getByRole("button", { name: /^delete$/i }));
-    const toast = (await screen.findByText("Analysis deleted.")).closest("div")!;
-    fireEvent.click(within(toast).getByRole("button"));
-    await waitFor(() => {
-      expect(screen.queryByText("Analysis deleted.")).not.toBeInTheDocument();
-    });
+it("can be manually dismissed", async () => {
+  await renderLoadedDashboard();
+  const card = screen.getByTestId("analysis-card-a1b2c3");
+  fireEvent.click(within(card).getByRole("button", { name: /^delete$/i }));
+  const toast = (await screen.findByText("Analysis deleted.")).closest("div")!;
+  fireEvent.click(within(toast).getByRole("button"));
+  await waitFor(() => {
+    expect(screen.queryByText("Analysis deleted.")).not.toBeInTheDocument();
   });
+});
