@@ -1,9 +1,12 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 
 interface FinetunePageProps {
-  onComplete: (data: any) => void;
-  onBack?: () => void;
   extractedData?: any;
+  initialState?: any;
+  activeAnalysisId?: string | null;
+  llmMode?: 'online' | 'local';
+  onBack?: () => void;
+  onComplete: (state: any, resumeLocation: string | null, portfolioLocation: string | null, resumeId: number | null, portfolioId: number | null) => void;
 }
 
 interface Project {
@@ -24,10 +27,11 @@ interface Skill {
   selected: boolean;
 }
 
-export default function FinetunePage({ onComplete, onBack, extractedData }: FinetunePageProps) {
+export default function FinetunePage({ extractedData, initialState, activeAnalysisId, llmMode, onComplete, onBack }: FinetunePageProps) {
   // --- UI State ---
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isCommitting, setIsCommitting] = useState(false);
 
   const showToast = (message: string) => {
     setToastMessage(message);
@@ -35,11 +39,8 @@ export default function FinetunePage({ onComplete, onBack, extractedData }: Fine
   };
 
   // --- 1. Projects State & Drag-and-Drop ---
-  const [projects, setProjects] = useState<Project[]>([
-    { id: "p1", name: "Capstone Analysis Tool", commits: 140, selected: true },
-    { id: "p2", name: "COSC 360 - Android App", commits: 85, selected: true },
-    { id: "p3", name: "Personal Portfolio", commits: 42, selected: true },
-  ]);
+  // Start empty, will be populated by useEffect
+  const [projects, setProjects] = useState<Project[]>([]);
 
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
@@ -65,13 +66,8 @@ export default function FinetunePage({ onComplete, onBack, extractedData }: Fine
   };
 
   // --- 2. Topics State & Logic ---
-  const [topics, setTopics] = useState<TopicGroup[]>([
-    { id: "t0", keywords: ["user", "post", "blog", "comment", "account", "create", "like", "option", "name", "use"] },
-    { id: "t1", keywords: ["post", "setting", "view", "recent", "account", "piggybank", "trend", "make", "save", "jane"] },
-    { id: "t2", keywords: ["px", "content", "flex", "center", "border", "post", "margin", "align", "fit", "color"] },
-    { id: "t3", keywords: ["color", "background", "content", "log", "white", "px", "piggybank", "arial", "pfp", "black"] },
-    { id: "t4", keywords: ["id", "user", "post", "utf", "mb", "follow", "ibfk", "increment", "auto", "current"] },
-  ]);
+  // Start empty, will be populated by useEffect
+  const [topics, setTopics] = useState<TopicGroup[]>([]);
   const [newKeywordInputs, setNewKeywordInputs] = useState<Record<string, string>>({});
 
   const removeKeyword = (topicId: string, keywordToRemove: string) => {
@@ -113,14 +109,8 @@ export default function FinetunePage({ onComplete, onBack, extractedData }: Fine
   };
 
   // --- 3. Skills State & Logic ---
-  const [skills, setSkills] = useState<Skill[]>([
-    { id: "s0", name: "PHP", selected: false },
-    { id: "s1", name: "CSS", selected: false },
-    { id: "s2", name: "JavaScript", selected: false },
-    { id: "s3", name: "Web Development", selected: false },
-    { id: "s4", name: "Backend Development", selected: false },
-    { id: "s5", name: "Database", selected: false },
-  ]);
+  // Start empty, will be populated by useEffect
+  const [skills, setSkills] = useState<Skill[]>([]);
   const [customSkillInput, setCustomSkillInput] = useState("");
 
   const selectedSkillsCount = skills.filter((s) => s.selected).length;
@@ -156,8 +146,96 @@ export default function FinetunePage({ onComplete, onBack, extractedData }: Fine
     setCustomSkillInput("");
   };
 
-  const handleSubmit = () => {
-    onComplete({ projects, topics, skills: skills.filter(s => s.selected) });
+  // --- 4. Initialization & Persistence ---
+  useEffect(() => {
+    if (initialState) {
+      setProjects(initialState.projects || []);
+      setTopics(initialState.topics || []);
+      setSkills(initialState.skills || []);
+    } else if (extractedData) {
+      // Override default data with real backend data if available
+      if (extractedData.analyzed_projects?.length) {
+        setProjects(extractedData.analyzed_projects.map((p: any, i: number) => ({
+          id: `p${i}`,
+          name: p.repository_name,
+          commits: Math.round((p.importance_score || 0) * 100), 
+          selected: true
+        })));
+      }
+      if (extractedData.topic_keywords?.length) {
+        setTopics(extractedData.topic_keywords.map((t: any) => ({
+          id: `t${t.topic_id ?? Date.now() + Math.random()}`,
+          keywords: t.keywords || []
+        })));
+      }
+      if (extractedData.detected_skills?.length) {
+        setSkills(extractedData.detected_skills.map((s: string, i: number) => ({
+          id: `s${i}`,
+          name: s,
+          selected: i < 3 // Select the first 3 skills automatically by default
+        })));
+      }
+    }
+  }, [extractedData, initialState]);
+
+  const handleSubmit = async () => {
+    if (!extractedData?.analysis_id) {
+      // Fallback for frontend UI-only testing if extraction data isn't loaded
+      onComplete({ projects, topics, skills }, null, null, null, null);
+      return;
+    }
+
+    setIsCommitting(true);
+    try {
+      const analysisId = extractedData.analysis_id;
+
+      // 1. Commit Update
+      const commitPayload = {
+        topic_keywords: topics.map(t => ({
+          topic_id: parseInt(t.id.replace('t', '')) || 0,
+          keywords: t.keywords
+        })),
+        user_highlights: skills.filter(s => s.selected).map(s => s.name),
+        selected_projects: projects.filter(p => p.selected).map(p => p.name),
+        online_llm_consent: llmMode === 'online'
+      };
+
+      const commitUrl = activeAnalysisId 
+          ? `http://localhost:8080/projects/${analysisId}/update/commit`
+          : `http://localhost:8080/projects/${analysisId}/upload/commit`;
+
+      const commitRes = await fetch(commitUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(commitPayload)
+      });
+      
+      if (!commitRes.ok) throw new Error("Commit API failed");
+
+      // 2. Generate Resume
+      const resumeResp = await fetch(`http://localhost:8080/resume/generate/${analysisId}`, { method: 'POST' });
+      const resumeLocation = resumeResp.headers.get('location');
+      const resumeData = await resumeResp.json().catch(() => ({}));
+      
+      // 3. Generate Portfolio
+      const portResp = await fetch(`http://localhost:8080/portfolio/generate/${analysisId}`, { method: 'POST' });
+      const portLocation = portResp.headers.get('location');
+      const portData = await portResp.json().catch(() => ({}));
+
+      onComplete(
+        { projects, topics, skills },
+        resumeLocation,
+        portLocation,
+        resumeData?.resume_id || null,
+        portData?.portfolio_id || null
+      );
+      
+    } catch (err) {
+      console.error(err);
+      showToast("Error processing data. Check console.");
+    } finally {
+      setIsCommitting(false);
+    }
   };
 
   return (
@@ -195,44 +273,48 @@ export default function FinetunePage({ onComplete, onBack, extractedData }: Fine
             </div>
             
             <div className="flex flex-col gap-3">
-              {projects.map((project, index) => (
-                <div
-                  key={project.id}
-                  draggable
-                  onDragStart={() => handleDragStart(index)}
-                  onDragEnter={() => handleDragEnter(index)}
-                  onDragEnd={handleDrop}
-                  onDragOver={(e) => e.preventDefault()}
-                  className={`
-                    flex items-center gap-4 p-4 rounded-xl border-2 cursor-grab active:cursor-grabbing transition-all duration-200 bg-white
-                    ${project.selected ? "border-[#6378ff]/40 shadow-[0_4px_12px_rgba(99,120,255,0.05)]" : "border-[#eef0f6] hover:border-[#a5b4fc]"}
-                  `}
-                >
-                  {/* Drag Handle Icon */}
-                  <svg className="w-5 h-5 text-[#c4c9d4] cursor-grab flex-shrink-0 hover:text-[#9ca3af] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 8h16M4 16h16" />
-                  </svg>
-
-                  {/* Checkbox */}
-                  <button
-                    onClick={() => toggleProject(project.id)}
-                    className={`flex-shrink-0 w-5 h-5 rounded-[6px] flex items-center justify-center transition-colors focus:outline-none border-none cursor-pointer
-                      ${project.selected ? "bg-[#6378ff]" : "bg-[#eef0f6]"}
+              {projects.length === 0 ? (
+                <p className="text-sm text-[#9ca3af] italic">No projects found.</p>
+              ) : (
+                projects.map((project, index) => (
+                  <div
+                    key={project.id}
+                    draggable
+                    onDragStart={() => handleDragStart(index)}
+                    onDragEnter={() => handleDragEnter(index)}
+                    onDragEnd={handleDrop}
+                    onDragOver={(e) => e.preventDefault()}
+                    className={`
+                      flex items-center gap-4 p-4 rounded-xl border-2 cursor-grab active:cursor-grabbing transition-all duration-200 bg-white
+                      ${project.selected ? "border-[#6378ff]/40 shadow-[0_4px_12px_rgba(99,120,255,0.05)]" : "border-[#eef0f6] hover:border-[#a5b4fc]"}
                     `}
                   >
-                    {project.selected && (
-                      <svg className="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                    )}
-                  </button>
+                    {/* Drag Handle Icon */}
+                    <svg className="w-5 h-5 text-[#c4c9d4] cursor-grab flex-shrink-0 hover:text-[#9ca3af] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 8h16M4 16h16" />
+                    </svg>
 
-                  <div className="flex-1 min-w-0 flex items-center justify-between cursor-pointer" onClick={() => toggleProject(project.id)}>
-                    <p className="text-sm font-bold text-[#0f1629] truncate">{project.name}</p>
-                    <p className="text-[11px] font-bold tracking-widest uppercase text-[#9ca3af]">{project.commits} commits</p>
+                    {/* Checkbox */}
+                    <button
+                      onClick={() => toggleProject(project.id)}
+                      className={`flex-shrink-0 w-5 h-5 rounded-[6px] flex items-center justify-center transition-colors focus:outline-none border-none cursor-pointer
+                        ${project.selected ? "bg-[#6378ff]" : "bg-[#eef0f6]"}
+                      `}
+                    >
+                      {project.selected && (
+                        <svg className="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      )}
+                    </button>
+
+                    <div className="flex-1 min-w-0 flex items-center justify-between cursor-pointer" onClick={() => toggleProject(project.id)}>
+                      <p className="text-sm font-bold text-[#0f1629] truncate">{project.name}</p>
+                      <p className="text-[11px] font-bold tracking-widest uppercase text-[#9ca3af]">{project.commits} score</p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
 
@@ -260,73 +342,77 @@ export default function FinetunePage({ onComplete, onBack, extractedData }: Fine
             </div>
 
             <div className="flex flex-col gap-4">
-              {topics.map((topic, index) => (
-                <div 
-                  key={topic.id} 
-                  className="group flex flex-col md:flex-row items-start gap-4 p-5 rounded-xl border border-[#eef0f6] bg-[#f8f9fc] hover:border-[#c7d0ff] transition-colors"
-                >
-                  <div className="w-full md:w-20 shrink-0 pt-1">
-                    <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0f1629]">
-                      Topic {index}
-                    </span>
-                  </div>
+              {topics.length === 0 ? (
+                <p className="text-sm text-[#9ca3af] italic">No topics extracted.</p>
+              ) : (
+                topics.map((topic, index) => (
+                  <div 
+                    key={topic.id} 
+                    className="group flex flex-col md:flex-row items-start gap-4 p-5 rounded-xl border border-[#eef0f6] bg-[#f8f9fc] hover:border-[#c7d0ff] transition-colors"
+                  >
+                    <div className="w-full md:w-20 shrink-0 pt-1">
+                      <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0f1629]">
+                        Topic {index}
+                      </span>
+                    </div>
 
-                  <div className="flex-1 flex flex-wrap gap-2 items-center">
-                    {topic.keywords.map((kw) => (
-                      <span 
-                        key={kw} 
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white border border-[#eef0f6] text-xs font-bold text-[#6b7280] shadow-[0_2px_10px_rgba(0,0,0,0.02)]"
-                      >
-                        {kw}
-                        <button 
-                          onClick={() => removeKeyword(topic.id, kw)} 
-                          className="text-[#c4c9d4] hover:text-[#ef4444] transition-colors focus:outline-none border-none bg-transparent cursor-pointer p-0"
-                          aria-label={`Remove ${kw}`}
+                    <div className="flex-1 flex flex-wrap gap-2 items-center">
+                      {topic.keywords.map((kw) => (
+                        <span 
+                          key={kw} 
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white border border-[#eef0f6] text-xs font-bold text-[#6b7280] shadow-[0_2px_10px_rgba(0,0,0,0.02)]"
                         >
-                          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="18" y1="6" x2="6" y2="18" />
-                            <line x1="6" y1="6" x2="18" y2="18" />
+                          {kw}
+                          <button 
+                            onClick={() => removeKeyword(topic.id, kw)} 
+                            className="text-[#c4c9d4] hover:text-[#ef4444] transition-colors focus:outline-none border-none bg-transparent cursor-pointer p-0"
+                            aria-label={`Remove ${kw}`}
+                          >
+                            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <line x1="18" y1="6" x2="6" y2="18" />
+                              <line x1="6" y1="6" x2="18" y2="18" />
+                            </svg>
+                          </button>
+                        </span>
+                      ))}
+
+                      <div className="flex items-center gap-1 bg-transparent px-1">
+                        <input
+                          type="text"
+                          placeholder="Add keyword..."
+                          value={newKeywordInputs[topic.id] || ""}
+                          onChange={(e) => setNewKeywordInputs(prev => ({ ...prev, [topic.id]: e.target.value }))}
+                          onKeyDown={(e) => e.key === "Enter" && addKeyword(topic.id)}
+                          className="text-xs font-bold text-[#0f1629] placeholder-[#9ca3af] bg-transparent focus:outline-none w-28 transition-colors"
+                        />
+                        <button 
+                          onClick={() => addKeyword(topic.id)} 
+                          disabled={!newKeywordInputs[topic.id]?.trim()}
+                          className="text-[#6378ff] hover:text-[#a78bfa] disabled:opacity-50 disabled:cursor-not-allowed p-1 transition-colors border-none bg-transparent cursor-pointer"
+                        >
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19" />
+                            <line x1="5" y1="12" x2="19" y2="12" />
                           </svg>
                         </button>
-                      </span>
-                    ))}
-
-                    <div className="flex items-center gap-1 bg-transparent px-1">
-                      <input
-                        type="text"
-                        placeholder="Add keyword..."
-                        value={newKeywordInputs[topic.id] || ""}
-                        onChange={(e) => setNewKeywordInputs(prev => ({ ...prev, [topic.id]: e.target.value }))}
-                        onKeyDown={(e) => e.key === "Enter" && addKeyword(topic.id)}
-                        className="text-xs font-bold text-[#0f1629] placeholder-[#9ca3af] bg-transparent focus:outline-none w-28 transition-colors"
-                      />
-                      <button 
-                        onClick={() => addKeyword(topic.id)} 
-                        disabled={!newKeywordInputs[topic.id]?.trim()}
-                        className="text-[#6378ff] hover:text-[#a78bfa] disabled:opacity-50 disabled:cursor-not-allowed p-1 transition-colors border-none bg-transparent cursor-pointer"
-                      >
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                          <line x1="12" y1="5" x2="12" y2="19" />
-                          <line x1="5" y1="12" x2="19" y2="12" />
-                        </svg>
-                      </button>
+                      </div>
                     </div>
-                  </div>
 
-                  <button 
-                    onClick={() => removeTopicGroup(topic.id)}
-                    title="Delete Topic Row"
-                    className="shrink-0 p-2 text-[#9ca3af] hover:text-[#ef4444] hover:bg-[#ef4444]/10 rounded-lg transition-colors border-none bg-transparent mt-[-4px] md:mt-0 cursor-pointer"
-                  >
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="3 6 5 6 21 6" />
-                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                      <path d="M10 11v6" />
-                      <path d="M14 11v6" />
-                    </svg>
-                  </button>
-                </div>
-              ))}
+                    <button 
+                      onClick={() => removeTopicGroup(topic.id)}
+                      title="Delete Topic Row"
+                      className="shrink-0 p-2 text-[#9ca3af] hover:text-[#ef4444] hover:bg-[#ef4444]/10 rounded-lg transition-colors border-none bg-transparent mt-[-4px] md:mt-0 cursor-pointer"
+                    >
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                        <path d="M10 11v6" />
+                        <path d="M14 11v6" />
+                      </svg>
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
@@ -343,23 +429,27 @@ export default function FinetunePage({ onComplete, onBack, extractedData }: Fine
             </div>
 
             <div className="flex flex-wrap gap-2.5 mb-6">
-              {skills.map((skill) => (
-                <button
-                  key={skill.id}
-                  onClick={() => toggleSkill(skill.id)}
-                  disabled={!skill.selected && selectedSkillsCount >= 3}
-                  className={`
-                    px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 border-2 cursor-pointer
-                    ${
-                      skill.selected
-                        ? "bg-[#6378ff]/10 text-[#6378ff] border-[#6378ff]/30"
-                        : "bg-white text-[#6b7280] border-[#eef0f6] hover:border-[#a5b4fc] hover:text-[#0f1629] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-[#eef0f6] disabled:hover:text-[#6b7280]"
-                    }
-                  `}
-                >
-                  {skill.name}
-                </button>
-              ))}
+              {skills.length === 0 ? (
+                <p className="text-sm text-[#9ca3af] italic">No skills extracted.</p>
+              ) : (
+                skills.map((skill) => (
+                  <button
+                    key={skill.id}
+                    onClick={() => toggleSkill(skill.id)}
+                    disabled={!skill.selected && selectedSkillsCount >= 3}
+                    className={`
+                      px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 border-2 cursor-pointer
+                      ${
+                        skill.selected
+                          ? "bg-[#6378ff]/10 text-[#6378ff] border-[#6378ff]/30"
+                          : "bg-white text-[#6b7280] border-[#eef0f6] hover:border-[#a5b4fc] hover:text-[#0f1629] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-[#eef0f6] disabled:hover:text-[#6b7280]"
+                      }
+                    `}
+                  >
+                    {skill.name}
+                  </button>
+                ))
+              )}
             </div>
 
             <div className="flex items-center gap-3">
@@ -388,20 +478,28 @@ export default function FinetunePage({ onComplete, onBack, extractedData }: Fine
             {onBack && (
               <button
                 onClick={onBack}
-                className="py-4 px-6 rounded-xl font-bold text-sm transition-all duration-200 bg-white text-[#6b7280] border border-[#eef0f6] hover:border-[#c4c9d4] hover:text-[#0f1629] cursor-pointer shadow-[0_2px_10px_rgba(0,0,0,0.02)]"
+                disabled={isCommitting}
+                className="py-4 px-6 rounded-xl font-bold text-sm transition-all duration-200 bg-white text-[#6b7280] border border-[#eef0f6] hover:border-[#c4c9d4] hover:text-[#0f1629] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-[0_2px_10px_rgba(0,0,0,0.02)]"
               >
                 Back
               </button>
             )}
             <button
               onClick={handleSubmit}
-              className="flex-1 py-4 rounded-xl border-none font-bold text-sm flex items-center justify-center gap-2 transition-all duration-300 bg-gradient-to-br from-[#6378ff] to-[#a78bfa] text-white shadow-[0_4px_20px_rgba(99,120,255,0.3)] hover:shadow-[0_6px_28px_rgba(99,120,255,0.4)] hover:-translate-y-0.5 cursor-pointer"
+              disabled={isCommitting}
+              className={`flex-1 py-4 rounded-xl border-none font-bold text-sm flex items-center justify-center gap-2 transition-all duration-300
+                ${isCommitting 
+                  ? "bg-gradient-to-br from-[#6378ff] to-[#a78bfa] text-white/80 cursor-wait" 
+                  : "bg-gradient-to-br from-[#6378ff] to-[#a78bfa] text-white shadow-[0_4px_20px_rgba(99,120,255,0.3)] hover:shadow-[0_6px_28px_rgba(99,120,255,0.4)] hover:-translate-y-0.5 cursor-pointer"
+                }`}
             >
-              Confirm & Continue
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="5" y1="12" x2="19" y2="12" />
-                <polyline points="12 5 19 12 12 19" />
-              </svg>
+              {isCommitting ? "Processing..." : "Confirm & Continue"}
+              {!isCommitting && (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                  <polyline points="12 5 19 12 12 19" />
+                </svg>
+              )}
             </button>
           </div>
 
