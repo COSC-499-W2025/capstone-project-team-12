@@ -1,4 +1,5 @@
 import os
+import glob
 import shutil
 import tempfile
 import json
@@ -50,6 +51,20 @@ def get_db():
 def location_header(location:str):
     """Returns dict with location header with given location string"""
     return {"location": location}
+
+
+def cleanup_stale_cache(cache_dir: str = "cache", max_age_seconds: int = 1):
+    """Delete pending_*.pkl files older than max_age_seconds (lazy cleanup)."""
+    if not os.path.isdir(cache_dir):
+        return
+    now = time.time()
+    for path in glob.glob(os.path.join(cache_dir, "pending_*.pkl")):
+        try:
+            if now - os.path.getmtime(path) > max_age_seconds:
+                os.remove(path)
+                logger.info("[CACHE] Deleted stale cache file: %s", path)
+        except Exception as exc:
+            logger.error("[CACHE] Failed to delete stale cache file %s: %s", path, exc)
     
 
 class ResumeEditRequest(BaseModel):
@@ -99,6 +114,7 @@ async def extract_upload(
     a new analysis ID internally), caches heavy state for the commit step,
     and returns lightweight results to the frontend.
     """
+    cleanup_stale_cache()
     t0 = time.time()
     config = ConfigManager()
     github_username = config.preferences.get("github_username")
@@ -654,6 +670,7 @@ async def extract_update(
     Merges the uploaded file with the existing analysis, runs extraction,
     and caches the heavy state for the subsequent commit step.
     """
+    cleanup_stale_cache()
     try:
         validate_uuid(analysis_id)
     except ValueError:
@@ -849,6 +866,37 @@ async def commit_update(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/projects/{analysis_id}/upload/abort")
+async def abort_upload(analysis_id: str):
+    """
+    Explicitly abort a pending upload and remove any associated cache files.
+    """
+    try:
+        validate_uuid(analysis_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid UUID format")
+
+    target_files = [
+        os.path.join("cache", f"pending_new_{analysis_id}.pkl"),
+        os.path.join("cache", f"pending_update_{analysis_id}.pkl"),
+    ]
+
+    deleted_any = False
+    for path in target_files:
+        if os.path.exists(path):
+            try:
+                os.remove(path)
+                logger.info("[ABORT] Deleted cached file: %s", path)
+                deleted_any = True
+            except Exception as exc:
+                logger.error("[ABORT] Failed to delete cached file %s: %s", path, exc)
+                raise HTTPException(status_code=500, detail=f"Failed to delete cache file: {path}")
+
+    if not deleted_any:
+        return JSONResponse(status_code=404, content={"message": "No pending upload found to abort."})
+
+    return JSONResponse(status_code=200, content={"message": "Upload aborted and cache cleared."})
 
 @app.delete("/projects/{analysis_id}")
 async def delete_project(analysis_id: str, db: DatabaseManager = Depends(get_db)):
