@@ -147,13 +147,11 @@ export default function FinetunePage({ extractedData, initialState, activeAnalys
 
   // --- 4. Initialization & Persistence ---
   useEffect(() => {
-    // We check if the saved global state has actual data 
     if (initialState && (initialState.projects?.length > 0 || initialState.topics?.length > 0 || initialState.skills?.length > 0)) {
       setProjects(initialState.projects || []);
       setTopics(initialState.topics || []);
       setSkills(initialState.skills || []);
     } else if (extractedData) {
-      // Override default data with real backend data if available
       if (extractedData.analyzed_projects?.length) {
         setProjects(extractedData.analyzed_projects.map((p: any, i: number) => ({
           id: `p${i}`,
@@ -172,16 +170,13 @@ export default function FinetunePage({ extractedData, initialState, activeAnalys
         setSkills(extractedData.detected_skills.map((s: string, i: number) => ({
           id: `s${i}`,
           name: s,
-          selected: false // NO longer selecting the first 3 by default
+          selected: false 
         })));
       }
     }
-    // EMPTY dependency array forces this to only run exactly ONCE on mount.
-    // This stops it from constantly overriding your edits with the raw extractedData.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Sync state continuously upwards to App.tsx on every change
   const isMounted = useRef(false);
   useEffect(() => {
     if (isMounted.current && onStateChange) {
@@ -193,7 +188,7 @@ export default function FinetunePage({ extractedData, initialState, activeAnalys
 
   const handleSubmit = async () => {
     if (!extractedData?.analysis_id) {
-      // Fallback for frontend UI-only testing if extraction data isn't loaded
+      console.warn("[FINETUNE] No analysis_id found! Executing frontend-only completion.");
       onComplete({ projects, topics, skills }, null, null, null, null);
       return;
     }
@@ -213,6 +208,10 @@ export default function FinetunePage({ extractedData, initialState, activeAnalys
         online_llm_consent: llmMode === 'online'
       };
 
+      console.log(`\n============== [FINETUNE API LOGS] ==============`);
+      console.log(`[FINETUNE] 1. Calling commit endpoint for Analysis ID: ${analysisId}`);
+      console.log(`[FINETUNE] Commit Payload being sent:`, JSON.stringify(commitPayload, null, 2));
+
       const commitUrl = activeAnalysisId 
           ? `http://localhost:8080/projects/${analysisId}/update/commit`
           : `http://localhost:8080/projects/${analysisId}/upload/commit`;
@@ -223,17 +222,31 @@ export default function FinetunePage({ extractedData, initialState, activeAnalys
         body: JSON.stringify(commitPayload)
       });
       
-      if (!commitRes.ok) throw new Error("Commit API failed");
+      console.log(`[FINETUNE] Commit Response Status:`, commitRes.status);
+      if (!commitRes.ok) {
+        const errText = await commitRes.text();
+        console.error(`[FINETUNE] Commit API failed with body:`, errText);
+        throw new Error("Commit API failed");
+      }
 
       // 2. Generate Resume
+      console.log(`\n[FINETUNE] 2. Calling Resume Generation Endpoint...`);
       const resumeResp = await fetch(`http://localhost:8080/resume/generate/${analysisId}`, { method: 'POST' });
       const resumeLocation = resumeResp.headers.get('location');
       const resumeData = await resumeResp.json().catch(() => ({}));
+      console.log(`[FINETUNE] Resume Status:`, resumeResp.status);
+      console.log(`[FINETUNE] Resume Location Header:`, resumeLocation);
+      console.log(`[FINETUNE] Resume Body Data:`, resumeData);
       
       // 3. Generate Portfolio
+      console.log(`\n[FINETUNE] 3. Calling Portfolio Generation Endpoint...`);
       const portResp = await fetch(`http://localhost:8080/portfolio/generate/${analysisId}`, { method: 'POST' });
       const portLocation = portResp.headers.get('location');
       const portData = await portResp.json().catch(() => ({}));
+      console.log(`[FINETUNE] Portfolio Status:`, portResp.status);
+      console.log(`[FINETUNE] Portfolio Location Header:`, portLocation);
+      console.log(`[FINETUNE] Portfolio Body Data:`, portData);
+      console.log(`=================================================\n`);
 
       onComplete(
         { projects, topics, skills },
@@ -244,7 +257,7 @@ export default function FinetunePage({ extractedData, initialState, activeAnalys
       );
       
     } catch (err) {
-      console.error(err);
+      console.error("[FINETUNE] Caught Exception during processing:", err);
       showToast("Error processing data. Check console.");
     } finally {
       setIsCommitting(false);
