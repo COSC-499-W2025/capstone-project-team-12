@@ -28,6 +28,12 @@ function App() {
   const [viewPortfolioId, setViewPortfolioId] = useState<number | null>(null);
   const [viewInsightsAnalysisId, setViewInsightsAnalysisId] = useState<string | null>(null);
 
+  // --- New Global States for Persistence & API ---
+  const [extractedData, setExtractedData] = useState<any>(null);
+  const [finetuneState, setFinetuneState] = useState<any>(null);
+  const [resumeLocation, setResumeLocation] = useState<string | null>(null);
+  const [portfolioLocation, setPortfolioLocation] = useState<string | null>(null);
+
   const handleViewInsights = (analysisId: string) => {
     setViewInsightsAnalysisId(analysisId);
     setShowDashboard(false);
@@ -84,9 +90,11 @@ function App() {
             {currentStep === 2 && (
               <FileImport
                 activeAnalysisId={activeAnalysisId}
-                onComplete={() => setCurrentStep(2.5)}
-                githubUsername={onboardingData?.githubUsername || ''}
-                githubEmail={onboardingData?.email || ''}
+                // Modified to receive the extraction data from FileImport
+                onComplete={(data?: any) => { 
+                  if (data) setExtractedData(data);
+                  setCurrentStep(2.5); 
+                }}
                 model={onboardingData?.llmMode || 'online'}
                 uploads={uploads}
                 onUploadsChange={setUploads}
@@ -94,7 +102,26 @@ function App() {
             )}
 
           {currentStep === 2.5 && <ProgressPage onComplete={() => setCurrentStep(3)} />}
-          {currentStep === 3 && <FinetunePage onComplete ={() => setCurrentStep(4)} />}
+          
+          {currentStep === 3 && (
+            <FinetunePage 
+              extractedData={extractedData}
+              initialState={finetuneState}
+              activeAnalysisId={activeAnalysisId}
+              llmMode={onboardingData?.llmMode}
+              onBack={() => setCurrentStep(2.5)}
+              onComplete={(state, resLoc, portLoc, rId, pId) => {
+                setFinetuneState(state);
+                if (resLoc) setResumeLocation(resLoc);
+                if (portLoc) setPortfolioLocation(portLoc);
+                if (rId) setViewResumeId(rId);
+                if (pId) setViewPortfolioId(pId);
+                if (extractedData?.analysis_id) setViewInsightsAnalysisId(extractedData.analysis_id);
+                setCurrentStep(4);
+              }} 
+            />
+          )}
+
           {currentStep === 4 && 
             (<ProjectInsights 
               onPrevious={() => setCurrentStep(3)} 
