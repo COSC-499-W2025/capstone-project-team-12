@@ -10,7 +10,7 @@ export interface UploadEntry {
 
 interface FileImportProps {
   activeAnalysisId?: string | null;
-  onComplete: () => void;
+  onComplete: (data?: any) => void; // UPDATED: Accept data parameter
   model: string;
   uploads: UploadEntry[];
   onUploadsChange: (uploads: UploadEntry[]) => void;
@@ -188,7 +188,8 @@ const FileImport: React.FC<FileImportProps> = ({ activeAnalysisId, onComplete, m
         return;
       }
 
-      onComplete();
+      // UPDATED: Passing the data variable into onComplete so App.tsx can save it
+      onComplete(data);
     } catch (error) {
       console.error('[UPLOAD] Upload error:', error);
     } finally {
