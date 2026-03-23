@@ -4,10 +4,11 @@ import "@testing-library/jest-dom";
 import DevPortfolio from "../src/pages/Portfolio";
 
 // ─── MOCK DATA ───────────────────────────────────────────────────────────────
-// Mirrors the raw API response shape that fetchPortfolio expects
+// Mirrors the raw API response shape that fetchPortfolio normalises.
 const mockApiResponse = {
+  portfolio_title: "Jane Doe",
   portfolio_data: {
-    result_id: "Jane Doe",
+    result_id: "00000000-0000-0000-0000-000000000000",
     skill_timeline: {
       high_level_skills: ["Web Development", "Backend Development"],
       language_progression: [
@@ -46,50 +47,6 @@ const mockApiResponse = {
   },
 };
 
-function makeFetchMock(apiResponse = mockApiResponse) {
-  return vi.fn(() =>
-    Promise.resolve({
-      ok: true,
-      json: async () => apiResponse,
-    } as Response)
-  );
-}
-// Minimal but realistic — mirrors the real data shape
-const mockData = {
-  title: "Jane Doe",
-  coreCompetencies: ["Web Development", "Backend Development"],
-  languages: [
-    { name: "JavaScript", pct: 55.0, files: 30 },
-    { name: "Python",     pct: 45.0, files: 24 },
-  ],
-  projects: [
-    {
-      id: 1,
-      name: "my-cool-project",
-      timeline: "Jan 2025 – Mar 2025",
-      duration: "60 days",
-      role: "Lead Developer",
-      insight: "Primary contributor with broad impact across the codebase.",
-      contribution: { level: "Top Contributor", teamSize: 3, rank: 1, percentile: 100, share: 72.0 },
-      totals: { commits: 50, files: 200, added: 8000, deleted: 1000, net: 7000 },
-      mine:   { commits: 36, added: 5800, deleted: 700, net: 5100, files: 140 },
-      technologies: ["react", "node.js", "postgresql"],
-    },
-    {
-      id: 2,
-      name: "team-project-alpha",
-      timeline: "Mar 2025 – Apr 2025",
-      duration: "30 days",
-      role: "Feature Developer",
-      insight: "Focused contributions on key features.",
-      contribution: { level: "Significant Contributor", teamSize: 5, rank: 2, percentile: 75, share: 20.0 },
-      totals: { commits: 80, files: 300, added: 12000, deleted: 2000, net: 10000 },
-      mine:   { commits: 16, added: 2400, deleted: 400, net: 2000, files: 60 },
-      technologies: [],
-    },
-  ],
-};
-
 // ─── INTERSECTION OBSERVER MOCK ──────────────────────────────────────────────
 beforeEach(() => {
   window.IntersectionObserver = class IntersectionObserver {
@@ -113,16 +70,36 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-// ─── HELPER ──────────────────────────────────────────────────────────────────
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
 
-async function renderLoaded(apiResponse = mockApiResponse) {
-  vi.spyOn(globalThis, "fetch").mockImplementation(makeFetchMock(apiResponse));
-  render(<DevPortfolio portfolioId={1} />);
-  // Wait for the async fetch to resolve and data to render
-  await screen.findByText("Jane Doe");
+function mockFetch(response = mockApiResponse) {
+  vi.spyOn(globalThis, "fetch").mockResolvedValue({
+    ok: true,
+    json: async () => response,
+  } as Response);
 }
 
-// ─── TESTS ───────────────────────────────────────────────────────────────────
+async function renderLoaded(response = mockApiResponse, waitForText = "Jane Doe") {
+  mockFetch(response);
+  render(<DevPortfolio portfolioId={1} />);
+  await screen.findByText(waitForText);
+}
+
+// Edit tests use a single-project response with no title so "Untitled Portfolio" renders.
+async function renderEditing() {
+  mockFetch({
+    ...mockApiResponse,
+    portfolio_title: "",
+    portfolio_data: {
+      ...mockApiResponse.portfolio_data,
+      projects_detail: [mockApiResponse.portfolio_data.projects_detail[0]],
+    },
+  });
+  render(<DevPortfolio portfolioId={1} />);
+  await screen.findByText("Untitled Portfolio");
+}
+
+// ─── HERO SECTION ────────────────────────────────────────────────────────────
 
 describe("Portfolio — hero section", () => {
   it("renders the developer name", async () => {
@@ -141,6 +118,8 @@ describe("Portfolio — hero section", () => {
     expect(screen.getByText("2")).toBeInTheDocument();
   });
 });
+
+// ─── PROJECT CARDS ───────────────────────────────────────────────────────────
 
 describe("Portfolio — project cards", () => {
   it("renders all project names", async () => {
@@ -167,6 +146,8 @@ describe("Portfolio — project cards", () => {
   });
 });
 
+// ─── CONTRIBUTION HERO ───────────────────────────────────────────────────────
+
 describe("Portfolio — contribution hero", () => {
   it("displays rank correctly as #1/3 and #2/5", async () => {
     await renderLoaded();
@@ -188,6 +169,8 @@ describe("Portfolio — contribution hero", () => {
     expect(screen.getAllByText("Significant Contributor").length).toBeGreaterThan(0);
   });
 });
+
+// ─── EXPANDABLE CARD ─────────────────────────────────────────────────────────
 
 describe("Portfolio — expandable card", () => {
   it("project totals section is hidden before clicking", async () => {
@@ -214,6 +197,8 @@ describe("Portfolio — expandable card", () => {
   });
 });
 
+// ─── LANGUAGE BARS ───────────────────────────────────────────────────────────
+
 describe("Portfolio — language bars", () => {
   it("renders all language names", async () => {
     await renderLoaded();
@@ -234,90 +219,42 @@ describe("Portfolio — language bars", () => {
   });
 });
 
-describe("Portfolio — data prop", () => {
-  it("renders with different developer name", async () => {
-    const customResponse = {
-      portfolio_data: {
-        ...mockApiResponse.portfolio_data,
-        result_id: "John Smith",
-      },
-    };
-    vi.spyOn(globalThis, "fetch").mockImplementation(makeFetchMock(customResponse));
-    render(<DevPortfolio portfolioId={1} />);
-    await screen.findByText("John Smith");
+// ─── RESPONSE VARIANTS ───────────────────────────────────────────────────────
+
+describe("Portfolio — response variants", () => {
+  it("renders with a different developer name", async () => {
+    await renderLoaded({
+      ...mockApiResponse,
+      portfolio_title: "John Smith",
+    }, "John Smith");
     expect(screen.getByText("John Smith")).toBeInTheDocument();
   });
 
   it("renders with a single project", async () => {
-    const customResponse = {
+    await renderLoaded({
+      ...mockApiResponse,
       portfolio_data: {
         ...mockApiResponse.portfolio_data,
         projects_detail: [mockApiResponse.portfolio_data.projects_detail[0]],
       },
-    };
-    vi.spyOn(globalThis, "fetch").mockImplementation(makeFetchMock(customResponse));
-    render(<DevPortfolio portfolioId={1} />);
-    await screen.findByText("my-cool-project");
-    expect(screen.queryByText("team-project-alpha")).not.toBeInTheDocument();
+    }, "my-cool-project");
     expect(screen.getByText("my-cool-project")).toBeInTheDocument();
+    expect(screen.queryByText("team-project-alpha")).not.toBeInTheDocument();
   });
 
   it("renders with no languages gracefully", async () => {
-    const customResponse = {
+    await renderLoaded({
+      ...mockApiResponse,
       portfolio_data: {
         ...mockApiResponse.portfolio_data,
-        skill_timeline: {
-          ...mockApiResponse.portfolio_data.skill_timeline,
-          language_progression: [],
-        },
+        skill_timeline: { ...mockApiResponse.portfolio_data.skill_timeline, language_progression: [] },
       },
-    };
-    vi.spyOn(globalThis, "fetch").mockImplementation(makeFetchMock(customResponse));
-    render(<DevPortfolio portfolioId={1} />);
-    await screen.findByText("Jane Doe");
+    }, "Language Proficiency");
     expect(screen.getByText("Language Proficiency")).toBeInTheDocument();
   });
 });
 
-// ─── EDIT TESTS SETUP ────────────────────────────────────────────────────────
-
-const mockApiResponse = {
-  portfolio_title: null,
-  portfolio_data: {
-    result_id: "00000000-0000-0000-0000-000000000000",
-    skill_timeline: {
-      high_level_skills: ["Web Development", "Backend Development"],
-      language_progression: [
-        { name: "JavaScript", percentage: 55.0, file_count: 30 },
-        { name: "Python",     percentage: 45.0, file_count: 24 },
-      ],
-      framework_timeline_list: [],
-    },
-    projects_detail: [{
-      name: "my-cool-project",
-      date_range: "Jan 2025 – Mar 2025",
-      duration_days: 60,
-      user_role: { role: "Lead Developer", blurb: "Primary contributor." },
-      contribution: { level: "Top Contributor", team_size: 3, rank: 1, percentile: 100, contribution_share: 72.0 },
-      statistics: {
-        commits: 50, files: 200, additions: 8000, deletions: 1000, net_lines: 7000,
-        user_commits: 36, user_lines_added: 5800, user_lines_deleted: 700, user_net_lines: 5100, user_files_modified: 140,
-      },
-      frameworks_summary: { top_frameworks: ["react", "node.js"] },
-    }],
-    growth_metrics: null,
-  },
-};
-
-async function renderEditing() {
-  vi.spyOn(globalThis, "fetch").mockImplementation(() =>
-    Promise.resolve({ ok: true, json: async () => mockApiResponse } as Response)
-  );
-  render(<Portfolio portfolioId={1} />);
-  await screen.findByText("Untitled Portfolio");
-}
-
-// ─── EDITING ─────────────────────────────────────────────────────────────────
+// ─── EDIT: HEADER ────────────────────────────────────────────────────────────
 
 describe("Portfolio — edit header", () => {
   it("enters edit mode and saves new title", async () => {
@@ -345,6 +282,8 @@ describe("Portfolio — edit header", () => {
   });
 });
 
+// ─── EDIT: LANGUAGES ─────────────────────────────────────────────────────────
+
 describe("Portfolio — edit languages", () => {
   it("can remove a language and save", async () => {
     await renderEditing();
@@ -362,6 +301,8 @@ describe("Portfolio — edit languages", () => {
     expect(screen.getByText("JavaScript")).toBeInTheDocument();
   });
 });
+
+// ─── EDIT: PROJECTS ──────────────────────────────────────────────────────────
 
 describe("Portfolio — edit projects", () => {
   it("saves updated project name", async () => {
