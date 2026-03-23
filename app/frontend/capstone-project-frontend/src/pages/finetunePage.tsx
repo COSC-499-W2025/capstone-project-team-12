@@ -1,4 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useAnalysisPipeline } from '../context/AnalysisPipelineContext';
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
 interface FinetunePageProps {
   extractedData?: any;
@@ -6,7 +9,6 @@ interface FinetunePageProps {
   activeAnalysisId?: string | null;
   llmMode?: 'online' | 'local';
   onBack?: () => void;
-  onStateChange?: (state: any) => void;
   onComplete: (state: any, resumeLocation: string | null, portfolioLocation: string | null, resumeId: number | null, portfolioId: number | null) => void;
 }
 
@@ -28,7 +30,8 @@ interface Skill {
   selected: boolean;
 }
 
-export default function FinetunePage({ extractedData, initialState, activeAnalysisId, llmMode, onComplete, onBack, onStateChange }: FinetunePageProps) {
+export default function FinetunePage({ extractedData, initialState, activeAnalysisId, llmMode, onComplete, onBack }: FinetunePageProps) {
+  const { setFinetuneState } = useAnalysisPipeline();
   // --- UI State ---
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [showProjectInfoModal, setShowProjectInfoModal] = useState(false);
@@ -177,14 +180,9 @@ export default function FinetunePage({ extractedData, initialState, activeAnalys
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const isMounted = useRef(false);
   useEffect(() => {
-    if (isMounted.current && onStateChange) {
-      onStateChange({ projects, topics, skills });
-    } else {
-      isMounted.current = true;
-    }
-  }, [projects, topics, skills, onStateChange]);
+    setFinetuneState({ projects, topics, skills });
+  }, [projects, topics, skills, setFinetuneState]);
 
   const handleSubmit = async () => {
     if (!extractedData?.analysis_id) {
@@ -212,9 +210,9 @@ export default function FinetunePage({ extractedData, initialState, activeAnalys
       console.log(`[FINETUNE] 1. Calling commit endpoint for Analysis ID: ${analysisId}`);
       console.log(`[FINETUNE] Commit Payload being sent:`, JSON.stringify(commitPayload, null, 2));
 
-      const commitUrl = activeAnalysisId 
-          ? `http://localhost:8080/projects/${analysisId}/update/commit`
-          : `http://localhost:8080/projects/${analysisId}/upload/commit`;
+        const commitUrl = activeAnalysisId
+          ? `${API_BASE}/projects/${analysisId}/update/commit`
+          : `${API_BASE}/projects/${analysisId}/upload/commit`;
 
       const commitRes = await fetch(commitUrl, {
         method: 'POST',
@@ -231,7 +229,7 @@ export default function FinetunePage({ extractedData, initialState, activeAnalys
 
       // 2. Generate Resume
       console.log(`\n[FINETUNE] 2. Calling Resume Generation Endpoint...`);
-      const resumeResp = await fetch(`http://localhost:8080/resume/generate/${analysisId}`, { method: 'POST' });
+      const resumeResp = await fetch(`${API_BASE}/resume/generate/${analysisId}`, { method: 'POST' });
       const resumeLocation = resumeResp.headers.get('location');
       const resumeData = await resumeResp.json().catch(() => ({}));
       console.log(`[FINETUNE] Resume Status:`, resumeResp.status);
@@ -240,7 +238,7 @@ export default function FinetunePage({ extractedData, initialState, activeAnalys
       
       // 3. Generate Portfolio
       console.log(`\n[FINETUNE] 3. Calling Portfolio Generation Endpoint...`);
-      const portResp = await fetch(`http://localhost:8080/portfolio/generate/${analysisId}`, { method: 'POST' });
+      const portResp = await fetch(`${API_BASE}/portfolio/generate/${analysisId}`, { method: 'POST' });
       const portLocation = portResp.headers.get('location');
       const portData = await portResp.json().catch(() => ({}));
       console.log(`[FINETUNE] Portfolio Status:`, portResp.status);

@@ -1,4 +1,29 @@
-const Sidebar = ({ currentStep = 1, onStepChange, onDashboard }: { currentStep?: number; onStepChange?: (step: number) => void; onDashboard?: () => void}) => {
+import { useLocation, useNavigate } from 'react-router-dom';
+
+const Sidebar = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const getCurrentStepFromPath = (pathname: string): number => {
+    if (pathname.includes('/analysis/new/onboarding')) return 1;
+    if (pathname.includes('/analysis/new/import') || pathname.includes('/analysis/new/progress')) return 2;
+    if (pathname.includes('/analysis/new/finetune')) return 3;
+    if (pathname.includes('/analysis/new/insights')) return 4;
+    if (pathname.includes('/analysis/new/resume')) return 5;
+    if (pathname.includes('/analysis/new/portfolio')) return 6;
+    return 1;
+  };
+
+  const currentStep = getCurrentStepFromPath(location.pathname);
+
+  const stepToRoute: Record<number, string> = {
+    1: '/analysis/new/onboarding',
+    2: '/analysis/new/import',
+    3: '/analysis/new/finetune',
+    4: '/analysis/new/insights',
+    5: '/analysis/new/resume',
+    6: '/analysis/new/portfolio',
+  };
   const steps = [
     { id: 1, label: "Onboarding" },
     { id: 2, label: "File Selection" },
@@ -84,7 +109,7 @@ const Sidebar = ({ currentStep = 1, onStepChange, onDashboard }: { currentStep?:
           return (
             <button
               key={step.id}
-              onClick={() => onStepChange?.(step.id)}
+              onClick={() => navigate(stepToRoute[step.id])}
               style={{
                 width: "100%",
                 textAlign: "left",
@@ -185,7 +210,7 @@ const Sidebar = ({ currentStep = 1, onStepChange, onDashboard }: { currentStep?:
         }}
         onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
         onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-        onClick={onDashboard}
+        onClick={() => navigate('/dashboard')}
         >
           <div style={{
             width: "28px",

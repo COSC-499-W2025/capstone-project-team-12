@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import type { Analysis, EmptyStateProps,  ToastProps, RawProject, RawResume, RawPortfolio, DashboardProps } from "../types/dashboardTypes";
+import { useNavigate } from 'react-router-dom';
+import type { Analysis, EmptyStateProps,  ToastProps, RawProject, RawResume, RawPortfolio } from "../types/dashboardTypes";
 import { AnalysisCard } from "../components/analysisCard";
 
-const API_BASE = "http://localhost:8080";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
 
 // Mapping function
@@ -38,7 +39,8 @@ function mapProject(
 }
 
 
-export default function Dashboard( {onNewAnalysis, onIncremental, onViewResume, onViewPortfolio, onViewInsights}: DashboardProps ) {
+export default function Dashboard() {
+  const navigate = useNavigate();
   const [analyses, setAnalyses] = useState<Analysis[]>([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
@@ -178,13 +180,13 @@ export default function Dashboard( {onNewAnalysis, onIncremental, onViewResume, 
   };
 
   const handleIncremental = (id: string) => {
-    onIncremental(id);
+    navigate(`/analysis/new/import?analysisId=${id}`);
   };
 
 
-  const handleViewResume = (analysis: Analysis, resumeId: number) => onViewResume(resumeId);
-  const handleViewPortfolio = (anlysis: Analysis, portfolioId: number) => onViewPortfolio(portfolioId);
-  const handleViewInsights  = (analysis: Analysis) => onViewInsights(analysis.id);
+  const handleViewResume = (_analysis: Analysis, resumeId: number) => navigate(`/resume/${resumeId}`);
+  const handleViewPortfolio = (_analysis: Analysis, portfolioId: number) => navigate(`/portfolio/${portfolioId}`);
+  const handleViewInsights  = (analysis: Analysis) => navigate(`/insights/${analysis.id}`);
 
   // derive counts for top stat component
   const totalResumes    = analyses.reduce((n, a) => n + a.resumeIds.length, 0);
@@ -206,7 +208,7 @@ export default function Dashboard( {onNewAnalysis, onIncremental, onViewResume, 
             <p className="text-sm text-slate-400 mt-1">Manage past analyses, view generated outputs, and run new ones.</p>
           </div>
           <button
-            onClick={ onNewAnalysis }
+            onClick={() => navigate('/analysis/new/onboarding')}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 shadow-sm hover:bg-indigo-700 hover:shadow-md transition-all mt-1"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -241,7 +243,7 @@ export default function Dashboard( {onNewAnalysis, onIncremental, onViewResume, 
         {loading ? (
           <p className="text-sm text-slate-400 py-10 text-center">Loading analyses…</p>
         ) : analyses.length === 0 ? (
-          <EmptyState onNew={onNewAnalysis} />
+          <EmptyState onNew={() => navigate('/analysis/new/onboarding')} />
         ) : (
           <div className="space-y-3">
             <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-1">All Analyses</p>

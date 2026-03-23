@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate, useParams } from 'react-router-dom';
 import SectionCard from "../components/SectionCard";
 import type { Resume, Project, Language, EducationEntry, WorkEntry, AwardEntry } from "../types/resumeTypes";
 
@@ -73,7 +74,7 @@ export const mockResume: Resume = {
 };
 
 // ─── API ───────────────────────────────────────────────────────────────
-const API_BASE = "http://localhost:8080";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
 async function fetchResume(resumeId: string): Promise<Resume> {
   const res = await fetch(`${API_BASE}/resume/${resumeId}`);
@@ -611,8 +612,21 @@ function DownloadButton() {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-export default function ResumeDisplay( {onPrevious, onComplete, resumeId: resumeIdProp} : {onPrevious?: () => void, onComplete?: () => void, resumeId?: number | null}) {
-  const parsedId = resumeIdProp ?? null;
+export default function ResumeDisplay({
+  onPrevious,
+  onComplete,
+  resumeId: resumeIdProp,
+  viewMode = 'pipeline',
+}: {
+  onPrevious?: () => void;
+  onComplete?: () => void;
+  resumeId?: number | null;
+  viewMode?: 'pipeline' | 'standalone';
+}) {
+  const navigate = useNavigate();
+  const params = useParams();
+  const routeResumeId = params.id ? parseInt(params.id, 10) : null;
+  const parsedId = resumeIdProp ?? (Number.isNaN(routeResumeId) ? null : routeResumeId);
 
   const [resume, setResume] = useState<Resume>(mockResume);
   const [loading, setLoading] = useState(parsedId !== null);
@@ -672,29 +686,38 @@ export default function ResumeDisplay( {onPrevious, onComplete, resumeId: resume
           <ProjectsSection projects={resume.projects} onChange={p => update({ projects: p })} />
           <LanguagesSection languages={resume.languages} onChange={l => update({languages: l })} />
           </div>
-         {/* Back button */}
           <div className="flex justify-between mt-8">
-            <button
-              onClick={onPrevious}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 shadow-sm hover:bg-indigo-700 transition-all"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M19 12H5M12 19l-7-7 7-7" />
-              </svg>
-              Back
-            </button>
-          
-            {/* Next button */}
-            <button
-              onClick={onComplete}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 shadow-sm hover:bg-indigo-700 transition-all"
-            >
-              Next
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
-            </button>
-        </div>
+            {viewMode === 'pipeline' ? (
+              <>
+                <button
+                  onClick={() => (onPrevious ? onPrevious() : navigate('/analysis/new/insights'))}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 shadow-sm hover:bg-indigo-700 transition-all"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M19 12H5M12 19l-7-7 7-7" />
+                  </svg>
+                  Back
+                </button>
+
+                <button
+                  onClick={() => (onComplete ? onComplete() : navigate('/analysis/new/portfolio'))}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 shadow-sm hover:bg-indigo-700 transition-all"
+                >
+                  Next
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 shadow-sm hover:bg-indigo-700 transition-all"
+              >
+                Return to Dashboard
+              </button>
+            )}
+          </div>
         <p className="text-center text-xs text-slate-300 mt-8">{parsedId ? "Changes save automatically" : "Edits are session-only · connect a resume ID to persist"}</p>
       </div>
     </div>
