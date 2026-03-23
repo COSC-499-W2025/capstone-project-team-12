@@ -34,7 +34,7 @@ export interface Language {
 }
 
 export interface PortfolioData {
-  developer: string;
+  title: string;
   coreCompetencies: string[];
   languages: Language[];
   projects: Project[];
