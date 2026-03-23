@@ -39,6 +39,7 @@ const ProjectCard: React.FC<{ project: Project; index: number; onEdit?: () => vo
           {onEdit && (
             <button
               onClick={e => { e.stopPropagation(); onEdit(); }}
+              aria-label={`Edit project ${index}`}
               className="text-[11px] font-bold tracking-[0.08em] uppercase text-[#6378ff] border border-[#6378ff]/25 rounded-lg px-3 py-1 hover:bg-[#6378ff]/5 transition-all"
             >
               Edit

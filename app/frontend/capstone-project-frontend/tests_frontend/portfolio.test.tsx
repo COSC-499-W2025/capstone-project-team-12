@@ -4,10 +4,11 @@ import "@testing-library/jest-dom";
 import DevPortfolio from "../src/pages/Portfolio";
 
 // ─── MOCK DATA ───────────────────────────────────────────────────────────────
-// Mirrors the raw API response shape that fetchPortfolio expects
+// Mirrors the raw API response shape that fetchPortfolio normalises.
 const mockApiResponse = {
+  portfolio_title: "Jane Doe",
   portfolio_data: {
-    result_id: "Jane Doe",
+    result_id: "00000000-0000-0000-0000-000000000000",
     skill_timeline: {
       high_level_skills: ["Web Development", "Backend Development"],
       language_progression: [
@@ -46,15 +47,6 @@ const mockApiResponse = {
   },
 };
 
-function makeFetchMock(apiResponse = mockApiResponse) {
-  return vi.fn(() =>
-    Promise.resolve({
-      ok: true,
-      json: async () => apiResponse,
-    } as Response)
-  );
-}
-
 // ─── INTERSECTION OBSERVER MOCK ──────────────────────────────────────────────
 beforeEach(() => {
   window.IntersectionObserver = class IntersectionObserver {
@@ -78,16 +70,36 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-// ─── HELPER ──────────────────────────────────────────────────────────────────
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
 
-async function renderLoaded(apiResponse = mockApiResponse) {
-  vi.spyOn(globalThis, "fetch").mockImplementation(makeFetchMock(apiResponse));
-  render(<DevPortfolio portfolioId={1} />);
-  // Wait for the async fetch to resolve and data to render
-  await screen.findByText("Jane Doe");
+function mockFetch(response = mockApiResponse) {
+  vi.spyOn(globalThis, "fetch").mockResolvedValue({
+    ok: true,
+    json: async () => response,
+  } as Response);
 }
 
-// ─── TESTS ───────────────────────────────────────────────────────────────────
+async function renderLoaded(response = mockApiResponse, waitForText = "Jane Doe") {
+  mockFetch(response);
+  render(<DevPortfolio portfolioId={1} />);
+  await screen.findByText(waitForText);
+}
+
+// Edit tests use a single-project response with no title so "Untitled Portfolio" renders.
+async function renderEditing() {
+  mockFetch({
+    ...mockApiResponse,
+    portfolio_title: "",
+    portfolio_data: {
+      ...mockApiResponse.portfolio_data,
+      projects_detail: [mockApiResponse.portfolio_data.projects_detail[0]],
+    },
+  });
+  render(<DevPortfolio portfolioId={1} />);
+  await screen.findByText("Untitled Portfolio");
+}
+
+// ─── HERO SECTION ────────────────────────────────────────────────────────────
 
 describe("Portfolio — hero section", () => {
   it("renders the developer name", async () => {
@@ -106,6 +118,8 @@ describe("Portfolio — hero section", () => {
     expect(screen.getByText("2")).toBeInTheDocument();
   });
 });
+
+// ─── PROJECT CARDS ───────────────────────────────────────────────────────────
 
 describe("Portfolio — project cards", () => {
   it("renders all project names", async () => {
@@ -132,6 +146,8 @@ describe("Portfolio — project cards", () => {
   });
 });
 
+// ─── CONTRIBUTION HERO ───────────────────────────────────────────────────────
+
 describe("Portfolio — contribution hero", () => {
   it("displays rank correctly as #1/3 and #2/5", async () => {
     await renderLoaded();
@@ -153,6 +169,8 @@ describe("Portfolio — contribution hero", () => {
     expect(screen.getAllByText("Significant Contributor").length).toBeGreaterThan(0);
   });
 });
+
+// ─── EXPANDABLE CARD ─────────────────────────────────────────────────────────
 
 describe("Portfolio — expandable card", () => {
   it("project totals section is hidden before clicking", async () => {
@@ -179,6 +197,8 @@ describe("Portfolio — expandable card", () => {
   });
 });
 
+// ─── LANGUAGE BARS ───────────────────────────────────────────────────────────
+
 describe("Portfolio — language bars", () => {
   it("renders all language names", async () => {
     await renderLoaded();
@@ -199,47 +219,105 @@ describe("Portfolio — language bars", () => {
   });
 });
 
-describe("Portfolio — data prop", () => {
-  it("renders with different developer name", async () => {
-    const customResponse = {
-      portfolio_data: {
-        ...mockApiResponse.portfolio_data,
-        result_id: "John Smith",
-      },
-    };
-    vi.spyOn(globalThis, "fetch").mockImplementation(makeFetchMock(customResponse));
-    render(<DevPortfolio portfolioId={1} />);
-    await screen.findByText("John Smith");
+// ─── RESPONSE VARIANTS ───────────────────────────────────────────────────────
+
+describe("Portfolio — response variants", () => {
+  it("renders with a different developer name", async () => {
+    await renderLoaded({
+      ...mockApiResponse,
+      portfolio_title: "John Smith",
+    }, "John Smith");
     expect(screen.getByText("John Smith")).toBeInTheDocument();
   });
 
   it("renders with a single project", async () => {
-    const customResponse = {
+    await renderLoaded({
+      ...mockApiResponse,
       portfolio_data: {
         ...mockApiResponse.portfolio_data,
         projects_detail: [mockApiResponse.portfolio_data.projects_detail[0]],
       },
-    };
-    vi.spyOn(globalThis, "fetch").mockImplementation(makeFetchMock(customResponse));
-    render(<DevPortfolio portfolioId={1} />);
-    await screen.findByText("my-cool-project");
-    expect(screen.queryByText("team-project-alpha")).not.toBeInTheDocument();
+    }, "my-cool-project");
     expect(screen.getByText("my-cool-project")).toBeInTheDocument();
+    expect(screen.queryByText("team-project-alpha")).not.toBeInTheDocument();
   });
 
   it("renders with no languages gracefully", async () => {
-    const customResponse = {
+    await renderLoaded({
+      ...mockApiResponse,
       portfolio_data: {
         ...mockApiResponse.portfolio_data,
-        skill_timeline: {
-          ...mockApiResponse.portfolio_data.skill_timeline,
-          language_progression: [],
-        },
+        skill_timeline: { ...mockApiResponse.portfolio_data.skill_timeline, language_progression: [] },
       },
-    };
-    vi.spyOn(globalThis, "fetch").mockImplementation(makeFetchMock(customResponse));
-    render(<DevPortfolio portfolioId={1} />);
-    await screen.findByText("Jane Doe");
+    }, "Language Proficiency");
     expect(screen.getByText("Language Proficiency")).toBeInTheDocument();
+  });
+});
+
+// ─── EDIT: HEADER ────────────────────────────────────────────────────────────
+
+describe("Portfolio — edit header", () => {
+  it("enters edit mode and saves new title", async () => {
+    await renderEditing();
+    fireEvent.click(screen.getByRole("button", { name: "Edit header" }));
+    fireEvent.change(screen.getByPlaceholderText("Enter Portfolio name"), { target: { value: "My Portfolio" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save header" }));
+    expect(screen.getByText("My Portfolio")).toBeInTheDocument();
+  });
+
+  it("discards changes on cancel", async () => {
+    await renderEditing();
+    fireEvent.click(screen.getByRole("button", { name: "Edit header" }));
+    fireEvent.change(screen.getByPlaceholderText("Enter Portfolio name"), { target: { value: "Discarded" } });
+    fireEvent.click(screen.getByRole("button", { name: "Cancel header" }));
+    expect(screen.queryByText("Discarded")).not.toBeInTheDocument();
+  });
+
+  it("can remove a competency and save", async () => {
+    await renderEditing();
+    fireEvent.click(screen.getByRole("button", { name: "Edit header" }));
+    fireEvent.click(screen.getAllByText("×")[0]);
+    fireEvent.click(screen.getByRole("button", { name: "Save header" }));
+    await waitFor(() => expect(screen.queryByText("Web Development")).not.toBeInTheDocument());
+  });
+});
+
+// ─── EDIT: LANGUAGES ─────────────────────────────────────────────────────────
+
+describe("Portfolio — edit languages", () => {
+  it("can remove a language and save", async () => {
+    await renderEditing();
+    fireEvent.click(screen.getByRole("button", { name: "Edit languages" }));
+    fireEvent.click(screen.getAllByText("×")[0]);
+    fireEvent.click(screen.getByRole("button", { name: "Save languages" }));
+    await waitFor(() => expect(screen.queryByText("JavaScript")).not.toBeInTheDocument());
+  });
+
+  it("discards changes on cancel", async () => {
+    await renderEditing();
+    fireEvent.click(screen.getByRole("button", { name: "Edit languages" }));
+    fireEvent.click(screen.getAllByText("×")[0]);
+    fireEvent.click(screen.getByRole("button", { name: "Cancel languages" }));
+    expect(screen.getByText("JavaScript")).toBeInTheDocument();
+  });
+});
+
+// ─── EDIT: PROJECTS ──────────────────────────────────────────────────────────
+
+describe("Portfolio — edit projects", () => {
+  it("saves updated project name", async () => {
+    await renderEditing();
+    fireEvent.click(screen.getByRole("button", { name: "Edit project 0" }));
+    fireEvent.change(screen.getByDisplayValue("my-cool-project"), { target: { value: "renamed-project" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save project 0" }));
+    await waitFor(() => expect(screen.getByText("renamed-project")).toBeInTheDocument());
+  });
+
+  it("discards changes on cancel", async () => {
+    await renderEditing();
+    fireEvent.click(screen.getByRole("button", { name: "Edit project 0" }));
+    fireEvent.change(screen.getByDisplayValue("my-cool-project"), { target: { value: "should-not-appear" } });
+    fireEvent.click(screen.getByRole("button", { name: "Cancel project 0" }));
+    expect(screen.queryByText("should-not-appear")).not.toBeInTheDocument();
   });
 });
