@@ -1,3 +1,4 @@
+// src/App.tsx
 import { useState } from 'react';
 import Sidebar from './components/sidebar';
 import Portfolio from './pages/portfolio';

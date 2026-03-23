@@ -11,8 +11,6 @@ export interface UploadEntry {
 interface FileImportProps {
   activeAnalysisId?: string | null;
   onComplete: () => void;
-  githubUsername: string;
-  githubEmail: string;
   model: string;
   uploads: UploadEntry[];
   onUploadsChange: (uploads: UploadEntry[]) => void;
@@ -48,7 +46,7 @@ function readAllEntries(dirEntry: FileSystemDirectoryEntry): Promise<File[]> {
   });
 }
 
-const FileImport: React.FC<FileImportProps> = ({ activeAnalysisId, onComplete, githubUsername, githubEmail, model: _model, uploads, onUploadsChange }) => {
+const FileImport: React.FC<FileImportProps> = ({ activeAnalysisId, onComplete, model: _model, uploads, onUploadsChange }) => {
   const setUploads = onUploadsChange;
   const [isDragging, setIsDragging] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
@@ -158,8 +156,6 @@ const FileImport: React.FC<FileImportProps> = ({ activeAnalysisId, onComplete, g
       console.log('[UPLOAD] Zip complete, size:', zipped.size, 'bytes');
 
       const formData = new FormData();
-      formData.append('github_username', githubUsername);
-      formData.append('github_email', githubEmail);
       formData.append('file', zipped);
 
       console.log('[UPLOAD] Sending POST http://localhost:8080/projects/upload/extract ...');
