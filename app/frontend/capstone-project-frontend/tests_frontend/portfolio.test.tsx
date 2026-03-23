@@ -1,9 +1,59 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import "@testing-library/jest-dom";
-import Portfolio from "../src/pages/Portfolio";
+import DevPortfolio from "../src/pages/Portfolio";
 
 // ─── MOCK DATA ───────────────────────────────────────────────────────────────
+// Mirrors the raw API response shape that fetchPortfolio expects
+const mockApiResponse = {
+  portfolio_data: {
+    result_id: "Jane Doe",
+    skill_timeline: {
+      high_level_skills: ["Web Development", "Backend Development"],
+      language_progression: [
+        { name: "JavaScript", percentage: 55.0, file_count: 30 },
+        { name: "Python",     percentage: 45.0, file_count: 24 },
+      ],
+      framework_timeline_list: [],
+    },
+    projects_detail: [
+      {
+        name: "my-cool-project",
+        date_range: "Jan 2025 – Mar 2025",
+        duration_days: 60,
+        user_role: { role: "Lead Developer", blurb: "Primary contributor with broad impact across the codebase." },
+        contribution: { level: "Top Contributor", team_size: 3, rank: 1, percentile: 100, contribution_share: 72.0 },
+        statistics: {
+          commits: 50, files: 200, additions: 8000, deletions: 1000, net_lines: 7000,
+          user_commits: 36, user_lines_added: 5800, user_lines_deleted: 700, user_net_lines: 5100, user_files_modified: 140,
+        },
+        frameworks_summary: { top_frameworks: ["react", "node.js", "postgresql"] },
+      },
+      {
+        name: "team-project-alpha",
+        date_range: "Mar 2025 – Apr 2025",
+        duration_days: 30,
+        user_role: { role: "Feature Developer", blurb: "Focused contributions on key features." },
+        contribution: { level: "Significant Contributor", team_size: 5, rank: 2, percentile: 75, contribution_share: 20.0 },
+        statistics: {
+          commits: 80, files: 300, additions: 12000, deletions: 2000, net_lines: 10000,
+          user_commits: 16, user_lines_added: 2400, user_lines_deleted: 400, user_net_lines: 2000, user_files_modified: 60,
+        },
+        frameworks_summary: { top_frameworks: [] },
+      },
+    ],
+    growth_metrics: null,
+  },
+};
+
+function makeFetchMock(apiResponse = mockApiResponse) {
+  return vi.fn(() =>
+    Promise.resolve({
+      ok: true,
+      json: async () => apiResponse,
+    } as Response)
+  );
+}
 // Minimal but realistic — mirrors the real data shape
 const mockData = {
   title: "Jane Doe",
@@ -41,12 +91,10 @@ const mockData = {
 };
 
 // ─── INTERSECTION OBSERVER MOCK ──────────────────────────────────────────────
-// jsdom doesn't implement IntersectionObserver — we need to mock it.
-// This mock immediately fires the callback so animated elements become visible.
 beforeEach(() => {
   window.IntersectionObserver = class IntersectionObserver {
     root = null;
-    rootMargin = '';
+    rootMargin = "";
     thresholds = [];
     callback: IntersectionObserverCallback;
     constructor(callback: IntersectionObserverCallback) {
@@ -65,85 +113,91 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+// ─── HELPER ──────────────────────────────────────────────────────────────────
+
+async function renderLoaded(apiResponse = mockApiResponse) {
+  vi.spyOn(globalThis, "fetch").mockImplementation(makeFetchMock(apiResponse));
+  render(<DevPortfolio portfolioId={1} />);
+  // Wait for the async fetch to resolve and data to render
+  await screen.findByText("Jane Doe");
+}
+
 // ─── TESTS ───────────────────────────────────────────────────────────────────
 
 describe("Portfolio — hero section", () => {
-  it("renders the developer name", () => {
-    render(<Portfolio data={mockData} />);
+  it("renders the developer name", async () => {
+    await renderLoaded();
     expect(screen.getByText("Jane Doe")).toBeInTheDocument();
   });
 
-  it("renders all core competencies", () => {
-    render(<Portfolio data={mockData} />);
+  it("renders all core competencies", async () => {
+    await renderLoaded();
     expect(screen.getByText("Web Development")).toBeInTheDocument();
     expect(screen.getByText("Backend Development")).toBeInTheDocument();
   });
 
-  it("shows the correct project count", () => {
-    render(<Portfolio data={mockData} />);
-    // The big number in the hero should equal projects.length
+  it("shows the correct project count", async () => {
+    await renderLoaded();
     expect(screen.getByText("2")).toBeInTheDocument();
   });
 });
 
 describe("Portfolio — project cards", () => {
-  it("renders all project names", () => {
-    render(<Portfolio data={mockData} />);
+  it("renders all project names", async () => {
+    await renderLoaded();
     expect(screen.getByText("my-cool-project")).toBeInTheDocument();
     expect(screen.getByText("team-project-alpha")).toBeInTheDocument();
   });
 
-  it("renders timeline and duration for each project", () => {
-    render(<Portfolio data={mockData} />);
+  it("renders timeline and duration for each project", async () => {
+    await renderLoaded();
     expect(screen.getByText(/Jan 2025 – Mar 2025/)).toBeInTheDocument();
     expect(screen.getByText(/60 days/)).toBeInTheDocument();
   });
 
-  it("renders the role tag", () => {
-    render(<Portfolio data={mockData} />);
+  it("renders the role tag", async () => {
+    await renderLoaded();
     expect(screen.getByText("Lead Developer")).toBeInTheDocument();
     expect(screen.getByText("Feature Developer")).toBeInTheDocument();
   });
 
-  it("renders the insight text", () => {
-    render(<Portfolio data={mockData} />);
+  it("renders the insight text", async () => {
+    await renderLoaded();
     expect(screen.getByText("Primary contributor with broad impact across the codebase.")).toBeInTheDocument();
   });
 });
 
 describe("Portfolio — contribution hero", () => {
-  it("displays rank correctly as #1/3 and #2/5", () => {
-    render(<Portfolio data={mockData} />);
+  it("displays rank correctly as #1/3 and #2/5", async () => {
+    await renderLoaded();
     expect(screen.getAllByText("#1").length).toBeGreaterThan(0);
     expect(screen.getAllByText("#2").length).toBeGreaterThan(0);
     expect(screen.getAllByText("/3").length).toBeGreaterThan(0);
     expect(screen.getAllByText("/5").length).toBeGreaterThan(0);
   });
 
-  it("displays commit share percentages", () => {
-    render(<Portfolio data={mockData} />);
+  it("displays commit share percentages", async () => {
+    await renderLoaded();
     expect(screen.getByText("72%")).toBeInTheDocument();
     expect(screen.getByText("20%")).toBeInTheDocument();
   });
 
-  it("displays contribution level labels", () => {
-    render(<Portfolio data={mockData} />);
+  it("displays contribution level labels", async () => {
+    await renderLoaded();
     expect(screen.getAllByText("Top Contributor").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Significant Contributor").length).toBeGreaterThan(0);
   });
 });
 
 describe("Portfolio — expandable card", () => {
-  it("project totals section is hidden before clicking", () => {
-    render(<Portfolio data={mockData} />);
-    // The expandable div has maxHeight: 0 — PROJECT TOTALS text still exists
-    // in the DOM but the section should not be visible (maxHeight 0)
+  it("project totals section is hidden before clicking", async () => {
+    await renderLoaded();
     const expandables = document.querySelectorAll("[style*='max-height: 0']");
     expect(expandables.length).toBeGreaterThan(0);
   });
 
-  it("collapses again when header is clicked a second time", () => {
-    render(<Portfolio data={mockData} />);
+  it("collapses again when header is clicked a second time", async () => {
+    await renderLoaded();
     const header = screen.getByText("my-cool-project");
     fireEvent.click(header); // open
     fireEvent.click(header); // close
@@ -151,8 +205,8 @@ describe("Portfolio — expandable card", () => {
     expect(expandables.length).toBeGreaterThan(0);
   });
 
-  it("shows technologies when expanded (project with techs)", () => {
-    render(<Portfolio data={mockData} />);
+  it("shows technologies when expanded (project with techs)", async () => {
+    await renderLoaded();
     fireEvent.click(screen.getByText("my-cool-project"));
     expect(screen.getByText("react")).toBeInTheDocument();
     expect(screen.getByText("node.js")).toBeInTheDocument();
@@ -161,42 +215,66 @@ describe("Portfolio — expandable card", () => {
 });
 
 describe("Portfolio — language bars", () => {
-  it("renders all language names", () => {
-    render(<Portfolio data={mockData} />);
+  it("renders all language names", async () => {
+    await renderLoaded();
     expect(screen.getByText("JavaScript")).toBeInTheDocument();
     expect(screen.getByText("Python")).toBeInTheDocument();
   });
 
-  it("renders language percentages correctly formatted", () => {
-    render(<Portfolio data={mockData} />);
+  it("renders language percentages correctly formatted", async () => {
+    await renderLoaded();
     expect(screen.getByText("55.0%")).toBeInTheDocument();
     expect(screen.getByText("45.0%")).toBeInTheDocument();
   });
 
-  it("renders file counts", () => {
-    render(<Portfolio data={mockData} />);
+  it("renders file counts", async () => {
+    await renderLoaded();
     expect(screen.getByText("30 files")).toBeInTheDocument();
     expect(screen.getByText("24 files")).toBeInTheDocument();
   });
 });
 
 describe("Portfolio — data prop", () => {
-  it("renders with different developer name", () => {
-    const data = { ...mockData, developer: "John Smith" };
-    render(<Portfolio data={data} />);
+  it("renders with different developer name", async () => {
+    const customResponse = {
+      portfolio_data: {
+        ...mockApiResponse.portfolio_data,
+        result_id: "John Smith",
+      },
+    };
+    vi.spyOn(globalThis, "fetch").mockImplementation(makeFetchMock(customResponse));
+    render(<DevPortfolio portfolioId={1} />);
+    await screen.findByText("John Smith");
     expect(screen.getByText("John Smith")).toBeInTheDocument();
   });
 
-  it("renders with a single project", () => {
-    const data = { ...mockData, projects: [mockData.projects[0]] };
-    render(<Portfolio data={data} />);
+  it("renders with a single project", async () => {
+    const customResponse = {
+      portfolio_data: {
+        ...mockApiResponse.portfolio_data,
+        projects_detail: [mockApiResponse.portfolio_data.projects_detail[0]],
+      },
+    };
+    vi.spyOn(globalThis, "fetch").mockImplementation(makeFetchMock(customResponse));
+    render(<DevPortfolio portfolioId={1} />);
+    await screen.findByText("my-cool-project");
     expect(screen.queryByText("team-project-alpha")).not.toBeInTheDocument();
     expect(screen.getByText("my-cool-project")).toBeInTheDocument();
   });
 
-  it("renders with no languages gracefully", () => {
-    const data = { ...mockData, languages: [] };
-    render(<Portfolio data={data} />);
+  it("renders with no languages gracefully", async () => {
+    const customResponse = {
+      portfolio_data: {
+        ...mockApiResponse.portfolio_data,
+        skill_timeline: {
+          ...mockApiResponse.portfolio_data.skill_timeline,
+          language_progression: [],
+        },
+      },
+    };
+    vi.spyOn(globalThis, "fetch").mockImplementation(makeFetchMock(customResponse));
+    render(<DevPortfolio portfolioId={1} />);
+    await screen.findByText("Jane Doe");
     expect(screen.getByText("Language Proficiency")).toBeInTheDocument();
   });
 });
