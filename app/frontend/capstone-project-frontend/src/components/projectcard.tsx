@@ -12,7 +12,7 @@ const levelColors: Record<string, string> = {
   "Contributor":             "bg-slate-100 text-slate-600 border-slate-200",
 };
 
-const ProjectCard: React.FC<{ project: Project; index: number }> = ({ project, index }) => {
+const ProjectCard: React.FC<{ project: Project; index: number; onEdit?: () => void }> = ({ project, index, onEdit }) => {
   const [open, setOpen] = useState(false);
 
   const levelCls = levelColors[project.contribution.level] ?? "bg-slate-100 text-slate-600 border-slate-200";
@@ -36,6 +36,14 @@ const ProjectCard: React.FC<{ project: Project; index: number }> = ({ project, i
           <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${levelCls}`}>
             {project.contribution.level}
           </span>
+          {onEdit && (
+            <button
+              onClick={e => { e.stopPropagation(); onEdit(); }}
+              className="text-[11px] font-bold tracking-[0.08em] uppercase text-[#6378ff] border border-[#6378ff]/25 rounded-lg px-3 py-1 hover:bg-[#6378ff]/5 transition-all"
+            >
+              Edit
+            </button>
+          )}
           <svg
             className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
             fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"

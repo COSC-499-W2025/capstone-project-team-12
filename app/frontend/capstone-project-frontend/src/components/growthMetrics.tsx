@@ -85,12 +85,12 @@ export default function GrowthMetrics({ g }: GrowthMetricsProps) {
           <GrowthBadge
             value={g.code_metrics.commit_growth}
             label="Project Commits"
-            sub="Total number of commits across all users"
+            sub="Total number of commits by all contributors"
           />
           <GrowthBadge
             value={g.code_metrics.file_growth}
             label="Files Touched"
-            sub="Total number of files touched by all users"
+            sub="Total number of files touched by all contributors"
           />
           <GrowthBadge
             value={g.code_metrics.lines_growth}
