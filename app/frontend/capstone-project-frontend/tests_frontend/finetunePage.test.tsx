@@ -1,10 +1,35 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
-import FinetunePage from "../src/pages/FinetunePage";
+import FinetunePage from "../src/pages/finetunePage";
 
+// 1. Define the mock state that the tests expect to interact with
+const mockInitialState = {
+  projects: [
+    { id: "p1", name: "Capstone Analysis Tool", commits: 140, selected: true },
+    { id: "p2", name: "COSC 360 - Android App", commits: 85, selected: true },
+    { id: "p3", name: "Personal Portfolio", commits: 42, selected: true },
+  ],
+  topics: [
+    { id: "t0", keywords: ["user", "post", "blog", "comment", "account", "create", "like", "option", "name", "use"] },
+    { id: "t1", keywords: ["post", "setting", "view", "recent", "account", "piggybank", "trend", "make", "save", "jane"] },
+    { id: "t2", keywords: ["px", "content", "flex", "center", "border", "post", "margin", "align", "fit", "color"] },
+    { id: "t3", keywords: ["color", "background", "content", "log", "white", "px", "piggybank", "arial", "pfp", "black"] },
+    { id: "t4", keywords: ["id", "user", "post", "utf", "mb", "follow", "ibfk", "increment", "auto", "current"] },
+  ],
+  skills: [
+    { id: "s0", name: "PHP", selected: false },
+    { id: "s1", name: "CSS", selected: false },
+    { id: "s2", name: "JavaScript", selected: false },
+    { id: "s3", name: "Web Development", selected: false },
+    { id: "s4", name: "Backend Development", selected: false },
+    { id: "s5", name: "Database", selected: false },
+  ]
+};
+
+// 2. Inject it into the setup function
 const setup = () => {
   const onComplete = vi.fn();
-  render(<FinetunePage onComplete={onComplete} />);
+  render(<FinetunePage onComplete={onComplete} initialState={mockInitialState} />);
   return { onComplete };
 };
 
@@ -144,10 +169,16 @@ describe("FinetunePage — submission", () => {
     expect(payload.topics).toHaveLength(5);
     expect(payload.topics[0].keywords).toContain("user");
 
-    // Assert Skills structure (should only return the 2 selected skills)
-    expect(payload.skills).toHaveLength(2);
-    expect(payload.skills[0].name).toBe("PHP");
-    expect(payload.skills[1].name).toBe("CSS");
+    // Assert Skills structure (Preserves all skills for state persistence, but only 2 should be selected)
+    expect(payload.skills).toHaveLength(6);
+    
+    const phpSkill = payload.skills.find((s: any) => s.name === "PHP");
+    const cssSkill = payload.skills.find((s: any) => s.name === "CSS");
+    const jsSkill = payload.skills.find((s: any) => s.name === "JavaScript");
+
+    expect(phpSkill.selected).toBe(true);
+    expect(cssSkill.selected).toBe(true);
+    expect(jsSkill.selected).toBe(false); // Was never clicked
   });
 });
 
@@ -171,5 +202,111 @@ describe("FinetunePage — info modal", () => {
 
     // Verify the modal has been removed from the DOM
     expect(screen.queryByText("What are Topic Vectors?")).not.toBeInTheDocument();
+  });
+});
+
+describe("FinetunePage — dynamic data loading", () => {
+  const mockExtractedData = {
+    analysis_id: "test-uuid-1234",
+    analyzed_projects: [
+      { repository_name: "Extracted Repo", importance_score: 0.85 }
+    ],
+    topic_keywords: [
+      { topic_id: 1, keywords: ["react", "typescript"] }
+    ],
+    detected_skills: ["Docker"]
+  };
+
+  it("loads and displays data from the extractedData prop", () => {
+    const onComplete = vi.fn();
+    render(<FinetunePage extractedData={mockExtractedData} onComplete={onComplete} />);
+    
+    expect(screen.getByText("Extracted Repo")).toBeInTheDocument();
+    expect(screen.getByText("85 score")).toBeInTheDocument();
+    expect(screen.getByText("react")).toBeInTheDocument();
+    expect(screen.getByText("Docker")).toBeInTheDocument();
+  });
+
+  it("does not select skills by default from extractedData", () => {
+    const onComplete = vi.fn();
+    render(<FinetunePage extractedData={mockExtractedData} onComplete={onComplete} />);
+    
+    const dockerSkillBtn = screen.getByText("Docker");
+    // Verify it has the unselected styling (text-[#6b7280]) and not the selected one
+    expect(dockerSkillBtn.className).toContain("text-[#6b7280]");
+  });
+});
+
+describe("FinetunePage — state persistence", () => {
+  it("restores state from initialState overriding extractedData", () => {
+    const mockExtractedData = {
+      analysis_id: "test",
+      analyzed_projects: [{ repository_name: "Backend Repo", importance_score: 0.5 }],
+    };
+    const customInitialState = {
+      projects: [{ id: "p1", name: "Custom Saved Repo", commits: 99, selected: true }],
+      topics: [],
+      skills: []
+    };
+    
+    const onComplete = vi.fn();
+    render(
+      <FinetunePage 
+        extractedData={mockExtractedData} 
+        initialState={customInitialState} 
+        onComplete={onComplete} 
+      />
+    );
+    
+    expect(screen.getByText("Custom Saved Repo")).toBeInTheDocument();
+    // The backend repo should be completely ignored in favor of the saved state
+    expect(screen.queryByText("Backend Repo")).not.toBeInTheDocument();
+  });
+
+  it("syncs state continuously via onStateChange", () => {
+    const onComplete = vi.fn();
+    const onStateChange = vi.fn();
+    const customInitialState = {
+      projects: [{ id: "p1", name: "Custom Saved Repo", commits: 99, selected: true }],
+      topics: [],
+      skills: []
+    };
+    
+    render(
+      <FinetunePage 
+        initialState={customInitialState} 
+        onComplete={onComplete} 
+        onStateChange={onStateChange} 
+      />
+    );
+    
+    // Check that the state synced automatically after mounting
+    expect(onStateChange).toHaveBeenCalled();
+    const syncedState = onStateChange.mock.calls[0][0];
+    expect(syncedState.projects[0].name).toBe("Custom Saved Repo");
+  });
+});
+
+describe("FinetunePage — project scoring modal", () => {
+  it("opens and closes the 'How are projects scored?' modal", () => {
+    const onComplete = vi.fn();
+    render(<FinetunePage onComplete={onComplete} />);
+
+    // 1. Verify the modal title is not in the document initially
+    expect(screen.queryByText("How are Projects Scored?")).not.toBeInTheDocument();
+
+    // 2. Click the trigger link
+    const infoLink = screen.getByRole("button", { name: /How are projects scored\?/i });
+    fireEvent.click(infoLink);
+
+    // Verify the modal is now visible by checking for its header
+    expect(screen.getByText("How are Projects Scored?")).toBeInTheDocument();
+
+    // 3. Click the 'Got it' button to close it
+    const closeBtn = screen.getByRole("button", { name: /Got it/i });
+    fireEvent.click(closeBtn);
+
+    // Verify the modal has been removed from the DOM
+    expect(screen.queryByText("How are Projects Scored?")).not.toBeInTheDocument();
   });
 });
