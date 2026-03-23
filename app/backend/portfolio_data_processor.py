@@ -263,7 +263,7 @@ class PortfolioDataProcessor:
                 date_range = project.get('date_range', 'Unknown')
                 
                 # Get top frameworks for this project (show top 8 for timeline)
-                top_frameworks = [fw.get('name') for fw in frameworks[:8]]
+                top_frameworks = [fw.get('name') for fw in frameworks[:10]]
                 
                 framework_timeline[project_name] = {
                     'frameworks': top_frameworks,
