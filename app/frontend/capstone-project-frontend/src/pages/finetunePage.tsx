@@ -31,6 +31,7 @@ interface Skill {
 export default function FinetunePage({ extractedData, initialState, activeAnalysisId, llmMode, onComplete, onBack, onStateChange }: FinetunePageProps) {
   // --- UI State ---
   const [showInfoModal, setShowInfoModal] = useState(false);
+  const [showProjectInfoModal, setShowProjectInfoModal] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isCommitting, setIsCommitting] = useState(false);
 
@@ -280,7 +281,15 @@ export default function FinetunePage({ extractedData, initialState, activeAnalys
             <div className="mb-6 flex justify-between items-end">
               <div>
                 <h2 className="text-lg font-bold text-[#0f1629] tracking-tight mb-1">Rank & Select Projects</h2>
-                <p className="text-xs text-[#9ca3af]">Select and drag to reorder the repositories you want to feature.</p>
+                <p className="text-xs text-[#9ca3af]">
+                  Select and drag to reorder the repositories you want to feature.{" "}
+                  <button 
+                    onClick={() => setShowProjectInfoModal(true)}
+                    className="text-[#6378ff] hover:text-[#a78bfa] underline underline-offset-2 transition-colors border-none bg-transparent cursor-pointer font-semibold p-0"
+                  >
+                    How are projects scored?
+                  </button>
+                </p>
               </div>
             </div>
             
@@ -518,7 +527,7 @@ export default function FinetunePage({ extractedData, initialState, activeAnalys
         </div>
       </div>
 
-      {/* --- Explanation Modal Overlay --- */}
+      {/* --- Explanation Modal Overlay (Topics) --- */}
       {showInfoModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0f1629]/30 backdrop-blur-sm px-4">
           <div className="bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.15)] border border-[rgba(0,0,0,0.05)] w-full max-w-md p-7 relative">
@@ -538,6 +547,36 @@ export default function FinetunePage({ extractedData, initialState, activeAnalys
             </div>
             <button
               onClick={() => setShowInfoModal(false)}
+              className="w-full py-3.5 rounded-xl font-bold text-sm bg-[#eef0f6] text-[#0f1629] hover:bg-[#e2e6f0] transition-colors border-none cursor-pointer"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* --- Explanation Modal Overlay (Projects) --- */}
+      {showProjectInfoModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0f1629]/30 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.15)] border border-[rgba(0,0,0,0.05)] w-full max-w-md p-7 relative">
+            <h3 className="text-[20px] font-extrabold text-[#0f1629] tracking-tight mb-3">
+              How are Projects Scored?
+            </h3>
+            <div className="text-sm text-[#6b7280] leading-relaxed space-y-3 mb-7">
+              <p>
+                Your projects are automatically assigned an <strong>Importance Score</strong> (from 0 to 100) using an algorithm that averages three normalized metrics from your repository history:
+              </p>
+              <ul className="list-disc pl-5 space-y-1.5">
+                <li><strong>Commit Volume:</strong> The total number of commits you contributed.</li>
+                <li><strong>Lines of Code:</strong> The volume of code you actively added to the project.</li>
+                <li><strong>Project Duration:</strong> The lifespan of the project (days between first and last commit).</li>
+              </ul>
+              <p>
+                These metrics are normalized, meaning small, dense projects can still rank highly against longer, sporadic ones. If you disagree with the algorithm, you can always drag and drop to manually adjust your feature order!
+              </p>
+            </div>
+            <button
+              onClick={() => setShowProjectInfoModal(false)}
               className="w-full py-3.5 rounded-xl font-bold text-sm bg-[#eef0f6] text-[#0f1629] hover:bg-[#e2e6f0] transition-colors border-none cursor-pointer"
             >
               Got it
