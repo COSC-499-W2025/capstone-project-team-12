@@ -171,7 +171,7 @@ export default function FinetunePage({ extractedData, initialState, activeAnalys
         setSkills(extractedData.detected_skills.map((s: string, i: number) => ({
           id: `s${i}`,
           name: s,
-          selected: i < 3 // Select the first 3 skills automatically by default
+          selected: false // NO longer selecting the first 3 by default
         })));
       }
     }
