@@ -15,17 +15,7 @@ import { useAnalysisPipeline } from './context/AnalysisPipelineContext';
 function PipelineOnboardingPage() {
   const navigate = useNavigate();
   const {
-    onboardingData,
-    setOnboardingData,
-    setActiveAnalysisId,
-    setUploads,
-    setExtractedData,
-    setFinetuneState,
-    setResumeLocation,
-    setPortfolioLocation,
-    setViewResumeId,
-    setViewPortfolioId,
-    setViewInsightsAnalysisId,
+    onboardingData, setOnboardingData, setActiveAnalysisId, setUploads, setExtractedData, setFinetuneState, setResumeLocation, setPortfolioLocation, setViewResumeId, setViewPortfolioId, setViewInsightsAnalysisId,
   } = useAnalysisPipeline();
 
   useEffect(() => {
@@ -39,15 +29,7 @@ function PipelineOnboardingPage() {
     setViewPortfolioId(null);
     setViewInsightsAnalysisId(null);
   }, [
-    setActiveAnalysisId,
-    setUploads,
-    setExtractedData,
-    setFinetuneState,
-    setResumeLocation,
-    setPortfolioLocation,
-    setViewResumeId,
-    setViewPortfolioId,
-    setViewInsightsAnalysisId,
+    setActiveAnalysisId, setUploads, setExtractedData, setFinetuneState,setResumeLocation,setPortfolioLocation,setViewResumeId, setViewPortfolioId, setViewInsightsAnalysisId,
   ]);
 
   return (
@@ -111,16 +93,7 @@ function PipelineProgressPage() {
 function PipelineFinetunePage() {
   const navigate = useNavigate();
   const {
-    extractedData,
-    finetuneState,
-    setFinetuneState,
-    activeAnalysisId,
-    onboardingData,
-    setResumeLocation,
-    setPortfolioLocation,
-    setViewResumeId,
-    setViewPortfolioId,
-    setViewInsightsAnalysisId,
+    extractedData, finetuneState,setFinetuneState, activeAnalysisId, onboardingData, setResumeLocation, setPortfolioLocation, setViewResumeId, setViewPortfolioId, setViewInsightsAnalysisId,
   } = useAnalysisPipeline();
 
   return (

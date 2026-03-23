@@ -47,18 +47,7 @@ export function AnalysisPipelineProvider({ children }: { children: ReactNode }) 
   return (
     <AnalysisPipelineContext.Provider
       value={{
-        onboardingData,
-        setOnboardingData,
-        uploads,
-        setUploads,
-        extractedData,
-        setExtractedData,
-        finetuneState,
-        setFinetuneState,
-        resumeLocation,
-        setResumeLocation,
-        portfolioLocation,
-        setPortfolioLocation,
+        onboardingData, setOnboardingData, uploads, setUploads, extractedData, setExtractedData, finetuneState, setFinetuneState, resumeLocation, setResumeLocation, portfolioLocation, setPortfolioLocation,
         activeAnalysisId,
         setActiveAnalysisId,
         viewResumeId,
