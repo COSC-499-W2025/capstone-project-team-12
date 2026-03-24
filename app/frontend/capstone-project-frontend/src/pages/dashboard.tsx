@@ -4,36 +4,57 @@ import { AnalysisCard } from "../components/analysisCard";
 
 const API_BASE = "http://localhost:8080";
 
-
-// Mapping function
-
+// --- Updated Mapping Function ---
 function mapProject(
   p: RawProject,
   resumes: RawResume[],
   portfolios: RawPortfolio[]
 ): Analysis {
-  // Extract repo names from project_insights if available
   let repos: string[] = [];
+  
   try {
-    const insights = typeof p.project_insights === "string"
-      ? JSON.parse(p.project_insights)
-      : p.project_insights;
-    repos = (insights?.analyzed_insights ?? []).map(
-      (r: any) => r.repository_name ?? r.name ?? "Unknown"
-    );
-  } catch {}
+    let insights = p.project_insights;
+
+    // 1. If it's a string, parse it
+    if (typeof insights === "string") {
+      try {
+        insights = JSON.parse(insights);
+      } catch (parseError) {
+        console.warn(`[DASHBOARD] Could not parse project_insights for ${p.analysis_id}`);
+        insights = {};
+      }
+    }
+
+    // 2. Ensure it's an object before attempting extraction
+    if (insights && typeof insights === "object") {
+      // It might be nested under 'analyzed_insights'
+      const insightList = Array.isArray(insights) 
+        ? insights 
+        : (insights.analyzed_insights || []);
+
+      // Extract repo names robustly
+      repos = insightList.map((r: any) => 
+        r.repository_name || r.name || r.repoName || "Unknown Project"
+      );
+    }
+  } catch (err) {
+    console.error(`[DASHBOARD] Unexpected error mapping repos for ${p.analysis_id}:`, err);
+  }
+
+  // Deduplicate repo names just in case
+  repos = Array.from(new Set(repos));
 
   return {
     id: p.analysis_id,
-    label: p.analysis_title ?? p.analysis_id,
-    createdAt: p.creation_date?.slice(0, 10) ?? "",
+    label: p.analysis_title || p.analysis_id,
+    createdAt: p.creation_date?.slice(0, 10) || new Date().toISOString().slice(0, 10),
     repos,
     resumeIds: resumes.map(r => r.resume_id),
     portfolioIds: portfolios.map(r => r.portfolio_id),
     hasResume: resumes.length > 0,
     hasPortfolio: portfolios.length > 0,
-    hasInsights: true,
-    status: "complete",
+    hasInsights: repos.length > 0, // If we found repos, we have insights
+    status: "complete", 
   };
 }
 
@@ -72,8 +93,7 @@ export default function Dashboard( {onNewAnalysis, onIncremental, onViewResume, 
           portfoliosRes.json(),
         ]);
 
-        // Group resumes and portfolios by analysis id (doing this manually to reduce the number of api calls
-        // instead of calling GET /portfolio/{analysis_id} and GET /resume/{analysis_id} for each analysis
+        // Group resumes and portfolios by analysis id
         const resumesByAnalysis = allResumes.reduce<Record<string, RawResume[]>>(
           (acc, r) => {
             (acc[r.analysis_id] ??= []).push(r);
@@ -207,7 +227,7 @@ export default function Dashboard( {onNewAnalysis, onIncremental, onViewResume, 
           </div>
           <button
             onClick={ onNewAnalysis }
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 shadow-sm hover:bg-indigo-700 hover:shadow-md transition-all mt-1"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 shadow-sm hover:bg-indigo-700 hover:shadow-md transition-all mt-1 border-none cursor-pointer"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -226,7 +246,7 @@ export default function Dashboard( {onNewAnalysis, onIncremental, onViewResume, 
                 { label: "Portfolios", value: totalPortfolios, icon: "🗂️" },
               ] as const
             ).map(({ label, value, icon }) => (
-              <div key={label} className="bg-white rounded-2xl border border-slate-200 px-4 py-4 flex items-center gap-3">
+              <div key={label} className="bg-white rounded-2xl border border-slate-200 px-4 py-4 flex items-center gap-3 shadow-sm">
                 <span className="text-xl">{icon}</span>
                 <div>
                   <p className="text-xl font-bold text-slate-800 leading-none">{value}</p>
@@ -239,7 +259,13 @@ export default function Dashboard( {onNewAnalysis, onIncremental, onViewResume, 
 
         {/* Analysis list */}
         {loading ? (
-          <p className="text-sm text-slate-400 py-10 text-center">Loading analyses…</p>
+          <div className="flex flex-col items-center justify-center py-20">
+            <svg className="animate-spin w-8 h-8 text-indigo-500 mb-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeOpacity="0.25" />
+              <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+            </svg>
+            <p className="text-sm font-semibold text-slate-500">Loading your data…</p>
+          </div>
         ) : analyses.length === 0 ? (
           <EmptyState onNew={onNewAnalysis} />
         ) : (
@@ -267,21 +293,19 @@ export default function Dashboard( {onNewAnalysis, onIncremental, onViewResume, 
   );
 }
 
-
-
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 export function EmptyState({ onNew }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center mb-4 text-2xl">📂</div>
-      <p className="text-base font-bold text-slate-700 mb-1">No analyses yet</p>
-      <p className="text-sm text-slate-400 mb-5">Run your first analysis to get tailored insights, a resume, and more.</p>
+    <div className="flex flex-col items-center justify-center py-20 text-center bg-white rounded-2xl border border-slate-200 shadow-sm">
+      <div className="w-16 h-16 rounded-full bg-indigo-50 flex items-center justify-center mb-5 text-2xl border border-indigo-100 shadow-inner">📂</div>
+      <p className="text-lg font-bold text-slate-800 mb-1">No analyses found</p>
+      <p className="text-sm text-slate-500 mb-6 max-w-sm leading-relaxed">Run your first analysis to unlock tailored insights, automatic resume generation, and portfolio metrics.</p>
       <button
         onClick={onNew}
-        className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 shadow-sm hover:bg-indigo-700 transition-all"
+        className="flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold text-white bg-indigo-600 shadow-[0_4px_12px_rgba(79,70,229,0.3)] hover:bg-indigo-700 hover:-translate-y-0.5 hover:shadow-[0_6px_16px_rgba(79,70,229,0.4)] transition-all border-none cursor-pointer"
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
         </svg>
         New Analysis
@@ -292,9 +316,13 @@ export function EmptyState({ onNew }: EmptyStateProps) {
 
 function Toast({ message, onDismiss }: ToastProps) {
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-800 text-white text-sm font-semibold px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3">
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-800 text-white text-sm font-bold px-6 py-3.5 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.2)] flex items-center gap-3 transition-all duration-300">
+      <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+        <path d="M5 12l5 5l10 -10" />
+      </svg>
       {message}
-      <button onClick={onDismiss} className="!bg-transparent !border-none text-slate-400 hover:text-white text-lg">×</button>
+      <button onClick={onDismiss} className="!bg-transparent !border-none text-slate-400 hover:text-white text-lg ml-2 cursor-pointer transition-colors" aria-label="Close">×</button>
     </div>
   );
 }
