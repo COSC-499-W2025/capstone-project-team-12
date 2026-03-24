@@ -97,12 +97,13 @@ export default function ProjectInsights( { onComplete, onPrevious, analysisId }:
 
   useEffect(() => {
     if (analysisId == null) return;
-    fetch('http://localhost:8080/projects')
+    // Directly fetch the specific analysis ID
+    fetch(`http://localhost:8080/projects/${analysisId}`)
       .then(r => { if (!r.ok) throw new Error(`${r.status}`); return r.json(); })
-      .then((data: any[]) => {
-        const match = data.find(d => d.analysis_id === analysisId);
-        if (!match) throw new Error('Analysis not found');
-        const mapped = mapToProjects(match);
+      .then((data: any) => {
+        // Safely extract regardless of whether backend returns array or exact object
+        const targetData = Array.isArray(data) ? (data.find(d => d.analysis_id === analysisId) || data[0]) : data;
+        const mapped = mapToProjects(targetData);
         setProjects(mapped);
         setSelectedProject(mapped[0] ?? null);  // set initial selection here
         setLoading(false);
@@ -114,7 +115,16 @@ export default function ProjectInsights( { onComplete, onPrevious, analysisId }:
   if (error) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><p className="text-red-500">Error: {error}</p></div>;
 
   const p = selectedProject;
-  if (!p) return null;
+  
+  // Safe fallback if mapping yields no projects to prevent blank screen
+  if (!p) return (
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center font-sans">
+      <p className="text-slate-500 mb-4">No project insights available for this analysis.</p>
+      <button onClick={onComplete} className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 hover:bg-indigo-700 transition-all shadow-sm">
+        Continue to Next Step
+      </button>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans">
@@ -169,7 +179,7 @@ export default function ProjectInsights( { onComplete, onPrevious, analysisId }:
           <div className="flex justify-between mt-8">
             <button
               onClick={onPrevious}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 shadow-sm hover:bg-indigo-700 transition-all"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 shadow-sm hover:bg-indigo-700 transition-all border-none cursor-pointer"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M19 12H5M12 19l-7-7 7-7" />
@@ -180,7 +190,7 @@ export default function ProjectInsights( { onComplete, onPrevious, analysisId }:
             {/* Next button */}
             <button
               onClick={onComplete}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 shadow-sm hover:bg-indigo-700 transition-all"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 shadow-sm hover:bg-indigo-700 transition-all border-none cursor-pointer"
             >
               Next
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
