@@ -1,14 +1,17 @@
 import { useState, useEffect } from "react";
 import SectionCard from "../components/SectionCard";
 import type { Resume, Project, Language, EducationEntry, WorkEntry, AwardEntry } from "../types/resumeTypes";
-
+import ResumePreviewModal from "../components/resumePreviewModal";
 // ─── Mock data ────────────────────────────────────────────────────────────────
 
 export const mockResume: Resume = {
   analysis_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   // TODO (backend): pass github_username and user_email through _build_resume()
+  full_name: "John Doe",
   github_username: "yourusername",
   user_email: "you@example.com",
+  phone: "123-456-7890",
+  linkedin: "linkedin.com/in/yourusername",
   summary: [
     "Full-stack developer with experience building collaborative web and mobile applications. Strong version control practices and a focus on clean, maintainable code.",
     "Passionate about learning new technologies and applying them to solve real-world problems. Seeking opportunities to contribute to impactful projects and grow as a software engineer.",
@@ -75,7 +78,7 @@ export const mockResume: Resume = {
 // ─── API ───────────────────────────────────────────────────────────────
 const API_BASE = "http://localhost:8080";
 
-async function fetchResume(resumeId: string): Promise<Resume> {
+async function fetchResume(resumeId: string, githubUsername: string, userEmail: string): Promise<Resume> {
   const res = await fetch(`${API_BASE}/resume/${resumeId}`);
   if (!res.ok) throw new Error(`Failed to fetch resume: ${res.status} ${res.statusText}`);
   const data = await res.json();
@@ -92,8 +95,11 @@ async function fetchResume(resumeId: string): Promise<Resume> {
     projects: Array.isArray(r.projects) ? r.projects : [],
     skills: Array.isArray(r.skills) ? r.skills : [],
     languages: Array.isArray(r.languages) ? r.languages : [],
-    github_username: r.github_username ?? "",
-    user_email: r.user_email ?? "",
+    full_name: r.full_name ?? "",
+    github_username: r.github_username || githubUsername,
+    user_email: r.user_email || userEmail,
+    phone: r.phone ?? "",
+    linkedin: r.linkedin ?? "",
   };
 }
 
@@ -197,27 +203,33 @@ function BulletEditor({ bullets, onChange }: { bullets: string[]; onChange: (b: 
 }
 // ─── Contact ──────────────────────────────────────────────────────────────────
 
-function ContactSection({ github_username, user_email, onChange }: {
-  github_username: string; user_email: string; onChange: (u: string, e: string) => void;
+function ContactSection({ full_name, github_username, user_email, phone, linkedin, onChange }: {
+  full_name: string; github_username: string; user_email: string; phone: string; linkedin: string; onChange: (fn: string, u: string, e: string, p: string, l: string) => void;
 }) {
-  const { editing, draft, setDraft, open, cancel, close } = useEditState({ github_username, user_email });
+  const { editing, draft, setDraft, open, cancel, close } = useEditState({ full_name, github_username, user_email, phone, linkedin });
   return (
     <SectionCard title="Contact" icon="👤">
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 space-y-2">
           {editing ? (
             <>
+              <Field value={draft.full_name}       onChange={v => setDraft(d => ({ ...d, full_name: v }))} placeholder="Full Name" />
               <Field value={draft.github_username} onChange={v => setDraft(d => ({ ...d, github_username: v }))} placeholder="GitHub username" />
               <Field value={draft.user_email}      onChange={v => setDraft(d => ({ ...d, user_email: v }))}      placeholder="Email address" />
+              <Field value={draft.phone}           onChange={v => setDraft(d => ({ ...d, phone: v }))}           placeholder="Phone number" />
+              <Field value={draft.linkedin}        onChange={v => setDraft(d => ({ ...d, linkedin: v }))}        placeholder="LinkedIn profile" />
             </>
           ) : (
             <>
-              <p className="text-sm font-semibold text-slate-700">{github_username}</p>
+              <p className="text-sm font-semibold text-slate-700">{full_name}</p>
+              {github_username && <p className="text-sm text-slate-500">github.com/{github_username}</p>}
               <p className="text-sm text-slate-500">{user_email}</p>
+              <p className="text-sm text-slate-500">{phone}</p>
+              <p className="text-sm text-slate-500">{linkedin}</p>
             </>
           )}
         </div>
-        <EditControls editing={editing} onEdit={open} onSave={() => { onChange(draft.github_username, draft.user_email); close(); }} onCancel={cancel} />
+        <EditControls editing={editing} onEdit={open} onSave={() => { onChange(draft.full_name, draft.github_username, draft.user_email, draft.phone, draft.linkedin); close(); }} onCancel={cancel} />
       </div>
     </SectionCard>
   );
@@ -585,46 +597,41 @@ function LanguagesSection({ languages, onChange }: { languages: Language[]; onCh
   );
 }
 
-// ─── Download placeholder ─────────────────────────────────────────────────────
-// TODO (frontend): implement export using the `docx` npm package — no backend changes needed
-
-function DownloadButton() {
-  const [showTip, setShowTip] = useState(false);
+// ─── Preview/Download placeholder ─────────────────────────────────────────────────────
+function PreviewButton({ resume }: { resume: Resume }) {
+  const [open, setOpen] = useState(false);
   return (
-    <div className="relative inline-block">
-      <button disabled onMouseEnter={() => setShowTip(true)} onMouseLeave={() => setShowTip(false)}
-        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border bg-white text-slate-400 border-slate-200 cursor-not-allowed opacity-60">
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-[#6378ff] text-white hover:bg-indigo-700 transition-all shadow-sm"
+      >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
         </svg>
         Download Resume
-        <span className="text-xs font-bold uppercase tracking-wider bg-slate-100 text-slate-400 rounded-full px-2 py-0.5">Soon</span>
       </button>
-      {showTip && (
-        <div className="absolute bottom-full right-0 mb-2 z-10 bg-white border border-slate-200 rounded-xl shadow-md px-3 py-2 text-xs text-slate-500 whitespace-nowrap">
-          Export to .docx / .pdf — planned for a future sprint
-        </div>
-      )}
-    </div>
+      {open && <ResumePreviewModal resume={resume} onClose={() => setOpen(false)} />}
+    </>
   );
 }
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-export default function ResumeDisplay( {onPrevious, onComplete, resumeId: resumeIdProp} : {onPrevious?: () => void, onComplete?: () => void, resumeId?: number | null}) {
+export default function ResumeDisplay( {onPrevious, onComplete, resumeId: resumeIdProp, githubUsername = "" , userEmail = ""} : {onPrevious?: () => void, onComplete?: () => void, resumeId?: number | null, githubUsername?: string, userEmail?: string}) {
   const parsedId = resumeIdProp ?? null;
 
-  const [resume, setResume] = useState<Resume>(mockResume);
+  const [resume, setResume] = useState<Resume>({...mockResume, github_username: githubUsername || mockResume.github_username, user_email: userEmail || mockResume.user_email});
   const [loading, setLoading] = useState(parsedId !== null);
     const [error,   setError]   = useState<string | null>(null);
     const [saving,  setSaving]  = useState(false);
   
     useEffect(() => {
       if (parsedId === null) return;
-      fetchResume(parsedId.toString())
+      fetchResume(parsedId.toString(), githubUsername, userEmail)
         .then(r  => { setResume(r); setLoading(false); })
         .catch(e => { setError(e.message); setLoading(false); });
-    }, [parsedId]);
+    }, [parsedId, githubUsername, userEmail]);
   
     // Merges a partial update into state and immediately PUTs to the backend.
     // In mock mode (no parsedId) the PUT is skipped — changes are session-only.
@@ -651,13 +658,13 @@ export default function ResumeDisplay( {onPrevious, onComplete, resumeId: resume
           <p className="text-xs font-semibold uppercase tracking-widest text-indigo-500 mb-1">Resume Display &amp; Editor</p>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <h1 className="text-3xl font-bold text-slate-800">Your generated resume.</h1>
-            <DownloadButton />
+            <PreviewButton resume={resume} />
           </div>
           {saving && <p className="text-xs text-indigo-400 mt-1">Saving…</p>}
           {error  && <p className="text-xs text-red-400   mt-1">Error: {error}</p>}
         </div>
         <div className="space-y-5">
-          <ContactSection github_username={resume.github_username ?? ""} user_email={resume.user_email ?? ""} onChange={(u, e) => update({github_username: u, user_email: e })} />
+          <ContactSection full_name={resume.full_name ?? ""} github_username={resume.github_username ?? ""} user_email={resume.user_email ?? ""} phone={resume.phone ?? ""} linkedin={resume.linkedin ?? ""} onChange={(fn, u, e, p, l) => update({full_name: fn, github_username: u, user_email: e, phone: p, linkedin: l })} />
           <SummarySection  summary={resume.summary} onChange={s => update({summary: s })} />
           <WorkExperienceSection
             work={resume.work_experience}
