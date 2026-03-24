@@ -184,7 +184,8 @@ export default function FinetunePage({ extractedData, initialState, activeAnalys
     } else {
       isMounted.current = true;
     }
-  }, [projects, topics, skills, onStateChange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projects, topics, skills]);
 
   const handleSubmit = async () => {
     if (!extractedData?.analysis_id) {
@@ -210,7 +211,6 @@ export default function FinetunePage({ extractedData, initialState, activeAnalys
 
       console.log(`\n============== [FINETUNE API LOGS] ==============`);
       console.log(`[FINETUNE] 1. Calling commit endpoint for Analysis ID: ${analysisId}`);
-      console.log(`[FINETUNE] Commit Payload being sent:`, JSON.stringify(commitPayload, null, 2));
 
       const commitUrl = activeAnalysisId 
           ? `http://localhost:8080/projects/${analysisId}/update/commit`
@@ -233,27 +233,41 @@ export default function FinetunePage({ extractedData, initialState, activeAnalys
       console.log(`\n[FINETUNE] 2. Calling Resume Generation Endpoint...`);
       const resumeResp = await fetch(`http://localhost:8080/resume/generate/${analysisId}`, { method: 'POST' });
       const resumeLocation = resumeResp.headers.get('location');
-      const resumeData = await resumeResp.json().catch(() => ({}));
-      console.log(`[FINETUNE] Resume Status:`, resumeResp.status);
-      console.log(`[FINETUNE] Resume Location Header:`, resumeLocation);
-      console.log(`[FINETUNE] Resume Body Data:`, resumeData);
+      
+      // Standardize extracting the ID from either the header or the JSON
+      let rId = null;
+      if (resumeLocation) {
+        rId = parseInt(resumeLocation.split('/').pop() || '', 10);
+      }
+      if (!rId || isNaN(rId)) {
+        const resumeData = await resumeResp.json().catch(() => ({}));
+        rId = resumeData?.resume_id || resumeData?.id || null;
+      }
+      console.log(`[FINETUNE] Resume Extracted ID: ${rId}`);
       
       // 3. Generate Portfolio
       console.log(`\n[FINETUNE] 3. Calling Portfolio Generation Endpoint...`);
       const portResp = await fetch(`http://localhost:8080/portfolio/generate/${analysisId}`, { method: 'POST' });
       const portLocation = portResp.headers.get('location');
-      const portData = await portResp.json().catch(() => ({}));
-      console.log(`[FINETUNE] Portfolio Status:`, portResp.status);
-      console.log(`[FINETUNE] Portfolio Location Header:`, portLocation);
-      console.log(`[FINETUNE] Portfolio Body Data:`, portData);
+      
+      // Standardize extracting the ID from either the header or the JSON
+      let pId = null;
+      if (portLocation) {
+        pId = parseInt(portLocation.split('/').pop() || '', 10);
+      }
+      if (!pId || isNaN(pId)) {
+        const portData = await portResp.json().catch(() => ({}));
+        pId = portData?.portfolio_id || portData?.id || null;
+      }
+      console.log(`[FINETUNE] Portfolio Extracted ID: ${pId}`);
       console.log(`=================================================\n`);
 
       onComplete(
         { projects, topics, skills },
         resumeLocation,
         portLocation,
-        resumeData?.resume_id || null,
-        portData?.portfolio_id || null
+        rId,
+        pId
       );
       
     } catch (err) {
