@@ -372,12 +372,12 @@ export default function FinetunePage({ extractedData, initialState, activeAnalys
               <div>
                 <h2 className="text-lg font-bold text-[#0f1629] tracking-tight mb-1">Fine-tune Topics</h2>
                 <p className="text-xs text-[#9ca3af]">
-                  Edit the extracted topic vectors.{" "}
+                  Edit the extracted topic keywords.{" "}
                   <button 
                     onClick={() => setShowInfoModal(true)}
                     className="text-[#6378ff] hover:text-[#a78bfa] underline underline-offset-2 transition-colors border-none bg-transparent cursor-pointer font-semibold p-0"
                   >
-                    What are topic vectors?
+                    What are topic keywords?
                   </button>
                 </p>
               </div>
@@ -559,7 +559,7 @@ export default function FinetunePage({ extractedData, initialState, activeAnalys
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0f1629]/30 backdrop-blur-sm px-4">
           <div className="bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.15)] border border-[rgba(0,0,0,0.05)] w-full max-w-md p-7 relative">
             <h3 className="text-[20px] font-extrabold text-[#0f1629] tracking-tight mb-3">
-              What are Topic Vectors?
+              What are Topic Keywords?
             </h3>
             <div className="text-sm text-[#6b7280] leading-relaxed space-y-3 mb-7">
               <p>
