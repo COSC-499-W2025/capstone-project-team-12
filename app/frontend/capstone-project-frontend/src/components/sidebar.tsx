@@ -1,8 +1,13 @@
+import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { Modal } from './modals';
 
 const Sidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const Maps = navigate;
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
 
   const getCurrentStepFromPath = (pathname: string): number => {
     if (pathname.includes('/analysis/new/onboarding')) return 1;
@@ -210,7 +215,7 @@ const Sidebar = () => {
         }}
         onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
         onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-        onClick={() => navigate('/dashboard')}
+        onClick={() => setShowLeaveModal(true)}
         >
           <div style={{
             width: "28px",
@@ -229,6 +234,21 @@ const Sidebar = () => {
           <span style={{ fontSize: "13px", fontWeight: "500", color: "white" }}>Return to dashboard</span>
         </button>
       </div>
+
+      {showLeaveModal && createPortal(
+        <Modal
+          title="Leave Analysis?"
+          description="Are you sure you want to return to the dashboard? Your current analysis progress will be lost and cannot be recovered."
+          confirmLabel="Leave Analysis"
+          confirmColor="red"
+          onCancel={() => setShowLeaveModal(false)}
+          onConfirm={() => {
+            setShowLeaveModal(false);
+            Maps('/dashboard');
+          }}
+        />,
+        document.body
+      )}
     </div>
   );
 };
