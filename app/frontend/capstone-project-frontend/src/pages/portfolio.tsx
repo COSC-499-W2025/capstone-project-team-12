@@ -103,7 +103,7 @@ async function fetchPortfolio(portfolioId: number): Promise<{ data: PortfolioDat
   const res = await fetch(`${API_BASE}/portfolio/${portfolioId}`);
   if (!res.ok) throw new Error(`Failed to fetch portfolio: ${res.status} ${res.statusText}`);
   const json = await res.json();
-  
+
   // Safe fallback if the backend returns a flat object instead of nested inside portfolio_data
   const d = json.portfolio_data ?? json;
 
@@ -231,16 +231,16 @@ function EditControls({ editing, onEdit, onSave, onCancel, saving = false, label
   editing: boolean; onEdit: () => void; onSave: () => void; onCancel: () => void; saving?: boolean; label: string;
 }) {
   if (!editing) return (
-    <button onClick={onEdit} aria-label={`Edit ${label}`} className="text-[11px] font-bold tracking-[0.08em] uppercase text-[#6378ff] border border-[#6378ff]/25 rounded-lg px-3 py-1 hover:bg-[#6378ff]/5 transition-all cursor-pointer border-none bg-transparent">
+    <button onClick={onEdit} aria-label={`Edit ${label}`} className="text-[11px] font-bold tracking-[0.08em] uppercase text-[#6378ff] border border-[#6378ff]/25 rounded-lg px-3 py-1 hover:bg-[#6378ff]/5 transition-all">
       Edit
     </button>
   );
   return (
     <div className="flex gap-2">
-      <button onClick={onSave} disabled={saving} aria-label={`Save ${label}`} className="text-[11px] font-bold tracking-[0.08em] uppercase text-white bg-[#6378ff] rounded-lg px-3 py-1 hover:bg-[#4f63e7] transition-all disabled:opacity-50 border-none cursor-pointer">
+      <button onClick={onSave} disabled={saving} aria-label={`Save ${label}`} className="text-[11px] font-bold tracking-[0.08em] uppercase text-white bg-[#6378ff] rounded-lg px-3 py-1 hover:bg-[#4f63e7] transition-all disabled:opacity-50">
         {saving ? "Saving…" : "Save"}
       </button>
-      <button onClick={onCancel} aria-label={`Cancel ${label}`} className="text-[11px] font-bold tracking-[0.08em] uppercase text-[#64748b] border border-slate-200 rounded-lg px-3 py-1 hover:bg-slate-50 transition-all border-none bg-transparent cursor-pointer">
+      <button onClick={onCancel} aria-label={`Cancel ${label}`} className="text-[11px] font-bold tracking-[0.08em] uppercase text-[#64748b] border border-slate-200 rounded-lg px-3 py-1 hover:bg-slate-50 transition-all">
         Cancel
       </button>
     </div>
@@ -259,7 +259,7 @@ function TagChip({ label, onRemove }: { label: string; onRemove?: () => void }) 
   return (
     <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700">
       {label}
-      {onRemove && <button onClick={onRemove} className="text-indigo-300 hover:text-indigo-500 text-base leading-none ml-0.5 bg-transparent border-none cursor-pointer">×</button>}
+      {onRemove && <button onClick={onRemove} className="text-indigo-300 hover:text-indigo-500 text-base leading-none ml-0.5 bg-transparent border-none">×</button>}
     </span>
   );
 }
@@ -270,7 +270,7 @@ function AddTag({ placeholder, onAdd }: { placeholder: string; onAdd: (v: string
   return (
     <div className="flex gap-2 mt-2">
       <input value={val} onChange={e => setVal(e.target.value)} onKeyDown={e => e.key === "Enter" && commit()} placeholder={placeholder} className={inputCls} />
-      <button onClick={commit} className="text-[11px] font-bold tracking-[0.08em] uppercase text-white bg-[#6378ff] rounded-lg px-3 py-1 hover:bg-[#4f63e7] transition-all whitespace-nowrap cursor-pointer border-none">+ Add</button>
+      <button onClick={commit} className="text-[11px] font-bold tracking-[0.08em] uppercase text-white bg-[#6378ff] rounded-lg px-3 py-1 hover:bg-[#4f63e7] transition-all whitespace-nowrap">+ Add</button>
     </div>
   );
 }
@@ -283,7 +283,7 @@ function AddLanguageRow({ onAdd }: { onAdd: (name: string, files: number) => voi
     <div className="flex gap-2 mt-2">
       <input value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === "Enter" && commit()} placeholder="Language name…" className={inputCls} />
       <input type="text" inputMode="numeric" value={files} onChange={e => { if (/^\d*$/.test(e.target.value)) setFiles(e.target.value); }} placeholder="Files" className={`${inputCls} w-20`} />
-      <button onClick={commit} className="text-[11px] font-bold tracking-[0.08em] uppercase text-white bg-[#6378ff] rounded-lg px-3 py-1 hover:bg-[#4f63e7] transition-all whitespace-nowrap border-none cursor-pointer">+ Add</button>
+      <button onClick={commit} className="text-[11px] font-bold tracking-[0.08em] uppercase text-white bg-[#6378ff] rounded-lg px-3 py-1 hover:bg-[#4f63e7] transition-all whitespace-nowrap">+ Add</button>
     </div>
   );
 }
@@ -507,7 +507,7 @@ export default function DevPortfolio({ onComplete, onPrevious, portfolioId }: {
                   <>
                     <NumberField value={l.files} onChange={v => langEdit.setDraft(d => d.map(x => x.name === l.name ? { ...x, files: v } : x))} className="w-20" />
                     <p className="text-[10px] text-[#9ca3af] whitespace-nowrap shrink-0">files</p>
-                    <button onClick={() => langEdit.setDraft(d => d.filter(x => x.name !== l.name))} className="text-[#c4c9d4] hover:text-red-400 text-xl leading-none bg-transparent border-none shrink-0 transition-colors cursor-pointer">×</button>
+                    <button onClick={() => langEdit.setDraft(d => d.filter(x => x.name !== l.name))} className="text-[#c4c9d4] hover:text-red-400 text-xl leading-none bg-transparent border-none shrink-0 transition-colors">×</button>
                   </>
                 )}
               </div>
@@ -528,11 +528,11 @@ export default function DevPortfolio({ onComplete, onPrevious, portfolioId }: {
 
         {/* Navigation */}
         <div className="flex justify-between mt-8">
-          <button onClick={onPrevious} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 shadow-sm hover:bg-indigo-700 transition-all cursor-pointer border-none">
+          <button onClick={onPrevious} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 shadow-sm hover:bg-indigo-700 transition-all">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
             Back
           </button>
-          <button onClick={onComplete} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 shadow-sm hover:bg-indigo-700 transition-all cursor-pointer border-none">
+          <button onClick={onComplete} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 shadow-sm hover:bg-indigo-700 transition-all">
             Next
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
           </button>
