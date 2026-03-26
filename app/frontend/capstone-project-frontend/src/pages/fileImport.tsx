@@ -267,9 +267,12 @@ const FileImport: React.FC<FileImportProps> = ({ activeAnalysisId, onComplete, m
             <p className="text-sm font-semibold text-[#0f1629]">
               Drag & drop files or folders here
             </p>
-            <p className="text-xs text-[#9ca3af] mt-1">
+            <p className="text-xs text-[#9ca3af] mt-1 mb-1">
               or click to <span className="text-[#6378ff] font-semibold">browse</span>
             </p>
+             <p className="text-[10.5px] text-amber-600/80 font-bold max-w-[280px] mx-auto mt-2 leading-tight">
+                Uploading a repository? Please upload it as a .zip file. Browsers strip hidden .git folders from folder uploads.
+              </p>
           </div>
 
           {/* Picker popover */}
