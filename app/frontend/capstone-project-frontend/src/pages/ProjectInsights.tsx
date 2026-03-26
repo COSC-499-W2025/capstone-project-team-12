@@ -131,16 +131,9 @@ export default function ProjectInsights( { onComplete, onPrevious, analysisId }:
   if (!p) return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center font-sans">
       <p className="text-slate-500 mb-4">No project insights available for this analysis.</p>
-      <div className="flex gap-4">
-        {onPrevious && (
-          <button onClick={onPrevious} className="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-500 bg-slate-200 hover:bg-slate-300 transition-all border-none cursor-pointer">
-            Back
-          </button>
-        )}
-        <button onClick={onComplete} className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 hover:bg-indigo-700 transition-all shadow-sm border-none cursor-pointer">
+      <button onClick={onComplete} className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 hover:bg-indigo-700 transition-all shadow-sm">
           Continue to Next Step
         </button>
-      </div>
     </div>
   );
 
@@ -161,7 +154,7 @@ export default function ProjectInsights( { onComplete, onPrevious, analysisId }:
               <button
                 key={proj.id}
                 onClick={() => { setSelectedProject(proj); setActiveTab("overview"); }}
-                className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all cursor-pointer ${
+                className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${
                   selectedProject?.id === proj.id
                     ? "bg-indigo-600 text-white border-indigo-600 shadow-md"
                     : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-600"
@@ -179,8 +172,8 @@ export default function ProjectInsights( { onComplete, onPrevious, analysisId }:
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 rounded-lg text-xs font-semibold capitalize transition-all border-none cursor-pointer ${
-                activeTab === tab ? "bg-white text-indigo-700 shadow-sm" : "text-slate-500 hover:text-slate-700 bg-transparent"
+              className={`px-4 py-2 rounded-lg text-xs font-semibold capitalize transition-all ${
+                activeTab === tab ? "bg-white text-indigo-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
               }`}
             >
               {tab}
