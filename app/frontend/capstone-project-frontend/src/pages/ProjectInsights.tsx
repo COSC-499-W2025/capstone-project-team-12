@@ -12,7 +12,18 @@ const tabs: Tab[] = ["overview", "testing", "deployment", "pacing & role"];
 
 // ---- Mapping Function ----
 function mapToProjects(raw: any): Project[] {
-  const insights = raw.project_insights?.analyzed_insights ?? [];
+  // Defensive string parsing (in case the backend failed to return an object)
+  let pi = raw.project_insights;
+  if (typeof pi === "string") {
+    try {
+      pi = JSON.parse(pi);
+    } catch (e) {
+      console.error("[INSIGHTS] Failed to parse project_insights string", e);
+    }
+  }
+
+  const insights = pi?.analyzed_insights ?? [];
+  
   return insights.map((p: any, i: number) => ({
     id: i + 1,
     repoName: p.repository_name ?? 'Unknown',
@@ -120,9 +131,16 @@ export default function ProjectInsights( { onComplete, onPrevious, analysisId }:
   if (!p) return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center font-sans">
       <p className="text-slate-500 mb-4">No project insights available for this analysis.</p>
-      <button onClick={onComplete} className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 hover:bg-indigo-700 transition-all shadow-sm">
-        Continue to Next Step
-      </button>
+      <div className="flex gap-4">
+        {onPrevious && (
+          <button onClick={onPrevious} className="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-500 bg-slate-200 hover:bg-slate-300 transition-all border-none cursor-pointer">
+            Back
+          </button>
+        )}
+        <button onClick={onComplete} className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 hover:bg-indigo-700 transition-all shadow-sm border-none cursor-pointer">
+          Continue to Next Step
+        </button>
+      </div>
     </div>
   );
 
@@ -143,7 +161,7 @@ export default function ProjectInsights( { onComplete, onPrevious, analysisId }:
               <button
                 key={proj.id}
                 onClick={() => { setSelectedProject(proj); setActiveTab("overview"); }}
-                className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${
+                className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all cursor-pointer ${
                   selectedProject?.id === proj.id
                     ? "bg-indigo-600 text-white border-indigo-600 shadow-md"
                     : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-600"
@@ -161,8 +179,8 @@ export default function ProjectInsights( { onComplete, onPrevious, analysisId }:
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 rounded-lg text-xs font-semibold capitalize transition-all ${
-                activeTab === tab ? "bg-white text-indigo-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
+              className={`px-4 py-2 rounded-lg text-xs font-semibold capitalize transition-all border-none cursor-pointer ${
+                activeTab === tab ? "bg-white text-indigo-700 shadow-sm" : "text-slate-500 hover:text-slate-700 bg-transparent"
               }`}
             >
               {tab}
