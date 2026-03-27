@@ -183,25 +183,25 @@ describe("FinetunePage — submission", () => {
 });
 
 describe("FinetunePage — info modal", () => {
-  it("opens and closes the 'What are Topic Vectors?' modal", () => {
+  it("opens and closes the 'What are Topic Keyowrds?' modal", () => {
     setup();
 
     // 1. Verify the modal title is not in the document initially
-    expect(screen.queryByText("What are Topic Vectors?")).not.toBeInTheDocument();
+    expect(screen.queryByText("What are Topic Keywords?")).not.toBeInTheDocument();
 
     // 2. Click the trigger link
-    const infoLink = screen.getByRole("button", { name: /What are topic vectors\?/i });
+    const infoLink = screen.getByRole("button", { name: /What are topic keywords\?/i });
     fireEvent.click(infoLink);
 
     // Verify the modal is now visible by checking for its header
-    expect(screen.getByText("What are Topic Vectors?")).toBeInTheDocument();
+    expect(screen.getByText("What are Topic Keywords?")).toBeInTheDocument();
 
     // 3. Click the 'Got it' button to close it
     const closeBtn = screen.getByRole("button", { name: /Got it/i });
     fireEvent.click(closeBtn);
 
     // Verify the modal has been removed from the DOM
-    expect(screen.queryByText("What are Topic Vectors?")).not.toBeInTheDocument();
+    expect(screen.queryByText("What are Topic Keywords?")).not.toBeInTheDocument();
   });
 });
 
