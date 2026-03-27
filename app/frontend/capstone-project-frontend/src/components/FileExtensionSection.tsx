@@ -7,7 +7,7 @@ const categoryColors: Record<string, string> = {
   "Other":          "bg-slate-100 text-slate-600",
   "Database":       "bg-amber-100 text-amber-700",
   "DevOps":         "bg-green-100 text-green-700",
-  "Frontend Development":       "bg-pink-100 text-pink-700",
+  "Data Science":       "bg-pink-100 text-pink-700",
   "Backend Development":        "bg-amber-100 text-amber-700",
   "Web Development": "bg-orange-100 text-orange-700",
 };
