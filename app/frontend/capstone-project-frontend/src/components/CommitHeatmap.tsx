@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 
 type Commit = {
   hash: string;
@@ -38,11 +38,22 @@ function isoToLocalKey(iso: string): string {
   return iso.slice(0, 10);
 }
 
-// Each cell is w-3 (12px) + gap-1 (4px) = 16px per column
-const COL_WIDTH = 16;
+
 
 export default function CommitHeatmap({ commits }: CommitHeatmapProps) {
   const [mode, setMode] = useState<HeatmapMode>("commits");
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new ResizeObserver(([entry]) => {
+      setContainerWidth(entry.contentRect.width);
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
   const [tooltip, setTooltip] = useState<{
     x: number;
     y: number;
@@ -85,7 +96,7 @@ export default function CommitHeatmap({ commits }: CommitHeatmapProps) {
     const gridEnd = new Date(projectEnd);
     gridEnd.setDate(gridEnd.getDate() + daysUntilSat);
 
-    const MIN_WEEKS = 26;
+    const MIN_WEEKS = 52;
     const naturalWeeks = Math.ceil((Math.round((gridEnd.getTime() - gridStart.getTime()) / 86400000) + 1) / 7);
     const totalWeeks = Math.max(naturalWeeks, MIN_WEEKS);
     if (totalWeeks > naturalWeeks) {
@@ -147,8 +158,15 @@ export default function CommitHeatmap({ commits }: CommitHeatmapProps) {
     0
   );
 
+  // DAY_LABEL_WIDTH matches ml-8 (32px). Derive cell size from available width.
+  const DAY_LABEL_WIDTH = 32;
+  const COL_WIDTH = weeks.length > 0 && containerWidth > 0
+    ? Math.floor((containerWidth - DAY_LABEL_WIDTH) / weeks.length)
+    : 16;
+  const CELL_SIZE = Math.max(4, COL_WIDTH - 2); // leave 2px gap, min 4px
+
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+    <div ref={containerRef} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
       {/* Header row */}
       <div className="flex items-center justify-between mb-4">
         <div>
@@ -188,15 +206,15 @@ export default function CommitHeatmap({ commits }: CommitHeatmapProps) {
       </div>
 
       {/* Grid */}
-      <div className="overflow-x-auto">
-        <div className="min-w-max">
+      <div>
+        <div>
           {/* Month labels — col * COL_WIDTH matches the actual rendered column width */}
-          <div className="relative mb-1 ml-8 h-4" style={{ width: `${weeks.length * COL_WIDTH}px` }}>
+          <div className="relative mb-1 h-4" style={{ marginLeft: `${DAY_LABEL_WIDTH}px`, width: `${weeks.length * COL_WIDTH}px` }}>
             {months.map((m, i) => (
               <span
                 key={i}
                 className="absolute text-xs text-slate-400 font-medium"
-                style={{ left: `${m.col * COL_WIDTH}px` }}
+                style={{ left: `${m.col * COL_WIDTH}px`, fontSize: "10px" }}
               >
                 {m.label}
               </span>
@@ -204,13 +222,14 @@ export default function CommitHeatmap({ commits }: CommitHeatmapProps) {
           </div>
 
           {/* Day rows */}
-          <div className="flex gap-1">
+          <div className="flex" style={{ gap: `${COL_WIDTH - CELL_SIZE}px` }}>
             {/* Day-of-week labels */}
-            <div className="flex flex-col gap-0.5 mr-1">
+            <div className="flex flex-col mr-1" style={{ gap: "2px" }}>
               {dayLabels.map((label, i) => (
                 <div
                   key={i}
-                  className="h-3 w-6 flex items-center justify-end pr-1"
+                  className="w-6 flex items-center justify-end pr-1"
+                  style={{ height: `${CELL_SIZE}px` }}
                 >
                   {i % 2 === 1 && (
                     <span className="text-[9px] text-slate-400 font-medium">
@@ -223,7 +242,7 @@ export default function CommitHeatmap({ commits }: CommitHeatmapProps) {
 
             {/* Cells */}
             {weeks.map((week, wi) => (
-              <div key={wi} className="flex flex-col gap-0.5">
+              <div key={wi} className="flex flex-col" style={{ gap: "2px" }}>
                 {week.map(({ date, key }) => {
                   const data = dailyData[key];
                   const value = data
@@ -234,7 +253,8 @@ export default function CommitHeatmap({ commits }: CommitHeatmapProps) {
                   return (
                     <div
                       key={key}
-                      className={`w-3 h-3 rounded-sm transition-all cursor-default ${getColor(value, maxValue)}`}
+                      className={`rounded-sm transition-all cursor-default ${getColor(value, maxValue)}`}
+                      style={{ width: `${CELL_SIZE}px`, height: `${CELL_SIZE}px` }}
                       onMouseEnter={(e) => {
                         const rect = (e.target as HTMLElement).getBoundingClientRect();
                         setTooltip({
