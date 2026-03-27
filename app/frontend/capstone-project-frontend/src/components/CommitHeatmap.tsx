@@ -74,8 +74,12 @@ export default function CommitHeatmap({ commits }: CommitHeatmapProps) {
     const gridEnd = new Date(projectEnd);
     gridEnd.setDate(gridEnd.getDate() + daysUntilSat);
 
-    const totalDays = Math.round((gridEnd.getTime() - gridStart.getTime()) / 86400000) + 1;
-    const totalWeeks = Math.ceil(totalDays / 7);
+    const MIN_WEEKS = 26;
+    const naturalWeeks = Math.ceil((Math.round((gridEnd.getTime() - gridStart.getTime()) / 86400000) + 1) / 7);
+    const totalWeeks = Math.max(naturalWeeks, MIN_WEEKS);
+    if (totalWeeks > naturalWeeks) {
+      gridStart.setDate(gridStart.getDate() - (totalWeeks - naturalWeeks) * 7);
+    }
 
     const weeksArr: { date: Date; key: string }[][] = [];
     const monthLabels: { label: string; col: number }[] = [];
@@ -175,24 +179,16 @@ export default function CommitHeatmap({ commits }: CommitHeatmapProps) {
       {/* Grid */}
       <div className="overflow-x-auto">
         <div className="min-w-max">
-          {/* Month labels */}
-          <div className="flex mb-1 ml-8">
+          {/* Month labels — absolutely positioned to align exactly with columns */}
+          <div className="relative mb-1 ml-8 h-4" style={{ width: `${weeks.length * 14}px` }}>
             {months.map((m, i) => (
-              <div
+              <span
                 key={i}
-                className="text-xs text-slate-400 font-medium"
-                style={{
-                  position: "relative",
-                  left: `${m.col * 14}px`,
-                  minWidth: 0,
-                  marginRight:
-                    i < months.length - 1
-                      ? `${(months[i + 1].col - m.col) * 14 - 24}px`
-                      : 0,
-                }}
+                className="absolute text-xs text-slate-400 font-medium"
+                style={{ left: `${m.col * 14}px` }}
               >
                 {m.label}
-              </div>
+              </span>
             ))}
           </div>
 
