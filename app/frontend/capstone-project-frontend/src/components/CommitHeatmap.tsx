@@ -24,9 +24,22 @@ function getWeekStart(date: Date): Date {
   return d;
 }
 
-function toDateKey(date: Date): string {
-  return date.toISOString().slice(0, 10);
+// Always use local year/month/day so grid keys and commit keys are in the same space
+function toLocalDateKey(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
+
+// Slice the date portion directly from the ISO string — this is already local time
+// e.g. "2025-02-26T16:24:06-08:00" → "2025-02-26"
+function isoToLocalKey(iso: string): string {
+  return iso.slice(0, 10);
+}
+
+// Each cell is w-3 (12px) + gap-1 (4px) = 16px per column
+const COL_WIDTH = 16;
 
 export default function CommitHeatmap({ commits }: CommitHeatmapProps) {
   const [mode, setMode] = useState<HeatmapMode>("commits");
@@ -37,11 +50,11 @@ export default function CommitHeatmap({ commits }: CommitHeatmapProps) {
     value: number;
   } | null>(null);
 
-  // Build a map of date -> { commits, lines }
+  // Build a map of date -> { commits, lines } using the local date from the ISO string
   const dailyData = useMemo(() => {
     const map: Record<string, { commits: number; lines: number }> = {};
     for (const commit of commits) {
-      const key = toDateKey(new Date(commit.date));
+      const key = isoToLocalKey(commit.date);
       if (!map[key]) map[key] = { commits: 0, lines: 0 };
       map[key].commits += 1;
       map[key].lines += commit.modified_files.reduce(
@@ -67,9 +80,7 @@ export default function CommitHeatmap({ commits }: CommitHeatmapProps) {
 
   // Build grid spanning the project timeline
   const { weeks, months } = useMemo(() => {
-    // Snap to the Sunday on or before the project start
     const gridStart = getWeekStart(projectStart);
-    // Snap to the Saturday on or after the project end
     const daysUntilSat = (6 - projectEnd.getDay() + 7) % 7;
     const gridEnd = new Date(projectEnd);
     gridEnd.setDate(gridEnd.getDate() + daysUntilSat);
@@ -91,7 +102,7 @@ export default function CommitHeatmap({ commits }: CommitHeatmapProps) {
       const week: { date: Date; key: string }[] = [];
       for (let d = 0; d < 7; d++) {
         const day = new Date(cursor);
-        week.push({ date: day, key: toDateKey(day) });
+        week.push({ date: day, key: toLocalDateKey(day) });
         if (day.getMonth() !== lastMonth && d === 0) {
           monthLabels.push({
             label: day.toLocaleString("default", { month: "short" }),
@@ -179,13 +190,13 @@ export default function CommitHeatmap({ commits }: CommitHeatmapProps) {
       {/* Grid */}
       <div className="overflow-x-auto">
         <div className="min-w-max">
-          {/* Month labels — absolutely positioned to align exactly with columns */}
-          <div className="relative mb-1 ml-8 h-4" style={{ width: `${weeks.length * 14}px` }}>
+          {/* Month labels — col * COL_WIDTH matches the actual rendered column width */}
+          <div className="relative mb-1 ml-8 h-4" style={{ width: `${weeks.length * COL_WIDTH}px` }}>
             {months.map((m, i) => (
               <span
                 key={i}
                 className="absolute text-xs text-slate-400 font-medium"
-                style={{ left: `${m.col * 14}px` }}
+                style={{ left: `${m.col * COL_WIDTH}px` }}
               >
                 {m.label}
               </span>
