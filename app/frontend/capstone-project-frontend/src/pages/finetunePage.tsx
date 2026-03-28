@@ -295,7 +295,7 @@ export default function FinetunePage({ extractedData, initialState, activeAnalys
               <div>
                 <h2 className="text-lg font-bold text-[#0f1629] tracking-tight mb-1">Rank & Select Projects</h2>
                 <p className="text-xs text-[#9ca3af]">
-                  Select and drag to reorder the repositories you want to feature.{" "}
+                  Select and drag to reorder the repositories you want to feature. Top 3 will be used for your resume.{" "}
                   <button 
                     onClick={() => setShowProjectInfoModal(true)}
                     className="text-[#6378ff] hover:text-[#a78bfa] underline underline-offset-2 transition-colors border-none bg-transparent cursor-pointer font-semibold p-0"

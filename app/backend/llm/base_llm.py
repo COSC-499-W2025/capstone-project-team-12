@@ -118,7 +118,7 @@ class BaseLLMClient(ABC):
     def generate_summary(
         self, 
         topic_vector_bundle: Dict[str, Any], 
-        summary_type: str = "standard"
+        summary_type: str = "short"
     ) -> str:
         """Generate project summary with skill highlighting if specified."""
         #get the base prompt for the requested summary type and LLM type

@@ -2,11 +2,20 @@ import { useState, useEffect } from "react";
 import SectionCard from "../components/SectionCard";
 import type { Resume, Project, Language, EducationEntry, WorkEntry, AwardEntry } from "../types/resumeTypes";
 import ResumePreviewModal from "../components/resumePreviewModal";
+
+export const LIMITS = {
+  summary: { bullets: 3, chars:180 },
+  work: { entries: 3, bullets: 3, chars: 180 },
+  education: { entries: 3, chars: 180 },
+  awards: { entries: 2, bullets: 2, chars: 180 },
+  projects: { entries: 3, chars: 180},
+  skills: {entries: 15},
+} as const;
+
 // ─── Mock data ────────────────────────────────────────────────────────────────
 
 export const mockResume: Resume = {
   analysis_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-  // TODO (backend): pass github_username and user_email through _build_resume()
   full_name: "John Doe",
   github_username: "yourusername",
   user_email: "you@example.com",
@@ -92,7 +101,7 @@ async function fetchResume(resumeId: string, githubUsername: string, userEmail: 
     education: Array.isArray(r.education) ? r.education : [],
     work_experience: Array.isArray(r.work_experience) ? r.work_experience : [],
     awards: Array.isArray(r.awards) ? r.awards : [],
-    projects: Array.isArray(r.projects) ? r.projects : [],
+    projects: (Array.isArray(r.projects) ? r.projects : []).slice(0, 3),
     skills: Array.isArray(r.skills) ? r.skills : [],
     languages: Array.isArray(r.languages) ? r.languages : [],
     full_name: r.full_name ?? "",
@@ -117,14 +126,35 @@ async function putResume(resumeId: string, resume: Resume): Promise<void> {
 
 const inputCls = "w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm text-slate-700 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition-all";
 
-function Field({ value, onChange, placeholder, multiline = false, rows = 3, className = "" }: {
+// Display "current / max" entries
+function EntryCount({current, max}: {current: number; max: number}){
+  return (
+    <span className={`text-xs font-semibold ${current==max? "text-red-400" : "text-slate-400"}`}>
+      {current} / {max}
+    </span>
+  )
+}
+
+// Display "len/max" for character-limited fields
+function CharCount({ value, max }: { value: string; max: number }) {
+  const pct = value.length / max;
+  const color = pct >= 1 ? "text-red-500" : pct >= 0.8 ? "text-amber-400" : "text-slate-300";
+  return <span className={`text-[10px] tabular-nums text-right ${color}`}>{value.length}/{max}</span>;
+}
+
+function Field({ value, onChange, placeholder, multiline = false, rows = 3, className = "", maxChars }: {
   value: string; onChange: (v: string) => void; placeholder?: string;
-  multiline?: boolean; rows?: number; className?: string;
+  multiline?: boolean; rows?: number; className?: string; maxChars?: number;
 }) {
   const props = { value, onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onChange(e.target.value), placeholder, className: `${inputCls} ${className}` };
-  return multiline
-    ? <textarea {...props} rows={rows} className={`${props.className} resize-none`} />
-    : <input    {...props} type="text" />;
+  return (
+    <div className="w-full">
+      {multiline
+        ? <textarea {...props} rows={rows} className={`${props.className} resize-none`} />
+        : <input    {...props} type="text" />}
+      {maxChars !== undefined && <div className="flex justify-end mt-0.5"><CharCount value={value} max={maxChars} /></div>}
+    </div>
+  );
 }
 
 function Chip({ label, onRemove, colorClass = "bg-indigo-100 text-indigo-700" }: {
@@ -138,22 +168,22 @@ function Chip({ label, onRemove, colorClass = "bg-indigo-100 text-indigo-700" }:
   );
 }
 
-function AddChip({ placeholder, onAdd }: { placeholder: string; onAdd: (v: string) => void }) {
+function AddChip({ placeholder, onAdd, disabled = false }: { placeholder: string; onAdd: (v: string) => void; disabled?: boolean }) {
   const [val, setVal] = useState("");
-  const commit = () => { if (val.trim()) { onAdd(val.trim()); setVal(""); } };
+  const commit = () => { if (val.trim() && !disabled) { onAdd(val.trim()); setVal(""); } };
   return (
     <div className="flex gap-2 mt-2">
       <input value={val} onChange={e => setVal(e.target.value)} onKeyDown={e => e.key === "Enter" && commit()}
-        placeholder={placeholder} className={inputCls} />
-      <button onClick={commit} className="text-xs font-bold text-white bg-indigo-600 rounded-lg px-3 py-1 hover:bg-indigo-700 transition-all">+ Add</button>
+        placeholder={disabled ? "Limit reached" : placeholder} disabled={disabled} className={`${inputCls} disabled:opacity-50`} />
+      <button onClick={commit} disabled={disabled} className="text-xs font-bold text-white bg-indigo-600 rounded-lg px-3 py-1 hover:bg-indigo-700 transition-all disabled:opacity-50">+ Add</button>
     </div>
   );
 }
 
-function AddNewButton({ label, onClick }: { label: string; onClick: () => void }) {
+function AddNewButton({ label, onClick, disabled = false }: { label: string; onClick: () => void; disabled?: boolean }) {
   return (
-    <button onClick={onClick}
-      className="text-xs font-semibold text-indigo-500 border border-indigo-200 rounded-lg px-3 py-1 hover:bg-indigo-50 transition-all">
+    <button onClick={onClick} disabled={disabled}
+      className="text-xs font-semibold text-indigo-500 border border-indigo-200 rounded-lg px-3 py-1 hover:bg-indigo-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed">
       {label}
     </button>
   );
@@ -182,22 +212,25 @@ function useEditState<T>(value: T, initialEditing = false) {
 }
 
 // Bullet list editor (used for Work Experience and Awards)
-
-function BulletEditor({ bullets, onChange }: { bullets: string[]; onChange: (b: string[]) => void }) {
+function BulletEditor({ bullets, onChange, maxBullets, maxChars }: { bullets: string[]; onChange: (b: string[]) => void; maxBullets: number; maxChars: number }) {
+  const atLimit = bullets.length >= maxBullets;
   return (
     <div className="space-y-2 mt-2">
       {bullets.map((b, i) => (
         <div key={i} className="flex gap-2 items-start">
           <span className="text-indigo-400 text-xs font-bold mt-2 shrink-0">▸</span>
-          <Field value={b} onChange={v => { const n = [...bullets]; n[i] = v; onChange(n); }} multiline rows={2} />
+          <Field value={b} onChange={v => { const n = [...bullets]; n[i] = v; onChange(n); }} multiline rows={2} maxChars={maxChars} />
           <button onClick={() => onChange(bullets.filter((_, idx) => idx !== i))}
             className="!bg-transparent !border-none text-red-300 hover:text-red-400 text-xl mt-1 shrink-0">×</button>
         </div>
       ))}
-      <button onClick={() => onChange([...bullets, ""])}
-        className="text-xs font-semibold text-indigo-500 border border-indigo-200 rounded-lg px-3 py-1 hover:bg-indigo-50 transition-all">
-        + Add bullet
-      </button>
+      <div className="flex items-center gap-3">
+        <button onClick={() => !atLimit && onChange([...bullets, ""])} disabled={atLimit}
+          className="text-xs font-semibold text-indigo-500 border border-indigo-200 rounded-lg px-3 py-1 hover:bg-indigo-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+          + Add bullet
+        </button>
+        <EntryCount current={bullets.length} max={maxBullets} />
+      </div>
     </div>
   );
 }
@@ -244,7 +277,7 @@ function SummarySection({ summary, onChange }: { summary: string[]; onChange: (v
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
           {editing
-            ? <BulletEditor bullets={draft} onChange={setDraft} />
+            ? <BulletEditor bullets={draft} onChange={setDraft} maxBullets={LIMITS.summary.bullets} maxChars={LIMITS.summary.chars} />
             : <ul className="space-y-1">
                 {summary.map((s, i) => (
                   <li key={i} className="flex items-start gap-2">
@@ -301,7 +334,7 @@ function WorkEntryCard({ entry, onSave, onDelete, autoEdit = false, onCancelNew 
         </div>
       </div>
       {editing
-        ? <BulletEditor bullets={draft.description} onChange={v => setDraft(d => ({ ...d, description: v }))} />
+        ? <BulletEditor bullets={draft.description} onChange={v => setDraft(d => ({ ...d, description: v }))} maxBullets={LIMITS.work.bullets} maxChars={LIMITS.work.chars} />
         : <ul className="space-y-1">
             {entry.description.map((b, i) => (
               <li key={i} className="flex items-start gap-2">
@@ -318,7 +351,9 @@ function WorkEntryCard({ entry, onSave, onDelete, autoEdit = false, onCancelNew 
 function WorkExperienceSection({ work, onChange }: { work: WorkEntry[]; onChange: (w: WorkEntry[]) => void }) {
   const [newIdx, setNewIdx] = useState<number | null>(null);
   const blank: WorkEntry = { company: "", role: "", date_range: "", location: "", description: [""] };
+  const atLimit = work.length >= LIMITS.work.entries;
   const addNew = () => {
+    if (atLimit) return;
     setNewIdx(work.length);
     onChange([...work, blank]);
   };
@@ -332,7 +367,10 @@ function WorkExperienceSection({ work, onChange }: { work: WorkEntry[]; onChange
             onCancelNew={i === newIdx ? () => { setNewIdx(null); onChange(work.filter((_, idx) => idx !== i))} : undefined}
           />
         ))}
-        <AddNewButton label="+ Add Position" onClick={addNew} />
+        <div className="flex items-center gap-3">
+          <AddNewButton label="+ Add Position" onClick={addNew} disabled={atLimit} />
+          <EntryCount current={work.length} max={LIMITS.work.entries} />
+        </div>
       </div>
     </SectionCard>
   );
@@ -345,12 +383,14 @@ function EducationSection({ education, onChange }: { education: EducationEntry[]
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [draft, setDraft] = useState<EducationEntry | null>(null);
   const blank: EducationEntry = { institution: "", degree: "", major: "", minor: "", date_range: "", notes: "" };
+  const atLimit = education.length >= LIMITS.education.entries;
 
   const save = () => {
     if (draft === null || editingIdx === null) return;
     const next = [...education]; next[editingIdx] = draft; onChange(next); setEditingIdx(null); setDraft(null);
   };
   const add = () => {
+    if (atLimit) return;
     onChange([...education, { ...blank}]);
     setDraft({ ...blank });
     setEditingIdx(education.length);
@@ -372,7 +412,7 @@ function EducationSection({ education, onChange }: { education: EducationEntry[]
                   <Field value={draft.major ?? ""} onChange={v => setDraft(d => d && ({ ...d, major: v }))} placeholder="Major (optional)" className="flex-1" />
                   <Field value={draft.minor ?? ""} onChange={v => setDraft(d => d && ({ ...d, minor: v }))} placeholder="Minor (optional)" className="flex-1" />
                 </div>
-                <Field value={draft.notes} onChange={v => setDraft(d => d && ({ ...d, notes: v }))} placeholder="Other Notes: (e.g. GPA, honours, relevant coursework…)" />
+                <Field value={draft.notes} onChange={v => setDraft(d => d && ({ ...d, notes: v }))} placeholder="Other Notes: (e.g. GPA, honours, relevant coursework…)" maxChars={LIMITS.education.chars} />
                 <EditControls editing onEdit={() => {}} onSave={save} onCancel={() => { setEditingIdx(null); setDraft(null); }} />
               </div>
             ) : (
@@ -393,7 +433,10 @@ function EducationSection({ education, onChange }: { education: EducationEntry[]
             )}
           </div>
         ))}
-        <button onClick={add} className="text-xs font-semibold text-indigo-500 border border-indigo-200 rounded-lg px-3 py-1.5 hover:bg-indigo-50 transition-all">+ Add Entry</button>
+        <div className="flex items-center gap-3">
+          <button onClick={add} disabled={atLimit} className="text-xs font-semibold text-indigo-500 border border-indigo-200 rounded-lg px-3 py-1.5 hover:bg-indigo-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed">+ Add Entry</button>
+          <EntryCount current={education.length} max={LIMITS.education.entries} />
+        </div>
       </div>
     </SectionCard>
   );
@@ -432,7 +475,7 @@ function AwardEntryCard({ entry, onSave, onDelete, autoEdit = false, onCancelNew
         </div>
       </div>
       {editing
-        ? <BulletEditor bullets={draft.description} onChange={v => setDraft(d => ({ ...d, description: v }))} />
+        ? <BulletEditor bullets={draft.description} onChange={v => setDraft(d => ({ ...d, description: v }))} maxBullets={LIMITS.awards.bullets} maxChars={LIMITS.awards.chars} />
         : <ul className="space-y-1">
             {entry.description.map((b, i) => (
               <li key={i} className="flex items-start gap-2">
@@ -449,8 +492,8 @@ function AwardEntryCard({ entry, onSave, onDelete, autoEdit = false, onCancelNew
 function AwardsSection({ awards, onChange }: { awards: AwardEntry[]; onChange: (a: AwardEntry[]) => void }) {
   const [newIdx, setNewIdx] = useState<number | null>(null);
   const blank: AwardEntry = { title: "", issuer: "", date: "", description: [""] };
- 
-  const addNew = () => { setNewIdx(awards.length); onChange([...awards, { ...blank }]); };
+  const atLimit = awards.length >= LIMITS.awards.entries;
+  const addNew = () => {if(atLimit) return; setNewIdx(awards.length); onChange([...awards, { ...blank }]); };
  
   return (
     <SectionCard title="Awards & Honours" icon="🏆">
@@ -463,7 +506,10 @@ function AwardsSection({ awards, onChange }: { awards: AwardEntry[]; onChange: (
             onCancelNew={i === newIdx ? () => { setNewIdx(null); onChange(awards.filter((_, idx) => idx !== i)); } : undefined}
           />
         ))}
-        <AddNewButton label="+ Add Award" onClick={addNew} />
+        <div className="flex items-center gap-3">
+          <AddNewButton label="+ Add Award" onClick={addNew} disabled={atLimit} />
+          <EntryCount current={awards.length} max={LIMITS.awards.entries} />
+        </div>
       </div>
     </SectionCard>
   );
@@ -473,11 +519,15 @@ function AwardsSection({ awards, onChange }: { awards: AwardEntry[]; onChange: (
 
 function SkillsSection({ skills, onChange }: { skills: string[]; onChange: (s: string[]) => void }) {
   const { editing, draft, setDraft, open, cancel, close } = useEditState(skills);
+  const atLimit = draft.length >= LIMITS.skills.entries;
   return (
     <SectionCard title="Skills" icon="⚡">
       <div className="flex items-start justify-between gap-4 mb-3">
         <p className="text-xs text-slate-400">Detected from your repositories</p>
-        <EditControls editing={editing} onEdit={open} onSave={() => { onChange(draft); close(); }} onCancel={cancel} />
+        <div className="flex items-center gap-2">
+          {editing && <EntryCount current={draft.length} max={LIMITS.skills.entries} />}
+          <EditControls editing={editing} onEdit={open} onSave={() => { onChange(draft); close(); }} onCancel={cancel} />
+        </div>
       </div>
       <div className="flex flex-wrap gap-2">
         {(editing ? draft : skills).map(skill => (
@@ -485,15 +535,18 @@ function SkillsSection({ skills, onChange }: { skills: string[]; onChange: (s: s
             onRemove={editing ? () => setDraft(d => d.filter(s => s !== skill)) : undefined} />
         ))}
       </div>
-      {editing && <AddChip placeholder="Add skill…" onAdd={v => { if (!draft.map(s => s.toLowerCase()).includes(v.toLowerCase())) setDraft(d => [...d, v]); }} />}
+      {editing && <AddChip placeholder="Add skill…" disabled={atLimit} onAdd={v => { if (!draft.map(s => s.toLowerCase()).includes(v.toLowerCase())) setDraft(d => [...d, v]); }} />}
     </SectionCard>
   );
 }
 
 // ─── Projects ─────────────────────────────────────────────────────────────────
 
-function ProjectEntry({ project, onSave }: { project: Project; onSave: (p: Project) => void }) {
-  const { editing, draft, setDraft, open, cancel, close } = useEditState(project);
+function ProjectEntry({ project, onSave, onDelete, autoEdit = false, onCancelNew }: {
+  project: Project; onSave: (p: Project) => void; onDelete: () => void; autoEdit?: boolean; onCancelNew?: () => void;
+}) {
+  const { editing, draft, setDraft, open, cancel, close } = useEditState(project, autoEdit);
+  const handleCancel = onCancelNew ?? cancel;
   const [fwInput, setFwInput] = useState("");
   const addFw = () => {
     const t = fwInput.trim();
@@ -516,7 +569,12 @@ function ProjectEntry({ project, onSave }: { project: Project; onSave: (p: Proje
             </div>
           )}
         </div>
-        <EditControls editing={editing} onEdit={open} onSave={() => { onSave(draft); close(); }} onCancel={cancel} />
+        <div className="flex gap-1.5 shrink-0">
+          <EditControls editing={editing} onEdit={open} onSave={() => { onSave(draft); close(); }} onCancel={handleCancel} />
+          {!editing && (
+            <button onClick={onDelete} className="text-xs font-semibold text-red-400 border border-red-100 rounded-lg px-2.5 py-1 hover:bg-red-50 transition-all">✕</button>
+          )}
+        </div>
       </div>
       <div>
         <div className="flex flex-wrap gap-2">
@@ -536,7 +594,7 @@ function ProjectEntry({ project, onSave }: { project: Project; onSave: (p: Proje
       <div className="flex items-start gap-2 pt-1">
         <span className="text-indigo-500 text-xs font-bold mt-0.5 shrink-0">▸</span>
         {editing
-          ? <Field value={draft.collaboration} onChange={v => setDraft(d => ({ ...d, collaboration: v }))} multiline rows={2} placeholder="Role description and contribution evidence…" />
+          ? <Field value={draft.collaboration} onChange={v => setDraft(d => ({ ...d, collaboration: v }))} multiline rows={2} placeholder="Role description and contribution evidence…" maxChars={LIMITS.projects.chars} />
           : <p className="text-sm text-slate-600 leading-relaxed">{project.collaboration}</p>
         }
       </div>
@@ -545,11 +603,29 @@ function ProjectEntry({ project, onSave }: { project: Project; onSave: (p: Proje
 }
 
 function ProjectsSection({ projects, onChange }: { projects: Project[]; onChange: (p: Project[]) => void }) {
+  const [newIdx, setNewIdx] = useState<number | null>(null);
+  const blank: Project = { name: "", date_range: "", collaboration: "", frameworks: [] };
+  const atLimit = projects.length >= LIMITS.projects.entries;
+  const addNew = () => {
+    if (atLimit) return;
+    setNewIdx(projects.length);
+    onChange([...projects, { ...blank }]);
+  };
   const update = (i: number, p: Project) => { const next = [...projects]; next[i] = p; onChange(next); };
   return (
     <SectionCard title="Projects" icon="🗂️">
       <div className="space-y-3">
-        {projects.map((p, i) => <ProjectEntry key={i} project={p} onSave={proj => update(i, proj)} />)}
+        {projects.map((p, i) => (
+          <ProjectEntry key={i} project={p} autoEdit={i === newIdx}
+            onSave={proj => { setNewIdx(null); update(i, proj); }}
+            onDelete={() => { setNewIdx(null); onChange(projects.filter((_, idx) => idx !== i)); }}
+            onCancelNew={i === newIdx ? () => { setNewIdx(null); onChange(projects.filter((_, idx) => idx !== i)); } : undefined}
+          />
+        ))}
+        <div className="flex items-center gap-3">
+          <AddNewButton label="+ Add Project" onClick={addNew} disabled={atLimit} />
+          <EntryCount current={projects.length} max={LIMITS.projects.entries} />
+        </div>
       </div>
     </SectionCard>
   );
@@ -557,13 +633,18 @@ function ProjectsSection({ projects, onChange }: { projects: Project[]; onChange
 
 // ─── Programming Languages ────────────────────────────────────────────────────
 
+// ─── Programming Languages ────────────────────────────────────────────────────
+ 
 function LanguagesSection({ languages, onChange }: { languages: Language[]; onChange: (l: Language[]) => void }) {
   const { editing, draft, setDraft, open, cancel, close } = useEditState(languages);
-  const [input, setInput] = useState("");
-  const add = () => {
-    const t = input.trim();
-    if (t && !draft.map(l => l.name.toLowerCase()).includes(t.toLowerCase())) setDraft(d => [...d, { name: t, file_count: 0 }]);
-    setInput("");
+  const [langInput, setLangInput] = useState("");
+  const [fileInput, setFileInput] = useState("");
+  const addLang = () => {
+    const t = langInput.trim();
+    if (t && !draft.map(l => l.name.toLowerCase()).includes(t.toLowerCase())) {
+      setDraft(d => [...d, { name: t, file_count: Math.max(0, parseInt(fileInput) || 0) }]);
+    }
+    setLangInput(""); setFileInput("");
   };
   const displayed = editing ? draft : languages;
   const maxFiles = Math.max(...displayed.map(l => l.file_count), 1);
@@ -583,14 +664,27 @@ function LanguagesSection({ languages, onChange }: { languages: Language[]; onCh
                 {lang.file_count > 0 ? `${lang.file_count} file${lang.file_count !== 1 ? "s" : ""}` : "—"}
               </span>
             </div>
-            {editing && <button onClick={() => setDraft(d => d.filter(l => l.name !== lang.name))} className="!bg-transparent !border-none text-red-300 hover:text-red-400 text-xl shrink-0">×</button>}
+            {editing && (
+              <div className="flex items-center gap-1.5 shrink-0">
+                <input
+                  type="number" min="0"
+                  value={lang.file_count}
+                  onChange={e => setDraft(d => d.map(l => l.name === lang.name ? { ...l, file_count: Math.max(0, parseInt(e.target.value) || 0) } : l))}
+                  className="w-16 border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 text-center"
+                />
+                <button onClick={() => setDraft(d => d.filter(l => l.name !== lang.name))} className="!bg-transparent !border-none text-red-300 hover:text-red-400 text-xl shrink-0">×</button>
+              </div>
+            )}
           </div>
         ))}
       </div>
       {editing && (
         <div className="flex gap-2 mt-3">
-          <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && add()} placeholder="Add language…" className={inputCls} />
-          <button onClick={add} className="text-xs font-bold text-white bg-indigo-600 rounded-lg px-3 py-1 hover:bg-indigo-700 transition-all">+ Add</button>
+          <input value={langInput} onChange={e => setLangInput(e.target.value)} onKeyDown={e => e.key === "Enter" && addLang()}
+            placeholder="Language name…" className={inputCls} />
+          <input type="number" min="0" value={fileInput} onChange={e => setFileInput(e.target.value)} onKeyDown={e => e.key === "Enter" && addLang()}
+            placeholder="Files" className="w-20 border border-slate-200 rounded-lg px-3 py-1.5 text-sm text-slate-700 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 text-center" />
+          <button onClick={addLang} className="text-xs font-bold text-white bg-indigo-600 rounded-lg px-3 py-1 hover:bg-indigo-700 transition-all">+ Add</button>
         </div>
       )}
     </SectionCard>
