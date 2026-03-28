@@ -1,4 +1,14 @@
-const Sidebar = ({ currentStep = 1, onStepChange, onDashboard }: { currentStep?: number; onStepChange?: (step: number) => void; onDashboard?: () => void}) => {
+const Sidebar = ({
+  currentStep = 1,
+  onStepChange,
+  onDashboard,
+  isCollapsed = false,
+}: {
+  currentStep?: number;
+  onStepChange?: (step: number) => void;
+  onDashboard?: () => void;
+  isCollapsed?: boolean;
+}) => {
   const steps = [
     { id: 1, label: "Onboarding" },
     { id: 2, label: "File Selection" },
@@ -8,9 +18,12 @@ const Sidebar = ({ currentStep = 1, onStepChange, onDashboard }: { currentStep?:
     { id: 6, label: "Portfolio Creation" },
   ];
 
+  const W = isCollapsed ? "64px" : "240px";
+
   return (
     <div style={{
-      width: "240px",
+      width: W,
+      minWidth: W,
       height: "100vh",
       background: "linear-gradient(160deg, #1e2433 0%, #252d40 60%, #1a2035 100%)",
       display: "flex",
@@ -21,8 +34,9 @@ const Sidebar = ({ currentStep = 1, onStepChange, onDashboard }: { currentStep?:
       top: 0,
       alignSelf: "flex-start",
       overflow: "hidden",
+      transition: "width 0.25s cubic-bezier(0.4,0,0.2,1), min-width 0.25s cubic-bezier(0.4,0,0.2,1)",
     }}>
-      {/* Subtle decorative line */}
+      {/* Decorative gradient */}
       <div style={{
         position: "absolute",
         top: 0, left: 0, right: 0, bottom: 0,
@@ -35,48 +49,72 @@ const Sidebar = ({ currentStep = 1, onStepChange, onDashboard }: { currentStep?:
         height: "64px",
         display: "flex",
         alignItems: "center",
-        padding: "0 20px",
+        padding: isCollapsed ? "0" : "0 20px",
+        justifyContent: isCollapsed ? "center" : "flex-start",
         borderBottom: "1px solid rgba(255,255,255,0.06)",
+        flexShrink: 0,
+        transition: "padding 0.25s ease, justify-content 0.25s ease",
       }}>
+        {/* Logo icon — always visible */}
         <div style={{
+          width: "28px",
+          height: "28px",
+          borderRadius: "8px",
+          background: "linear-gradient(135deg, #6378ff 0%, #818cf8 100%)",
           display: "flex",
           alignItems: "center",
-          gap: "10px",
+          justifyContent: "center",
+          flexShrink: 0,
         }}>
-            {/*replace by actual logo when we create one*/}
-          <div style={{
-            width: "28px",
-            height: "28px",
-            borderRadius: "8px",
-            background: "linear-gradient(135deg, #6378ff)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}>
-          </div>
-          <span style={{
-            color: "#e8eaf6",
-            fontWeight: "700",
-            fontSize: "15px",
-            letterSpacing: "0.02em",
-          }}>Capstone Project</span>
+          {/* Placeholder — swap for actual logo */}
         </div>
+
+        {/* Wordmark — hidden when collapsed */}
+        <span style={{
+          color: "#e8eaf6",
+          fontWeight: "700",
+          fontSize: "15px",
+          letterSpacing: "0.02em",
+          marginLeft: "10px",
+          whiteSpace: "nowrap",
+          opacity: isCollapsed ? 0 : 1,
+          width: isCollapsed ? 0 : "auto",
+          overflow: "hidden",
+          transition: "opacity 0.2s ease, width 0.25s ease",
+          pointerEvents: "none",
+        }}>
+          Capstone Project
+        </span>
       </div>
 
-      {/* Steps label */}
+      {/* "Analysis Progress" label — hidden when collapsed */}
       <div style={{
-        padding: "20px 20px 8px",
+        padding: isCollapsed ? "20px 0 8px" : "20px 20px 8px",
         fontSize: "10px",
         fontWeight: "700",
         letterSpacing: "0.12em",
         color: "rgba(255,255,255,0.3)",
         textTransform: "uppercase",
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textAlign: isCollapsed ? "center" : "left",
+        opacity: isCollapsed ? 0 : 1,
+        height: isCollapsed ? "0px" : "auto",
+        transition: "opacity 0.15s ease, height 0.25s ease",
+        pointerEvents: "none",
       }}>
         Analysis Progress
       </div>
 
       {/* Navigation */}
-      <nav style={{ flex: 1, padding: "0 12px", display: "flex", flexDirection: "column", gap: "2px" }}>
+      <nav style={{
+        flex: 1,
+        padding: isCollapsed ? "8px 8px" : "0 12px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "2px",
+        transition: "padding 0.25s ease",
+      }}>
         {steps.map((step) => {
           const isActive = step.id === currentStep;
           const isCompleted = step.id < currentStep;
@@ -85,20 +123,20 @@ const Sidebar = ({ currentStep = 1, onStepChange, onDashboard }: { currentStep?:
             <button
               key={step.id}
               onClick={() => onStepChange?.(step.id)}
+              title={isCollapsed ? step.label : undefined}
               style={{
                 width: "100%",
                 textAlign: "left",
-                padding: "9px 12px",
+                padding: isCollapsed ? "9px 0" : "9px 12px",
                 borderRadius: "8px",
                 border: "none",
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
+                justifyContent: isCollapsed ? "center" : "flex-start",
                 gap: "12px",
                 transition: "all 0.15s ease",
-                background: isActive
-                  ? "rgba(99,120,255,0.18)"
-                  : "transparent",
+                background: isActive ? "rgba(99,120,255,0.18)" : "transparent",
                 outline: isActive ? "1px solid rgba(99,120,255,0.35)" : "1px solid transparent",
               }}
               onMouseEnter={e => {
@@ -108,7 +146,7 @@ const Sidebar = ({ currentStep = 1, onStepChange, onDashboard }: { currentStep?:
                 if (!isActive) e.currentTarget.style.background = "transparent";
               }}
             >
-              {/* Step indicator */}
+              {/* Step indicator dot — always visible */}
               <div style={{
                 width: "22px",
                 height: "22px",
@@ -121,7 +159,7 @@ const Sidebar = ({ currentStep = 1, onStepChange, onDashboard }: { currentStep?:
                 fontWeight: "700",
                 transition: "all 0.15s ease",
                 background: isCompleted
-                  ? "linear-gradient(135deg, #6378ff)"
+                  ? "linear-gradient(135deg, #6378ff 0%, #818cf8 100%)"
                   : isActive
                   ? "rgba(99,120,255,0.35)"
                   : "rgba(255,255,255,0.08)",
@@ -130,11 +168,12 @@ const Sidebar = ({ currentStep = 1, onStepChange, onDashboard }: { currentStep?:
               }}>
                 {isCompleted ? (
                   <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                    <path d="M1.5 5L4 7.5L8.5 2.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M1.5 5L4 7.5L8.5 2.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 ) : step.id}
               </div>
 
+              {/* Step label — hidden when collapsed */}
               <span style={{
                 fontSize: "13px",
                 fontWeight: isActive ? "600" : "400",
@@ -143,13 +182,18 @@ const Sidebar = ({ currentStep = 1, onStepChange, onDashboard }: { currentStep?:
                   : isCompleted
                   ? "rgba(255,255,255,0.6)"
                   : "rgba(255,255,255,0.45)",
-                transition: "color 0.15s ease",
+                transition: "color 0.15s ease, opacity 0.2s ease, width 0.25s ease",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                opacity: isCollapsed ? 0 : 1,
+                width: isCollapsed ? 0 : "auto",
+                pointerEvents: "none",
               }}>
                 {step.label}
               </span>
 
-              {/* Active indicator dot */}
-              {isActive && (
+              {/* Active dot — hidden when collapsed (dot indicator is already the circle) */}
+              {isActive && !isCollapsed && (
                 <div style={{
                   marginLeft: "auto",
                   width: "6px",
@@ -168,24 +212,27 @@ const Sidebar = ({ currentStep = 1, onStepChange, onDashboard }: { currentStep?:
       {/* Divider */}
       <div style={{ height: "1px", background: "rgba(255,255,255,0.06)", margin: "0 12px" }} />
 
-      {/* My Analyses button */}
-      <div style={{ padding: "12px" }}>
-        <button style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "10px",
-          width: "100%",
-          padding: "10px 12px",
-          borderRadius: "8px",
-          border: "none",
-          cursor: "pointer",
-          background: "transparent",
-          transition: "background 0.15s ease",
-          color: "rgba(255,255,255,0.5)",
-        }}
-        onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
-        onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-        onClick={onDashboard}
+      {/* My Dashboard button */}
+      <div style={{ padding: "12px", display: "flex", justifyContent: isCollapsed ? "center" : "flex-start" }}>
+        <button
+          title={isCollapsed ? "My Dashboard" : undefined}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            width: "100%",
+            padding: isCollapsed ? "10px 0" : "10px 12px",
+            justifyContent: isCollapsed ? "center" : "flex-start",
+            borderRadius: "8px",
+            border: "none",
+            cursor: "pointer",
+            background: "transparent",
+            transition: "background 0.15s ease, padding 0.25s ease",
+            color: "rgba(255,255,255,0.5)",
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+          onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+          onClick={onDashboard}
         >
           <div style={{
             width: "28px",
@@ -195,13 +242,27 @@ const Sidebar = ({ currentStep = 1, onStepChange, onDashboard }: { currentStep?:
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            flexShrink: 0,
           }}>
             <svg width="14" height="14" fill="none" stroke="rgba(255,255,255,0.55)" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
           </div>
-          <span style={{ fontSize: "13px", fontWeight: "500", color: "white" }}>My Dashboard</span>
+
+          <span style={{
+            fontSize: "13px",
+            fontWeight: "500",
+            color: "white",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            opacity: isCollapsed ? 0 : 1,
+            width: isCollapsed ? 0 : "auto",
+            transition: "opacity 0.2s ease, width 0.25s ease",
+            pointerEvents: "none",
+          }}>
+            My Dashboard
+          </span>
         </button>
       </div>
     </div>
@@ -209,4 +270,3 @@ const Sidebar = ({ currentStep = 1, onStepChange, onDashboard }: { currentStep?:
 };
 
 export default Sidebar;
-
