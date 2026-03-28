@@ -12,7 +12,29 @@ const levelColors: Record<string, string> = {
   "Contributor":             "bg-slate-100 text-slate-600 border-slate-200",
 };
 
-const ProjectCard: React.FC<{ project: Project; index: number; onEdit?: () => void }> = ({ project, index, onEdit }) => {
+function Highlight({ text, query }: { text: string; query?: string }) {
+  if (!query?.trim()) return <>{text}</>;
+  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi");
+  const parts = text.split(regex);
+  return (
+    <>
+      {parts.map((part, i) =>
+        regex.test(part) ? (
+          <mark key={i} className="bg-amber-200 text-amber-900 rounded px-0.5 font-semibold">{part}</mark>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </>
+  );
+}
+
+const ProjectCard: React.FC<{
+  project: Project;
+  index: number;
+  onEdit?: () => void;
+  searchQuery?: string;
+}> = ({ project, index, onEdit, searchQuery }) => {
   const [open, setOpen] = useState(false);
 
   const levelCls = levelColors[project.contribution.level] ?? "bg-slate-100 text-slate-600 border-slate-200";
@@ -28,13 +50,19 @@ const ProjectCard: React.FC<{ project: Project; index: number; onEdit?: () => vo
         <div className="flex items-center gap-4">
           <RankBadge rank={project.contribution.rank} total={project.contribution.teamSize} />
           <div>
-            <p className="text-sm font-semibold text-slate-800 tracking-tight">{project.name}</p>
-            <p className="text-xs text-slate-400 mt-0.5">{project.timeline} · {project.duration}</p>
+            <p className="text-sm font-semibold text-slate-800 tracking-tight">
+              <Highlight text={project.name} query={searchQuery} />
+            </p>
+            <p className="text-xs text-slate-400 mt-0.5">
+              <Highlight text={project.timeline} query={searchQuery} />
+              {" · "}
+              <Highlight text={project.duration} query={searchQuery} />
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${levelCls}`}>
-            {project.contribution.level}
+            <Highlight text={project.contribution.level} query={searchQuery} />
           </span>
           {onEdit && (
             <button
@@ -57,9 +85,11 @@ const ProjectCard: React.FC<{ project: Project; index: number; onEdit?: () => vo
       {/* Role + insight */}
       <div className="px-5 pb-4 flex items-start gap-3 flex-wrap">
         <span className="text-xs font-semibold px-2.5 py-0.5 bg-slate-100 text-slate-500 rounded-full shrink-0 mt-0.5">
-          {project.role}
+          <Highlight text={project.role} query={searchQuery} />
         </span>
-        <span className="text-xs text-slate-500 leading-relaxed flex-1">{project.insight}</span>
+        <span className="text-xs text-slate-500 leading-relaxed flex-1">
+          <Highlight text={project.insight} query={searchQuery} />
+        </span>
       </div>
 
       <ContributionHero contribution={project.contribution} />
@@ -114,7 +144,7 @@ const ProjectCard: React.FC<{ project: Project; index: number; onEdit?: () => vo
               <div className="flex flex-wrap gap-1.5 pb-2">
                 {project.technologies.map(t => (
                   <span key={t} className="text-xs font-medium px-2.5 py-0.5 bg-indigo-50 border border-indigo-100 rounded-full text-indigo-600">
-                    {t}
+                    <Highlight text={t} query={searchQuery} />
                   </span>
                 ))}
               </div>
