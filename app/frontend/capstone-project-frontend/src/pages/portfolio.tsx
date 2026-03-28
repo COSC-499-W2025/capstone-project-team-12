@@ -324,6 +324,151 @@ function SearchBar({ query, onChange }: { query: string; onChange: (v: string) =
   );
 }
 
+// ─── Public mode: Filter chips ────────────────────────────────────────────────
+type FilterState = {
+  projects: Record<string | number, boolean>; // keyed by project id
+  showLanguageProficiency: boolean;
+  showSkillsTimeline: boolean;
+  showGrowth: boolean;
+};
+
+function FilterBar({
+  projects,
+  filters,
+  onChange,
+}: {
+  projects: PortfolioData["projects"];
+  filters: FilterState;
+  onChange: (f: FilterState) => void;
+}) {
+  const chipCls = (active: boolean) =>
+    `inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border transition-all cursor-pointer select-none ${
+      active
+        ? "bg-[#6378ff] border-[#6378ff] text-white shadow-sm"
+        : "bg-white border-slate-200 text-slate-500 hover:border-[#6378ff]/40 hover:text-[#6378ff]"
+    }`;
+
+  const toggleProject = (id: string | number) =>
+    onChange({ ...filters, projects: { ...filters.projects, [id]: !filters.projects[id] } });
+
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      <span className="text-[10px] font-bold tracking-widest uppercase text-slate-400 shrink-0">Filter</span>
+      {projects.map(p => (
+        <button key={p.id} onClick={() => toggleProject(p.id)} className={chipCls(filters.projects[p.id])}>
+          {filters.projects[p.id] ? (
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+          ) : (
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M6 6V4h12v2M19 6l-1 14H6L5 6" /></svg>
+          )}
+          {p.name}
+        </button>
+      ))}
+      <div className="w-px h-4 bg-slate-200 mx-1 shrink-0" />
+      <button onClick={() => onChange({ ...filters, showLanguageProficiency: !filters.showLanguageProficiency })} className={chipCls(filters.showLanguageProficiency)}>
+        {filters.showLanguageProficiency && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>}
+        Language Proficiency
+      </button>
+      <button onClick={() => onChange({ ...filters, showSkillsTimeline: !filters.showSkillsTimeline })} className={chipCls(filters.showSkillsTimeline)}>
+        {filters.showSkillsTimeline && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>}
+        Skills Timeline
+      </button>
+      <button onClick={() => onChange({ ...filters, showGrowth: !filters.showGrowth })} className={chipCls(filters.showGrowth)}>
+        {filters.showGrowth && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>}
+        Growth & Evolution
+      </button>
+    </div>
+  );
+}
+
+// ─── Mode toggle pill ─────────────────────────────────────────────────────────
+function ModeToggle({ isPublic, onToggle }: { isPublic: boolean; onToggle: () => void }) {
+  return (
+    <button
+      onClick={onToggle}
+      className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold tracking-wide border transition-all duration-200 ${
+        isPublic
+          ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+          : "bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200"
+      }`}
+      title={isPublic ? "Switch to Private (editing enabled)" : "Switch to Public (read-only view)"}
+    >
+      {isPublic ? (
+        <>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+          </svg>
+          Public
+        </>
+      ) : (
+        <>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+          Private
+        </>
+      )}
+    </button>
+  );
+}
+
+// ─── Navbar ───────────────────────────────────────────────────────────────────
+function Navbar({
+  isPublic,
+  onToggleMode,
+  searchQuery,
+  onSearchChange,
+  projects,
+  filters,
+  onFiltersChange,
+}: {
+  isPublic: boolean;
+  onToggleMode: () => void;
+  searchQuery: string;
+  onSearchChange: (v: string) => void;
+  projects: PortfolioData["projects"];
+  filters: FilterState;
+  onFiltersChange: (f: FilterState) => void;
+}) {
+  const [visible, setVisible] = useState(true);
+  const lastY = useRef(0);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const currentY = window.scrollY;
+      // Show when scrolling up or near the top; hide when scrolling down
+      setVisible(currentY < lastY.current || currentY < 10);
+      lastY.current = currentY;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  return (
+    <div
+      className={`sticky top-0 z-30 border-b transition-all duration-300 ${
+        isPublic ? "bg-white/95 border-slate-100" : "bg-slate-50/95 border-slate-200"
+      } backdrop-blur-sm ${visible ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"}`}
+    >
+      <div className="max-w-4xl mx-auto px-6">
+        {/* Top row: search (public) or empty left + mode toggle */}
+        <div className="flex items-center justify-between py-2.5 gap-4">
+          <div className="flex-1">
+            {isPublic && <SearchBar query={searchQuery} onChange={onSearchChange} />}
+          </div>
+          <ModeToggle isPublic={isPublic} onToggle={onToggleMode} />
+        </div>
+        {/* Filter row — public mode only */}
+        {isPublic && (
+          <div className="pb-2.5">
+            <FilterBar projects={projects} filters={filters} onChange={onFiltersChange} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Editable section: Projects ───────────────────────────────────────────────
 function ProjectsSection({
   projects,
