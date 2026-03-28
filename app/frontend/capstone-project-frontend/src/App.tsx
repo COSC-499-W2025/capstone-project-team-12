@@ -27,6 +27,7 @@ function App() {
   const [viewResumeId, setViewResumeId] = useState<number | null>(null);
   const [viewPortfolioId, setViewPortfolioId] = useState<number | null>(null);
   const [viewInsightsAnalysisId, setViewInsightsAnalysisId] = useState<string | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // --- Global States for Persistence & API ---
   const [extractedData, setExtractedData] = useState<any>(null);
@@ -69,7 +70,7 @@ function App() {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f0f2f8' }}>
-      <Sidebar currentStep={currentStep} onStepChange={(step) => { setShowDashboard(false); setCurrentStep(step); }} onDashboard={() => setShowDashboard(true)} />
+      <Sidebar currentStep={currentStep} onStepChange={(step) => { setShowDashboard(false); setCurrentStep(step); }} onDashboard={() => setShowDashboard(true)}   isCollapsed={sidebarCollapsed} />
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         {showDashboard ? (
           <Dashboard 
@@ -144,6 +145,7 @@ function App() {
               onPrevious={() => setCurrentStep(5)} 
               onComplete={() => setShowDashboard(true)} 
               portfolioId={viewPortfolioId} 
+              onSidebarCollapse={setSidebarCollapsed}
             />
           )}
 
