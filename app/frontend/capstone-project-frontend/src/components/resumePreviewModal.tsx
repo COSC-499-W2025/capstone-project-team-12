@@ -231,7 +231,7 @@ export default function ResumePreviewModal({ resume, onClose }: { resume: Resume
               </div>
               <button onClick={handlePdf} disabled={busy !== null}
                 className="text-xs font-bold text-white bg-[#0f1629] rounded-lg px-4 py-1.5 hover:bg-slate-800 transition-all disabled:opacity-50">
-                {busy === "pdf" ? "Generating…" : "Download PDF ✓"}
+                {busy === "pdf" ? "Generating…" : "Download PDF"}
               </button>
               <button onClick={onClose}
                 className="text-xs font-semibold text-[#64748b] border border-[#eef0f6] rounded-lg px-3 py-1.5 hover:bg-[#eef0f6] transition-all">

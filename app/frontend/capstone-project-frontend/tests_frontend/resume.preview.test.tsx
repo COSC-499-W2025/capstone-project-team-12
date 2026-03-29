@@ -70,7 +70,7 @@ describe("ResumePreviewModal", () => {
   it("renders Download DOCX and Download PDF buttons", () => {
     setup();
     expect(screen.getByText("Download DOCX")).toBeInTheDocument();
-    expect(screen.getByText("Download PDF ✓")).toBeInTheDocument();
+    expect(screen.getByText("Download PDF")).toBeInTheDocument();
   });
 });
 

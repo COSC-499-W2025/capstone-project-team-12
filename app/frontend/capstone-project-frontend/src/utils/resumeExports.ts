@@ -211,8 +211,6 @@ export async function downloadDocx(resume: Resume): Promise<void> {
  * crisp text, then places it on a US Letter jsPDF page (816 × 1056 pt at 96 dpi).
  * The canvas is scaled to fit exactly within the page — content is never cut off,
  * and the output is always exactly 1 page.
- *
- * Requires: npm install html2canvas jspdf
  */
 export async function downloadPdf(previewElement: HTMLElement): Promise<void> {
   // Dynamically import so bundle only loads these when actually needed
@@ -264,7 +262,7 @@ export async function downloadPdf(previewElement: HTMLElement): Promise<void> {
 
     // Center on the page
     const offsetX = (PDF_W_PT - drawW) / 2;
-    const offsetY = (PDF_H_PT - drawH) / 2;
+    const offsetY = 5;
 
     const pdf = new jsPDF({
       orientation: "portrait",
