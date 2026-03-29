@@ -11,26 +11,19 @@ import FinetunePage from './pages/finetunePage';
 import PipelineLayout from './layouts/PipelineLayout';
 import StandardLayout from './layouts/StandardLayout';
 import { useAnalysisPipeline } from './context/AnalysisPipelineContext';
+import { PipelinePhaseGuard, PipelineStageRedirect } from './components/PipelinePhaseGuard';
 
 function PipelineOnboardingPage() {
   const navigate = useNavigate();
   const {
-    onboardingData, setOnboardingData, setActiveAnalysisId, setUploads, setExtractedData, setFinetuneState, setResumeLocation, setPortfolioLocation, setViewResumeId, setViewPortfolioId, setViewInsightsAnalysisId,
+    onboardingData, setOnboardingData, resetPipeline, pipelineStage, setPipelineStage,
   } = useAnalysisPipeline();
 
   useEffect(() => {
-    setActiveAnalysisId(null);
-    setUploads([]);
-    setExtractedData(null);
-    setFinetuneState(null);
-    setResumeLocation(null);
-    setPortfolioLocation(null);
-    setViewResumeId(null);
-    setViewPortfolioId(null);
-    setViewInsightsAnalysisId(null);
-  }, [
-    setActiveAnalysisId, setUploads, setExtractedData, setFinetuneState,setResumeLocation,setPortfolioLocation,setViewResumeId, setViewPortfolioId, setViewInsightsAnalysisId,
-  ]);
+    if (pipelineStage === 'onboarding') {
+      resetPipeline();
+    }
+  }, [pipelineStage, resetPipeline]);
 
   return (
     <Onboarding
@@ -38,6 +31,7 @@ function PipelineOnboardingPage() {
       mode="new-analysis"
       onComplete={(data) => {
         setOnboardingData(data);
+        setPipelineStage('file-selection');
         navigate('/analysis/new/import');
       }}
     />
@@ -87,13 +81,18 @@ function PipelineImportPage() {
 
 function PipelineProgressPage() {
   const navigate = useNavigate();
-  return <ProgressPage onComplete={() => navigate('/analysis/new/finetune')} />;
+  const { setPipelineStage } = useAnalysisPipeline();
+
+  return <ProgressPage onComplete={() => {
+    setPipelineStage('finetune');
+    navigate('/analysis/new/finetune');
+  }} />;
 }
 
 function PipelineFinetunePage() {
   const navigate = useNavigate();
   const {
-    extractedData, finetuneState,setFinetuneState, activeAnalysisId, onboardingData, setResumeLocation, setPortfolioLocation, setViewResumeId, setViewPortfolioId, setViewInsightsAnalysisId,
+    extractedData, finetuneState,setFinetuneState, activeAnalysisId, onboardingData, setResumeLocation, setPortfolioLocation, setViewResumeId, setViewPortfolioId, setViewInsightsAnalysisId, setPipelineStage,
   } = useAnalysisPipeline();
 
   return (
@@ -102,7 +101,6 @@ function PipelineFinetunePage() {
       initialState={finetuneState}
       activeAnalysisId={activeAnalysisId}
       llmMode={onboardingData?.llmMode}
-      onBack={() => navigate('/analysis/new/progress')}
       onComplete={(state, resLoc, portLoc, rId, pId) => {
         setFinetuneState(state);
         if (resLoc) {
@@ -120,6 +118,7 @@ function PipelineFinetunePage() {
         if (extractedData?.analysis_id) {
           setViewInsightsAnalysisId(extractedData.analysis_id);
         }
+        setPipelineStage('post-insights');
         navigate('/analysis/new/insights');
       }}
     />
@@ -127,18 +126,46 @@ function PipelineFinetunePage() {
 }
 
 function PipelineInsightsPage() {
+  const navigate = useNavigate();
   const { viewInsightsAnalysisId } = useAnalysisPipeline();
-  return <ProjectInsights analysisId={viewInsightsAnalysisId} viewMode="pipeline" />;
+
+  return (
+    <ProjectInsights
+      analysisId={viewInsightsAnalysisId}
+      viewMode="pipeline"
+      onComplete={() => navigate('/analysis/new/resume')}
+    />
+  );
 }
 
 function PipelineResumePage() {
-  const { viewResumeId } = useAnalysisPipeline();
-  return <ResumeDisplay resumeId={viewResumeId} viewMode="pipeline" />;
+  const navigate = useNavigate();
+  const { viewResumeId, onboardingData } = useAnalysisPipeline();
+
+  return (
+    <ResumeDisplay
+      resumeId={viewResumeId}
+      githubUsername={onboardingData?.githubUsername}
+      userEmail={onboardingData?.email}
+      viewMode="pipeline"
+      onPrevious={() => navigate('/analysis/new/insights')}
+      onComplete={() => navigate('/analysis/new/portfolio')}
+    />
+  );
 }
 
 function PipelinePortfolioPage() {
+  const navigate = useNavigate();
   const { viewPortfolioId } = useAnalysisPipeline();
-  return <Portfolio portfolioId={viewPortfolioId} viewMode="pipeline" />;
+
+  return (
+    <Portfolio
+      portfolioId={viewPortfolioId}
+      viewMode="pipeline"
+      onPrevious={() => navigate('/analysis/new/resume')}
+      onComplete={() => navigate('/dashboard')}
+    />
+  );
 }
 
 function App() {
@@ -154,13 +181,15 @@ function App() {
       </Route>
 
       <Route path="/analysis/new" element={<PipelineLayout />}>
-        <Route path="onboarding" element={<PipelineOnboardingPage />} />
-        <Route path="import" element={<PipelineImportPage />} />
-        <Route path="progress" element={<PipelineProgressPage />} />
-        <Route path="finetune" element={<PipelineFinetunePage />} />
-        <Route path="insights" element={<PipelineInsightsPage />} />
-        <Route path="resume" element={<PipelineResumePage />} />
-        <Route path="portfolio" element={<PipelinePortfolioPage />} />
+        <Route index element={<PipelineStageRedirect />} />
+        <Route path="onboarding" element={<PipelinePhaseGuard phase="onboarding"><PipelineOnboardingPage /></PipelinePhaseGuard>} />
+        <Route path="import" element={<PipelinePhaseGuard phase="import"><PipelineImportPage /></PipelinePhaseGuard>} />
+        <Route path="progress" element={<PipelinePhaseGuard phase="progress"><PipelineProgressPage /></PipelinePhaseGuard>} />
+        <Route path="finetune" element={<PipelinePhaseGuard phase="finetune"><PipelineFinetunePage /></PipelinePhaseGuard>} />
+        <Route path="insights" element={<PipelinePhaseGuard phase="insights"><PipelineInsightsPage /></PipelinePhaseGuard>} />
+        <Route path="resume" element={<PipelinePhaseGuard phase="resume"><PipelineResumePage /></PipelinePhaseGuard>} />
+        <Route path="portfolio" element={<PipelinePhaseGuard phase="portfolio"><PipelinePortfolioPage /></PipelinePhaseGuard>} />
+        <Route path="*" element={<PipelineStageRedirect />} />
       </Route>
     </Routes>
   );
