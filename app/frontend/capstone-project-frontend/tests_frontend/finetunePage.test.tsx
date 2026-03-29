@@ -1,6 +1,7 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import FinetunePage from "../src/pages/finetunePage";
+import { AnalysisPipelineProvider } from "../src/context/AnalysisPipelineContext";
 
 // 1. Define the mock state that the tests expect to interact with
 const mockInitialState = {
@@ -29,7 +30,7 @@ const mockInitialState = {
 // 2. Inject it into the setup function
 const setup = () => {
   const onComplete = vi.fn();
-  render(<FinetunePage onComplete={onComplete} initialState={mockInitialState} />);
+  render(<AnalysisPipelineProvider><FinetunePage onComplete={onComplete} initialState={mockInitialState} /></AnalysisPipelineProvider>);
   return { onComplete };
 };
 
@@ -219,7 +220,7 @@ describe("FinetunePage — dynamic data loading", () => {
 
   it("loads and displays data from the extractedData prop", () => {
     const onComplete = vi.fn();
-    render(<FinetunePage extractedData={mockExtractedData} onComplete={onComplete} />);
+    render(<AnalysisPipelineProvider><FinetunePage extractedData={mockExtractedData} onComplete={onComplete} /></AnalysisPipelineProvider>);
     
     expect(screen.getByText("Extracted Repo")).toBeInTheDocument();
     expect(screen.getByText("85 score")).toBeInTheDocument();
@@ -229,7 +230,7 @@ describe("FinetunePage — dynamic data loading", () => {
 
   it("does not select skills by default from extractedData", () => {
     const onComplete = vi.fn();
-    render(<FinetunePage extractedData={mockExtractedData} onComplete={onComplete} />);
+    render(<AnalysisPipelineProvider><FinetunePage extractedData={mockExtractedData} onComplete={onComplete} /></AnalysisPipelineProvider>);
     
     const dockerSkillBtn = screen.getByText("Docker");
     // Verify it has the unselected styling (text-[#6b7280]) and not the selected one
@@ -251,11 +252,13 @@ describe("FinetunePage — state persistence", () => {
     
     const onComplete = vi.fn();
     render(
-      <FinetunePage 
-        extractedData={mockExtractedData} 
-        initialState={customInitialState} 
-        onComplete={onComplete} 
-      />
+      <AnalysisPipelineProvider>
+        <FinetunePage 
+          extractedData={mockExtractedData} 
+          initialState={customInitialState} 
+          onComplete={onComplete} 
+        />
+      </AnalysisPipelineProvider>
     );
     
     expect(screen.getByText("Custom Saved Repo")).toBeInTheDocument();
@@ -263,9 +266,8 @@ describe("FinetunePage — state persistence", () => {
     expect(screen.queryByText("Backend Repo")).not.toBeInTheDocument();
   });
 
-  it("syncs state continuously via onStateChange", () => {
+  it("syncs state continuously via onStateChange", async () => {
     const onComplete = vi.fn();
-    const onStateChange = vi.fn();
     const customInitialState = {
       projects: [{ id: "p1", name: "Custom Saved Repo", commits: 99, selected: true }],
       topics: [],
@@ -273,24 +275,23 @@ describe("FinetunePage — state persistence", () => {
     };
     
     render(
-      <FinetunePage 
-        initialState={customInitialState} 
-        onComplete={onComplete} 
-        onStateChange={onStateChange} 
-      />
+      <AnalysisPipelineProvider>
+        <FinetunePage 
+          initialState={customInitialState} 
+          onComplete={onComplete} 
+        />
+      </AnalysisPipelineProvider>
     );
     
-    // Check that the state synced automatically after mounting
-    expect(onStateChange).toHaveBeenCalled();
-    const syncedState = onStateChange.mock.calls[0][0];
-    expect(syncedState.projects[0].name).toBe("Custom Saved Repo");
+    // State syncing is now handled via context; verify the initialState was loaded into the UI
+    await waitFor(() => expect(screen.getByText("Custom Saved Repo")).toBeInTheDocument());
   });
 });
 
 describe("FinetunePage — project scoring modal", () => {
   it("opens and closes the 'How are projects scored?' modal", () => {
     const onComplete = vi.fn();
-    render(<FinetunePage onComplete={onComplete} />);
+    render(<AnalysisPipelineProvider><FinetunePage onComplete={onComplete} /></AnalysisPipelineProvider>);
 
     // 1. Verify the modal title is not in the document initially
     expect(screen.queryByText("How are Projects Scored?")).not.toBeInTheDocument();

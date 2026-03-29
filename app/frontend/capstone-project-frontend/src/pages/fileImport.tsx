@@ -1,6 +1,8 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import JSZip from "jszip";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+
 export interface UploadEntry {
   name: string;
   isDirectory: boolean;
@@ -167,11 +169,11 @@ const FileImport: React.FC<FileImportProps> = ({ activeAnalysisId, onComplete, m
       const formData = new FormData();
       formData.append('file', zipped);
 
-      console.log('[UPLOAD] Sending POST http://localhost:8080/projects/upload/extract ...');
+      console.log('[UPLOAD] Sending extraction request ...');
       const fetchStart = performance.now();
 
       // url depends on whether this is an incremental or new analysis
-      const url = activeAnalysisId ? `http://localhost:8080/projects/${activeAnalysisId}/update/extract` : `http://localhost:8080/projects/upload/extract`;
+      const url = activeAnalysisId ? `${API_BASE}/projects/${activeAnalysisId}/update/extract` : `${API_BASE}/projects/upload/extract`;
 
 
       const response = await fetch(url, {

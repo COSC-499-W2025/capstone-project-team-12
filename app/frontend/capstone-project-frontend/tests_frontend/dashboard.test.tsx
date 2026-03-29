@@ -3,6 +3,12 @@ import { render, screen, fireEvent, waitFor, within } from "@testing-library/rea
 import { MemoryRouter } from "react-router-dom";
 import Dashboard, { EmptyState } from "../src/pages/dashboard";
 
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-router-dom')>();
+  return { ...actual, useNavigate: () => mockNavigate };
+});
+
 const mockProjects = [
   {
     analysis_id: "a1b2c3",
@@ -65,6 +71,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  mockNavigate.mockClear();
 });
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
@@ -281,9 +288,9 @@ describe("Deleting a portfolio", () => {
 
 describe("New Analysis modal", () => {
   it("calls onNewAnalysis when the New Analysis button is clicked", async () => {
-    const { onNewAnalysis } = await renderLoadedDashboard();
+    await renderLoadedDashboard();
     fireEvent.click(screen.getByRole("button", { name: /new analysis/i }));
-    expect(onNewAnalysis).toHaveBeenCalledOnce();
+    expect(mockNavigate).toHaveBeenCalledWith('/analysis/new/onboarding');
   });
 
   it("calls onNewAnalysis when the New Analysis button is clicked (empty state)", async () => {
@@ -312,7 +319,7 @@ describe("New Analysis modal", () => {
 
     await screen.findByText("No analyses yet");
     fireEvent.click(screen.getAllByRole("button", { name: /new analysis/i })[0]);
-    expect(onNewAnalysis).toHaveBeenCalledOnce();
+    expect(mockNavigate).toHaveBeenCalledWith('/analysis/new/onboarding');
   });
 });
 
