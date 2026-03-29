@@ -78,7 +78,6 @@ export const mockResume: Resume = {
       description: [
         "Led weekly lab sessions for 30+ students in an introductory programming course, providing guidance on Java and Python assignments.",
         "Held regular office hours to assist students with debugging and understanding core programming concepts.",
-        "Collaborated with course instructors to develop new lab exercises and improve existing materials based on student feedback.",
       ],
     },
   ],
@@ -681,7 +680,7 @@ function LanguagesSection({ languages, onChange }: { languages: Language[]; onCh
       {editing && (
         <div className="flex gap-2 mt-3">
           <input value={langInput} onChange={e => setLangInput(e.target.value)} onKeyDown={e => e.key === "Enter" && addLang()}
-            placeholder="Language name…" className={inputCls} />
+            placeholder="Add language…" className={inputCls} />
           <input type="number" min="0" value={fileInput} onChange={e => setFileInput(e.target.value)} onKeyDown={e => e.key === "Enter" && addLang()}
             placeholder="Files" className="w-20 border border-slate-200 rounded-lg px-3 py-1.5 text-sm text-slate-700 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 text-center" />
           <button onClick={addLang} className="text-xs font-bold text-white bg-indigo-600 rounded-lg px-3 py-1 hover:bg-indigo-700 transition-all">+ Add</button>
