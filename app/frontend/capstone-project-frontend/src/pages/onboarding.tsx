@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+
 interface OnboardingProps {
   initialData?: { llmMode: 'online' | 'local'; githubUsername: string; email: string } | null;
   onComplete?: (data: { llmMode: 'online' | 'local'; githubUsername: string; email: string }) => void;
@@ -20,7 +22,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ initialData, onComplete, mode =
 
   const saveUserConfigs = async () => {
     try {
-      await fetch('http://localhost:8080/configs/bulk', {
+      await fetch(`${API_BASE}/configs/bulk`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ preferences: { llm_mode: llmMode, github_username: githubUsername, github_email: email } }),

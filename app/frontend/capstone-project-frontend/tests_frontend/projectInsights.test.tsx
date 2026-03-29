@@ -1,6 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import "@testing-library/jest-dom";
+import { MemoryRouter } from "react-router-dom";
 import ProjectInsights from "../src/pages/ProjectInsights";
 
 // ─── Mock child tab components ────────────────────────────────────────────────
@@ -64,7 +65,7 @@ afterEach(() => {
 });
 
 async function renderLoaded() {
-  render(<ProjectInsights analysisId="test-123" />);
+  render(<MemoryRouter><ProjectInsights analysisId="test-123" /></MemoryRouter>);
   // Wait for the tab content to appear, not the selector button (same text, two elements)
   await screen.findByTestId("overview-tab");
 }

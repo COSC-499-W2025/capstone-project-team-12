@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate, useParams } from 'react-router-dom';
 import OverviewTab from "../components/OverviewTab";
 import TestingTab from "../components/TestingTab";
 import DeploymentTab from "../components/DeploymentTab";
@@ -8,6 +9,7 @@ import type { Project } from "../types/insightTypes";
 
 type Tab = "overview" | "testing" | "deployment" | "pacing & role";
 const tabs: Tab[] = ["overview", "testing", "deployment", "pacing & role"];
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
 
 // ---- Mapping Function ----
@@ -87,20 +89,34 @@ function formatDate(iso: string): string {
   });
 }
 
-export default function ProjectInsights( { onComplete, onPrevious, analysisId }: { onComplete?: () => void, onPrevious?: () => void, analysisId?: string | null }) {
+export default function ProjectInsights({
+  onComplete,
+  onPrevious,
+  analysisId,
+  viewMode = 'pipeline',
+}: {
+  onComplete?: () => void;
+  onPrevious?: () => void;
+  analysisId?: string | null;
+  viewMode?: 'pipeline' | 'standalone';
+}) {
+  const navigate = useNavigate();
+  const params = useParams();
+  const resolvedAnalysisId = analysisId ?? params.id ?? null;
   const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(analysisId != null);
+  const [loading, setLoading] = useState(resolvedAnalysisId != null);
   const [error, setError] = useState<string | null>(null);
   
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>("overview");
 
   useEffect(() => {
-    if (analysisId == null) return;
-    fetch('http://localhost:8080/projects')
+    if (resolvedAnalysisId == null) return;
+    setLoading(true);
+    fetch(`${API_BASE}/projects`)
       .then(r => { if (!r.ok) throw new Error(`${r.status}`); return r.json(); })
       .then((data: any[]) => {
-        const match = data.find(d => d.analysis_id === analysisId);
+        const match = data.find(d => d.analysis_id === resolvedAnalysisId);
         if (!match) throw new Error('Analysis not found');
         const mapped = mapToProjects(match);
         setProjects(mapped);
@@ -108,7 +124,7 @@ export default function ProjectInsights( { onComplete, onPrevious, analysisId }:
         setLoading(false);
       })
       .catch(e => { setError(e.message); setLoading(false); });
-  }, [analysisId]);
+  }, [resolvedAnalysisId]);
 
   if (loading) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><p className="text-slate-500">Loading insights...</p></div>;
   if (error) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><p className="text-red-500">Error: {error}</p></div>;
@@ -165,29 +181,38 @@ export default function ProjectInsights( { onComplete, onPrevious, analysisId }:
         {activeTab === "deployment"    && <DeploymentTab p={p} />}
         {activeTab === "pacing & role" && <PacingTab     p={p} />}
 
-          {/* Back button */}
-          <div className="flex justify-between mt-8">
+        <div className="flex justify-between mt-8">
+          {viewMode === 'pipeline' ? (
+            <>
+              <button
+                onClick={() => (onPrevious ? onPrevious() : navigate('/analysis/new/finetune'))}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 shadow-sm hover:bg-indigo-700 transition-all"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+                Back
+              </button>
+
+              <button
+                onClick={() => (onComplete ? onComplete() : navigate('/analysis/new/resume'))}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 shadow-sm hover:bg-indigo-700 transition-all"
+              >
+                Next
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+              </button>
+            </>
+          ) : (
             <button
-              onClick={onPrevious}
+              onClick={() => navigate('/dashboard')}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 shadow-sm hover:bg-indigo-700 transition-all"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M19 12H5M12 19l-7-7 7-7" />
-              </svg>
-              Back
+              Return to Dashboard
             </button>
-          
-            {/* Next button */}
-            <button
-              onClick={onComplete}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 shadow-sm hover:bg-indigo-700 transition-all"
-            >
-              Next
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>          
+          )}
+        </div>
       </div>
       
     </div>
