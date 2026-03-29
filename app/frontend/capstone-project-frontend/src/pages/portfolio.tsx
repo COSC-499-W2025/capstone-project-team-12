@@ -104,10 +104,12 @@ async function fetchPortfolio(portfolioId: number): Promise<{ data: PortfolioDat
   const res = await fetch(`${API_BASE}/portfolio/${portfolioId}`);
   if (!res.ok) throw new Error(`Failed to fetch portfolio: ${res.status} ${res.statusText}`);
   const json = await res.json();
-  const d = json.portfolio_data;
+
+  // Safe fallback if the backend returns a flat object instead of nested inside portfolio_data
+  const d = json.portfolio_data ?? json;
 
   const normalised: PortfolioData = {
-    title: json.portfolio_title ?? "",
+    title: json.portfolio_title ?? d.portfolio_title ?? "",
     coreCompetencies: d.skill_timeline?.high_level_skills ?? [],
     languages: (d.skill_timeline?.language_progression ?? []).map((l: any) => ({
       name: l.name,

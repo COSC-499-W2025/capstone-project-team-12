@@ -14,7 +14,18 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
 // ---- Mapping Function ----
 function mapToProjects(raw: any): Project[] {
-  const insights = raw.project_insights?.analyzed_insights ?? [];
+  // Defensive string parsing (in case the backend failed to return an object)
+  let pi = raw.project_insights;
+  if (typeof pi === "string") {
+    try {
+      pi = JSON.parse(pi);
+    } catch (e) {
+      console.error("[INSIGHTS] Failed to parse project_insights string", e);
+    }
+  }
+
+  const insights = pi?.analyzed_insights ?? [];
+  
   return insights.map((p: any, i: number) => ({
     id: i + 1,
     repoName: p.repository_name ?? 'Unknown',
@@ -111,6 +122,14 @@ export default function ProjectInsights({
   const [activeTab, setActiveTab] = useState<Tab>("overview");
 
   useEffect(() => {
+    if (analysisId == null) return;
+    // Directly fetch the specific analysis ID
+    fetch(`http://localhost:8080/projects/${analysisId}`)
+      .then(r => { if (!r.ok) throw new Error(`${r.status}`); return r.json(); })
+      .then((data: any) => {
+        // Safely extract regardless of whether backend returns array or exact object
+        const targetData = Array.isArray(data) ? (data.find(d => d.analysis_id === analysisId) || data[0]) : data;
+        const mapped = mapToProjects(targetData);
     if (resolvedAnalysisId == null) return;
     setLoading(true);
     fetch(`${API_BASE}/projects`)
@@ -130,7 +149,16 @@ export default function ProjectInsights({
   if (error) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><p className="text-red-500">Error: {error}</p></div>;
 
   const p = selectedProject;
-  if (!p) return null;
+  
+  // Safe fallback if mapping yields no projects to prevent blank screen
+  if (!p) return (
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center font-sans">
+      <p className="text-slate-500 mb-4">No project insights available for this analysis.</p>
+      <button onClick={onComplete} className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 hover:bg-indigo-700 transition-all shadow-sm">
+          Continue to Next Step
+        </button>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans">

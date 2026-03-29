@@ -74,14 +74,16 @@ class TestAPIIntegration:
             file = {'file': ('test_main_dir.zip', f)}
             extract_response = client.post("/projects/upload/extract", files=file)
  
-        analysis_id:str = extract_response.json()['analysis_id']
+        extract_body = extract_response.json()
+        analysis_id:str = extract_body['analysis_id']
+        selected_projects = [p["repository_name"] for p in extract_body.get("analyzed_projects", [])]
         
         payload = {
             "topic_keywords": [
                 {"topic_id": 0, "keywords": ["result", "data", "code"]}
             ],
             "user_highlights": ["CSS"],
-            "selected_projects": [],
+            "selected_projects": selected_projects,
             "online_llm_consent": True,
         }
         
@@ -107,12 +109,15 @@ class TestAPIIntegration:
             global gl_analysis_id
             extract_response = client.put(f"/projects/{gl_analysis_id}/update/extract", files=file)
         
+        extract_body = extract_response.json()
+        selected_projects = [p["repository_name"] for p in extract_body.get("analyzed_projects", [])]
+
         payload = {
             "topic_keywords": [
                 {"topic_id": 0, "keywords": ["result", "data", "code"]}
             ],
             "user_highlights": ["CSS"],
-            "selected_projects": [],
+            "selected_projects": selected_projects,
             "online_llm_consent": True,
         }
         
