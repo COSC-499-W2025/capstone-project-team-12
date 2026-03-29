@@ -136,6 +136,8 @@ function App() {
               resumeId={viewResumeId}
               onPrevious={() => setCurrentStep(4)} 
               onComplete={() => setCurrentStep(6)} 
+              githubUsername={onboardingData?.githubUsername ?? ""}
+              userEmail={onboardingData?.email ?? ""}
             /> 
           )}
           

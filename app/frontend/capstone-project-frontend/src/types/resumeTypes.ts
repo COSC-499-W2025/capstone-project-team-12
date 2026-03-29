@@ -52,6 +52,9 @@ export interface Resume {
     // We should add these fields here and return them from the backend, since they are important pieces of information to display in the resume.
     github_username?: string;
     user_email?: string;
+    phone?: string;
+    linkedin?: string;
+    full_name?: string;
 }
 
 
