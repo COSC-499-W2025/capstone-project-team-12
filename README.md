@@ -77,6 +77,8 @@ docker compose up -d --build
 
 This command will build the container in detached mode.
 
+**Important Note**: If you have built the app before on your system ensure that all related volumes are deleted before compose command. Stale volumes will cause database scripts to fail!
+
 ### 4. Attach to the Container
 
 1. In Visual Studio Code, click on the **Docker/Containers icon** on the left sidebar
