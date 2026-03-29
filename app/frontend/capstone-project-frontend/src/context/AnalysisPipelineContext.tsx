@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 import type { UploadEntry } from '../pages/fileImport';
+import { getAllowedPhasesForStage, type PipelinePhase, type PipelineStage } from '../utils/pipelineAccess';
 
 export interface OnboardingData {
   llmMode: 'online' | 'local';
@@ -28,6 +29,11 @@ interface AnalysisPipelineContextValue {
   setViewPortfolioId: (id: number | null) => void;
   viewInsightsAnalysisId: string | null;
   setViewInsightsAnalysisId: (id: string | null) => void;
+  pipelineStage: PipelineStage;
+  setPipelineStage: (stage: PipelineStage) => void;
+  allowedPhases: PipelinePhase[];
+  isPhaseAccessible: (phase: PipelinePhase) => boolean;
+  resetPipeline: () => void;
 }
 
 const AnalysisPipelineContext = createContext<AnalysisPipelineContextValue | null>(null);
@@ -43,6 +49,27 @@ export function AnalysisPipelineProvider({ children }: { children: ReactNode }) 
   const [viewResumeId, setViewResumeId] = useState<number | null>(null);
   const [viewPortfolioId, setViewPortfolioId] = useState<number | null>(null);
   const [viewInsightsAnalysisId, setViewInsightsAnalysisId] = useState<string | null>(null);
+  const [pipelineStage, setPipelineStage] = useState<PipelineStage>('onboarding');
+
+  const resetPipeline = useCallback(() => {
+    setOnboardingData(null);
+    setUploads([]);
+    setExtractedData(null);
+    setFinetuneState(null);
+    setResumeLocation(null);
+    setPortfolioLocation(null);
+    setActiveAnalysisId(null);
+    setViewResumeId(null);
+    setViewPortfolioId(null);
+    setViewInsightsAnalysisId(null);
+    setPipelineStage('onboarding');
+  }, []);
+
+  const allowedPhases = useMemo(() => getAllowedPhasesForStage(pipelineStage), [pipelineStage]);
+  const isPhaseAccessible = useCallback(
+    (phase: PipelinePhase) => allowedPhases.includes(phase),
+    [allowedPhases],
+  );
 
   return (
     <AnalysisPipelineContext.Provider
@@ -56,6 +83,11 @@ export function AnalysisPipelineProvider({ children }: { children: ReactNode }) 
         setViewPortfolioId,
         viewInsightsAnalysisId,
         setViewInsightsAnalysisId,
+        pipelineStage,
+        setPipelineStage,
+        allowedPhases,
+        isPhaseAccessible,
+        resetPipeline,
       }}
     >
       {children}
