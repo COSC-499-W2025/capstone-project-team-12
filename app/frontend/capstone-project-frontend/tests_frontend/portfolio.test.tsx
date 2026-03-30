@@ -257,13 +257,18 @@ describe("Portfolio — response variants", () => {
 
 // ─── EDIT: HEADER ────────────────────────────────────────────────────────────
 
-describe("Portfolio — edit header", () => {
+describe("Portfolio: edit header", () => {
   it("enters edit mode and saves new title", async () => {
     await renderEditing();
     fireEvent.click(screen.getByRole("button", { name: "Edit header" }));
-    fireEvent.change(screen.getByPlaceholderText("Enter Portfolio name"), { target: { value: "My Portfolio" } });
+
+    fireEvent.change(
+      screen.getByPlaceholderText("Enter Portfolio name"),
+      { target: { value: "My Portfolio" } }
+    );
+
     fireEvent.click(screen.getByRole("button", { name: "Save header" }));
-    expect(screen.getByText("My Portfolio")).toBeInTheDocument();
+    expect(await screen.findByText("My Portfolio")).toBeInTheDocument();
   });
 
   it("discards changes on cancel", async () => {
