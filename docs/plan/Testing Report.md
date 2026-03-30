@@ -262,3 +262,38 @@ Three complete end-to-end workflows using a `make_new_analysis()` helper:
 ---
 
 ## Test Results Screenshots
+
+#### Backend Tests:
+<img width="1805" height="1056" alt="Backend Test Report" src="https://github.com/user-attachments/assets/dcdd0a35-f9f3-4dc0-9764-dca625fe6500" />
+
+#### Frontend Tests:
+##### Dashboard:
+<img width="1616" height="1156" alt="image" src="https://github.com/user-attachments/assets/6948f48d-1f52-4d93-9d08-2ac0a6939302" />
+
+##### File Import:
+<img width="1666" height="602" alt="image" src="https://github.com/user-attachments/assets/66556735-3764-470a-ba52-14726e5d1b20" />
+
+##### Finetuning
+<img width="1788" height="1092" alt="image" src="https://github.com/user-attachments/assets/ecc96dca-b513-4a84-abe7-57ff34210c23" />
+
+##### Heatmap
+<img width="1680" height="582" alt="image" src="https://github.com/user-attachments/assets/e4730eb2-26c7-41d1-96d8-28e8041cc948" />
+
+##### Resume and Resume Preview
+<img width="1752" height="1312" alt="image" src="https://github.com/user-attachments/assets/a6babcbf-8d0e-489d-aac8-b63c012da3c6" />
+<img width="1666" height="1054" alt="image" src="https://github.com/user-attachments/assets/a0b5c238-4b23-4f8d-8d6f-1cd0db1aaa67" />
+<img width="1802" height="790" alt="image" src="https://github.com/user-attachments/assets/bd2366c5-ba47-49fb-b4e9-2869a71289dd" />
+
+##### Portfolio
+<img width="1564" height="1312" alt="image" src="https://github.com/user-attachments/assets/063f4a93-359d-41a0-98fd-0ff956911065" />
+<img width="1726" height="612" alt="image" src="https://github.com/user-attachments/assets/85731c4f-cd80-4ba0-a731-d5e3b4643425" />
+
+##### Progress Bar
+<img width="1814" height="600" alt="image" src="https://github.com/user-attachments/assets/fb5e30ab-12e7-43ab-ba02-75ecd9fbf2e7" />
+
+##### Project Insights
+<img width="1786" height="692" alt="image" src="https://github.com/user-attachments/assets/7f054945-0fd8-4c71-993a-e3875714c16a" />
+
+##### All Frontend Tests
+<img width="1726" height="284" alt="image" src="https://github.com/user-attachments/assets/aff421c9-fdd7-423d-a71c-4a7defe69f8c" />
+
