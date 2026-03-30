@@ -176,8 +176,6 @@ If you encounter any issues:
 
 Thank you for taking the time to review and grade our project. We hope the setup process is smooth and straightforward.
 
-**Happy Holidays!** 🎄
-
 ---
 
 *For questions or issues, please don't hesitate to reach out.*
