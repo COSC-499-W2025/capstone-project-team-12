@@ -4,7 +4,7 @@ import ResumeDisplay, {mockResume} from "../src/pages/resume_display";
 import { MemoryRouter } from "react-router-dom";
 import '@testing-library/jest-dom';
 
-const setup = () => render(<ResumeDisplay />);
+const setup = () => render(<MemoryRouter><ResumeDisplay /></MemoryRouter>);
 
 const getCard = (title: string) =>
   screen.getByText(title).closest(".rounded-2xl") as HTMLElement;
@@ -14,7 +14,7 @@ const getCard = (title: string) =>
 describe("Contact section", () => {
   it("renders github username and email", () => {
     setup();
-    expect(screen.getByText("yourusername")).toBeInTheDocument();
+    expect(screen.getByText("github.com/yourusername", { exact: false })).toBeInTheDocument();
     expect(screen.getByText("you@example.com")).toBeInTheDocument();
   });
 
@@ -30,7 +30,7 @@ describe("Contact section", () => {
     fireEvent.click(within(getCard("Contact")).getByText("Edit"));
     fireEvent.change(screen.getByPlaceholderText("GitHub username"), { target: { value: "newuser" } });
     fireEvent.click(screen.getByText("Save"));
-    expect(screen.getByText("newuser")).toBeInTheDocument();
+    expect(screen.getByText("github.com/newuser", { exact: false })).toBeInTheDocument();
   });
 
   it("discards changes on cancel", () => {
@@ -38,7 +38,7 @@ describe("Contact section", () => {
     fireEvent.click(within(getCard("Contact")).getByText("Edit"));
     fireEvent.change(screen.getByPlaceholderText("GitHub username"), { target: { value: "newuser" } });
     fireEvent.click(screen.getByText("Cancel"));
-    expect(screen.getByText("yourusername")).toBeInTheDocument();
+    expect(screen.getByText("github.com/yourusername", { exact: false })).toBeInTheDocument();
   });
 });
 
@@ -206,14 +206,10 @@ describe("Languages section", () => {
 // ─── Download button ──────────────────────────────────────────────────────────
 
 describe("Download button", () => {
-  it("renders as disabled", () => {
+  it("opens preview modal on click", () => {
     setup();
-    expect(screen.getByText("Download Resume").closest("button")).toBeDisabled();
-  });
-
-  it("renders the Soon badge", () => {
-    setup();
-    expect(screen.getByText("Soon")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Download Resume"));
+    expect(screen.getByText("Resume Preview")).toBeInTheDocument();
   });
 });
 
@@ -380,7 +376,7 @@ describe("Async UI states", () => {
     vi.spyOn(global, "fetch").mockReturnValueOnce(new Promise(() => {})); // PUT hangs
 
     setupWithId();
-    await screen.findByText("yourusername");
+    await screen.findByText("github.com/yourusername", { exact: false });
 
     fireEvent.click(within(getCard("Contact")).getByText("Edit"));
     fireEvent.change(screen.getByPlaceholderText("GitHub username"), {
@@ -400,7 +396,7 @@ describe("Async UI states", () => {
     } as Response);
 
     setupWithId();
-    await screen.findByText("yourusername");
+    await screen.findByText("github.com/yourusername", { exact: false });
 
     fireEvent.click(within(getCard("Contact")).getByText("Edit"));
     fireEvent.change(screen.getByPlaceholderText("GitHub username"), {
@@ -414,7 +410,7 @@ describe("Async UI states", () => {
   it("loads and renders resume from API", async () => {
     mockGet();
     setupWithId();
-    expect(await screen.findByText("yourusername")).toBeInTheDocument();
+    expect(await screen.findByText("github.com/yourusername", { exact: false })).toBeInTheDocument();
   });
 });
 

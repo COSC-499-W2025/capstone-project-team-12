@@ -1,6 +1,7 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import "@testing-library/jest-dom";
+import { MemoryRouter } from "react-router-dom";
 import DevPortfolio from "../src/pages/Portfolio";
 
 // ─── MOCK DATA ───────────────────────────────────────────────────────────────
@@ -81,7 +82,7 @@ function mockFetch(response = mockApiResponse) {
 
 async function renderLoaded(response = mockApiResponse, waitForText = "Jane Doe") {
   mockFetch(response);
-  render(<DevPortfolio portfolioId={1} />);
+  render(<MemoryRouter><DevPortfolio portfolioId={1} /></MemoryRouter>);
   await screen.findByText(waitForText);
 }
 
@@ -95,7 +96,7 @@ async function renderEditing() {
       projects_detail: [mockApiResponse.portfolio_data.projects_detail[0]],
     },
   });
-  render(<DevPortfolio portfolioId={1} />);
+  render(<MemoryRouter><DevPortfolio portfolioId={1} /></MemoryRouter>);
   await screen.findByText("Untitled Portfolio");
 }
 
