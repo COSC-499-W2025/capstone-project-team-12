@@ -1,4 +1,33 @@
 # Madelyn DeGruchy Personal Log (85064962 - maddydeg)
+## Term 2 Weeks 11 & 12 (03/16/2026 - 03/29/2026)
+- Updated the backend for the resume generation and display
+    - Updated LLM prompt so to not include any references to topic vectors
+    - Updated Resume Dict to allow for the saving of LinkedIn, phone number, Education, Awards, and previous work experience
+    - Separated the generated summary in to a list of strings to make it easier to separate them for display on the front-end
+- Updated the front-end to include the work experience, awards, education, linkedin, and phone number. This allows the user to populate these sections in the database. This included tweaking the API call to ensure everything was being sent back to the database in the same format.
+- Added testing for the above functionalities.
+- Added the ability to edit Portfolios that have been generated. Implemented the corresponding API call. Needed to add a wrapper due to type mismatch between the portfolio display in the front-end and the database strucure.
+    - Added testing for this edit functionality
+- Implemented the export functionality for the resume
+    - Supports docx and pdf format
+    - Added a resume preview modal so the user is able to see what the formatting will look like for the professional resume
+    - Pass the username and email from onboarding to the resume to be displayed at the top of the users resume.
+    - Added relevant testing
+- Added length enforcement to the resume
+    - Added character limits, entry limits (number of awards, etc), and bullet point limits. This is to encourage the user to keep their resume readable. We do allow the user to exceed the character limit with a visual warning that they have gone over so that they still have the ability to customize this resume as they see fit
+    - When they preview the resume, they will receive a warning if they have gone beyond a single page. It includes a percentage of how far beyond 1 page they've exceeded, and a red line appears on the preview at the one page cut off point.
+    - Slight refactoring of how we export to try and resolve a scaling issue. docx is tricky to get formatted correctly, so we display a disclaimer to the user that for a more consistent export, use pdf.
+- Attended all team meetings
+- Created the Testing Report document and updated the README
+- Created slides and presented Milestone 3 to the class
+ 
+## Next Week
+Project voting! 
+ 
+## Reflection
+Losing teammates near the end of the semester applied some pressure to ensure we met the Milestone 3 deadline. Although there are some features and components that I had hoped we would get to that ultimatley had to be left as known bugs or potential future additions, I am proud of the team for perservering through the last few weeks. I am looking forward to looking at more of our classmates projects as we head in to project voting. 
+
+![Peer Evaluation Term 2 Weeks 11 & 12](imgs/Madelyn%20DeGruchy%20T2%20Week%2012.png)
 
 ## Term 2 Week 10 (03/09/2026- 03/15/2026)
 - Updated our backend to now support storing information related to awards, education, and previous work experience for the resume. They are user-populated fields from the front end. (PR #486)
