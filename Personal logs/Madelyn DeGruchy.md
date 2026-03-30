@@ -17,6 +17,9 @@
     - Added character limits, entry limits (number of awards, etc), and bullet point limits. This is to encourage the user to keep their resume readable. We do allow the user to exceed the character limit with a visual warning that they have gone over so that they still have the ability to customize this resume as they see fit
     - When they preview the resume, they will receive a warning if they have gone beyond a single page. It includes a percentage of how far beyond 1 page they've exceeded, and a red line appears on the preview at the one page cut off point.
     - Slight refactoring of how we export to try and resolve a scaling issue. docx is tricky to get formatted correctly, so we display a disclaimer to the user that for a more consistent export, use pdf.
+- Attended all team meetings
+- Created the Testing Report document and updated the README
+- Created slides and presented Milestone 3 to the class
  
 ## Next Week
 Project voting! 
