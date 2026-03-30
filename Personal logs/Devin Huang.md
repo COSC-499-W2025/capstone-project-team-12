@@ -19,6 +19,25 @@
 [Week 4](#week-4)  
 [Week 3](#week-3)
 
+### T2 Week 11-12
+- Save user provided data from onboarding page into configs.
+  - User data are now saved in configs instead of being passed along in the analysis pipeline
+- Implemented state cleanup for extract/commit endpoints
+  -  It cleans up the cache from previously generated files from previous unfinished analysis
+- Decoupled dashboard from analysis pipeline.
+- Implemented Pipeline phase blocking:
+  - restricted access to specific phases at different steps in the analysis pipeline.
+ - Attended team meeting
+ 
+#### Next week
+Project voting
+
+#### Reflection
+This week has been busy for everyone and we were missing some members, making it a bit harder for everyone time wise, but I'm ultimatelly happy with what we have and have tackled most major bugs.
+
+<img width="959" height="492" alt="image" src="https://github.com/user-attachments/assets/d8d5744f-0249-4d24-96ff-b6fdc9a81319" />
+
+
 ### T2 Week 10
 Created file upload page:
 - Allows single file and folder upload or batch file and folder upload.
