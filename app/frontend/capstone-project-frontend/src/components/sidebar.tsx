@@ -2,40 +2,17 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Modal } from './modals';
+import { useAnalysisPipeline } from '../context/AnalysisPipelineContext';
+import { getPipelinePhaseFromPath, getPipelineStepIdForPhase, pipelineSidebarSteps } from '../utils/pipelineAccess';
 
 const Sidebar = ( {onDashboard, isCollapsed = false } : {onDashboard?: () => void; isCollapsed?: boolean; } ) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const { isPhaseAccessible } = useAnalysisPipeline();
 
-  const getCurrentStepFromPath = (pathname: string): number => {
-    if (pathname.includes('/analysis/new/onboarding')) return 1;
-    if (pathname.includes('/analysis/new/import') || pathname.includes('/analysis/new/progress')) return 2;
-    if (pathname.includes('/analysis/new/finetune')) return 3;
-    if (pathname.includes('/analysis/new/insights')) return 4;
-    if (pathname.includes('/analysis/new/resume')) return 5;
-    if (pathname.includes('/analysis/new/portfolio')) return 6;
-    return 1;
-  };
-
-  const currentStep = getCurrentStepFromPath(location.pathname);
-
-  const stepToRoute: Record<number, string> = {
-    1: '/analysis/new/onboarding',
-    2: '/analysis/new/import',
-    3: '/analysis/new/finetune',
-    4: '/analysis/new/insights',
-    5: '/analysis/new/resume',
-    6: '/analysis/new/portfolio',
-  };
-  const steps = [
-    { id: 1, label: "Onboarding" },
-    { id: 2, label: "File Selection" },
-    { id: 3, label: "Finetuning" },
-    { id: 4, label: "Skills & Visualizations" },
-    { id: 5, label: "Resume Creation" },
-    { id: 6, label: "Portfolio Creation" },
-  ];
+  const currentPhase = getPipelinePhaseFromPath(location.pathname);
+  const currentStep = getPipelineStepIdForPhase(currentPhase);
 
   const W = isCollapsed ? "64px" : "240px";
 
@@ -134,35 +111,54 @@ const Sidebar = ( {onDashboard, isCollapsed = false } : {onDashboard?: () => voi
         gap: "2px",
         transition: "padding 0.25s ease",
       }}>
-        {steps.map((step) => {
+        {pipelineSidebarSteps.map((step) => {
           const isActive = step.id === currentStep;
-          const isCompleted = step.id < currentStep;
+          const isLocked = !isPhaseAccessible(step.phase);
+          const isCompleted = !isLocked && step.id < currentStep;
+          const labelColor = isLocked
+            ? 'rgba(255,255,255,0.24)'
+            : isActive
+            ? '#c7d0ff'
+            : isCompleted
+            ? 'rgba(255,255,255,0.6)'
+            : 'rgba(255,255,255,0.45)';
 
           return (
             <button
               key={step.id}
+              type="button"
+              aria-disabled={isLocked}
               title={isCollapsed ? step.label : undefined}
-              onClick={() => navigate(stepToRoute[step.id])}
+              onClick={() => {
+                if (!isLocked) {
+                  navigate(step.route);
+                }
+              }}
               style={{
                 width: "100%",
                 textAlign: "left",
                 padding: isCollapsed ? "9px 0" : "9px 12px",
                 borderRadius: "8px",
                 border: "none",
-                cursor: "pointer",
+                cursor: isLocked ? 'not-allowed' : 'pointer',
                 display: "flex",
                 alignItems: "center",
                 justifyContent: isCollapsed ? "center" : "flex-start",
                 gap: "12px",
                 transition: "all 0.15s ease",
-                background: isActive ? "rgba(99,120,255,0.18)" : "transparent",
+                background: isActive
+                  ? "rgba(99,120,255,0.18)"
+                  : isLocked
+                  ? 'rgba(255,255,255,0.02)'
+                  : "transparent",
                 outline: isActive ? "1px solid rgba(99,120,255,0.35)" : "1px solid transparent",
+                opacity: isLocked ? 0.7 : 1,
               }}
               onMouseEnter={e => {
-                if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+                if (!isActive && !isLocked) e.currentTarget.style.background = "rgba(255,255,255,0.05)";
               }}
               onMouseLeave={e => {
-                if (!isActive) e.currentTarget.style.background = "transparent";
+                if (!isActive) e.currentTarget.style.background = isLocked ? 'rgba(255,255,255,0.02)' : "transparent";
               }}
             >
               {/* Step indicator dot — always visible */}
@@ -177,15 +173,22 @@ const Sidebar = ( {onDashboard, isCollapsed = false } : {onDashboard?: () => voi
                 fontSize: "10px",
                 fontWeight: "700",
                 transition: "all 0.15s ease",
-                background: isCompleted
-                  ? "linear-gradient(135deg, #6378ff 0%, #818cf8 100%)"
+                background: isLocked
+                  ? 'rgba(255,255,255,0.08)'
+                  : isCompleted
+                  ? "linear-gradient(135deg, #6378ff)"
                   : isActive
                   ? "rgba(99,120,255,0.35)"
                   : "rgba(255,255,255,0.08)",
-                color: isCompleted ? "white" : isActive ? "#a5b4fc" : "rgba(255,255,255,0.3)",
+                color: isLocked ? 'rgba(255,255,255,0.32)' : isCompleted ? "white" : isActive ? "#a5b4fc" : "rgba(255,255,255,0.3)",
                 border: isActive && !isCompleted ? "1.5px solid rgba(99,120,255,0.6)" : "1.5px solid transparent",
               }}>
-                {isCompleted ? (
+                {isLocked ? (
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="5" y="11" width="14" height="10" rx="2" />
+                    <path d="M8 11V8a4 4 0 118 0v3" />
+                  </svg>
+                ) : isCompleted ? (
                   <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
                     <path d="M1.5 5L4 7.5L8.5 2.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
@@ -196,11 +199,7 @@ const Sidebar = ( {onDashboard, isCollapsed = false } : {onDashboard?: () => voi
               <span style={{
                 fontSize: "13px",
                 fontWeight: isActive ? "600" : "400",
-                color: isActive
-                  ? "#c7d0ff"
-                  : isCompleted
-                  ? "rgba(255,255,255,0.6)"
-                  : "rgba(255,255,255,0.45)",
+                color: labelColor,
                 transition: "color 0.15s ease, opacity 0.2s ease, width 0.25s ease",
                 whiteSpace: "nowrap",
                 overflow: "hidden",
