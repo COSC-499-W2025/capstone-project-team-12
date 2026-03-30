@@ -1,5 +1,29 @@
 # Lexi Loudiadis (93546844) Personal Log
 
+## Term 2 - Week 11 & 12 (03/16/2026 - 03/29/2026)
+
+- Implementing the heat map, decided on an implementation with a toggle between two views: commits by date and lines added by date (PR #548)
+- Implementing the public/private features: a user can edit in private mode, and in public mode, the sidebar collapses and the user can search for items and filter projects and sections in the portfolio (PR #549, PR #552)
+- Tests for heat maps (PR #559)
+- Tests for public/private mode (PR #557)
+- Updated ~51 frontend tests that were failing due to API hookups (PR #552)
+- Hooked up the rest of the Dashboard API calls, as well as endpoints in the Skills page and Portfolio page (PR #510)
+- Implemented the portfolio skills progression & skills timeline (PR #514)
+- Testing teammates' code
+- Team meetings
+- Milestone 3 presentation
+
+### In Progress
+- Finishing everything up and getting everything merged for our Milestone 3 deliverable
+  
+### What's Next
+- Not a whole lot!! This is our last entry and our last time working on the project. Next we have project voting and then the course will be over!!
+
+### Reflection
+- All tasks that were planned for these past two weeks for finished. There were a couple extra things that I wanted to get around to if I had time, but those didn't end up getting done - however, I did not assign this work to myself since I knew I would probably have my hands full. These were not bugs but rather UI enhancements.  
+
+![Type of tasks I worked on](imgs/Week%2022%20Lexi.png)
+
 ## Term 2 - Week 10 (03/09/2026 - 03/15/2026)
 
 - Implemented the UI for the dashboard page, which is where you land after running your first analysis. From here, you can create a new analysis, add new files to an existing analysis, delete analyses, and view different portfolios, resumes, and skill extractions for a given analysis (PR #475 & PR #478)
