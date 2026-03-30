@@ -3,7 +3,6 @@
 ### Known Bugs
 - Failed to load analysis toast when there are none done.
 - When a user manually edits the number of lines in a project for a portfolio, some of the metrics do not get recalculated automatically. 
-- If the user refreshes the page while working through the analysis, the system will not let them advance past the initial onboarding page it sends them back to. If they go to the dashboard it will appear to be stuck loading analyses
 - If a project’s end date is towards the end of the month, the starting labels of the heatmap will overlap as the column space the first month requires is less than the length of the label itself 
 
 ### Future Suggestions:
