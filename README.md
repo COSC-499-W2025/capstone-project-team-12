@@ -134,6 +134,11 @@ Frontend tests use **Vitest + React Testing Library**, and backend tests use **P
 [View the full Testing Report here](docs/plan/Testing%20Report.md)
 
 ---
+## Known Bugs and Future Suggestions
+
+All currently known bugs have been documented alongside a list of plans for future improvements to our system. If you encounter any bugs that have not been documented please feel free to reach out! 
+
+[View the full list of known bugs and future suggestions here](docs/plan/Known%20Bugs.md)
 
 ## Troubleshooting
 
