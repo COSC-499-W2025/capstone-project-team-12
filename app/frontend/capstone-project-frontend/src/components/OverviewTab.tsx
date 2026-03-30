@@ -8,6 +8,8 @@ interface OverviewTabProps {
   p: Project;
 }
 
+const AGGREGATED_NOTICE = "Aggregated across projects";
+
 export default function OverviewTab({ p }: OverviewTabProps) {
   return (
     <div className="space-y-6">
@@ -28,7 +30,7 @@ export default function OverviewTab({ p }: OverviewTabProps) {
           </div>
         </SectionCard>
 
-        <SectionCard title="Key Technologies" icon="⚙️">
+        <SectionCard title="Key Technologies" icon="⚙️" notice={AGGREGATED_NOTICE}>
           <div className="flex flex-wrap gap-2">
             {p.technologies.map((t) => <TechBadge key={t.name} name={t.name} uses={t.uses} />)}
           </div>
@@ -36,7 +38,7 @@ export default function OverviewTab({ p }: OverviewTabProps) {
         </SectionCard>
       </div>
 
-      <FileExtensionSection fileExtensions={p.fileExtensions} />
+      <FileExtensionSection fileExtensions={p.fileExtensions} notice={AGGREGATED_NOTICE} />
 
       <SectionCard title="Project Timeline" icon="📅">
         <div className="flex items-center gap-4">

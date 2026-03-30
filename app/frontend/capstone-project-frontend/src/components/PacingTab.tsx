@@ -1,6 +1,7 @@
 import StatCard from "./StatCard";
 import SectionCard from "./SectionCard";
 import PacingBar from "./PacingBar";
+import CommitHeatmap from "./CommitHeatmap";
 import type { Project } from "../types/insightTypes";
 
 interface PacingTabProps {
@@ -10,9 +11,10 @@ interface PacingTabProps {
 export default function PacingTab({ p }: PacingTabProps) {
   return (
     <div className="space-y-5">
+      <CommitHeatmap commits={p.rawCommits ?? []} />
       <div className="grid md:grid-cols-2 gap-4">
         <StatCard label="Avg Lines per Commit" value={p.pacing.avgLinesPerCommit} accent />
-        <StatCard label="Commits Made in the Last 1/4 of Project"    value={`${p.pacing.endHeavyPercent}%`} accent />
+        <StatCard label="Commits Made in the Last 1/4 of Project" value={`${p.pacing.endHeavyPercent}%`} accent />
       </div>
       <SectionCard title="Commit Distribution" icon="📊">
         <PacingBar percent={p.pacing.endHeavyPercent} message={p.pacing.commitConsistency} />

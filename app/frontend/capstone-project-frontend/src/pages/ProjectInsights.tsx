@@ -88,6 +88,7 @@ function mapToProjects(raw: any): Project[] {
       start: formatDate(p.dates?.start_date ?? ''),
       end: formatDate(p.dates?.end_date ?? ''),
     },
+    rawCommits: p.user_commits ?? [],
   }));
 }
 
