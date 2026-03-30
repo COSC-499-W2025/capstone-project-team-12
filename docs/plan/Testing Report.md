@@ -7,8 +7,15 @@
 1. [Testing Methodology](#testing-methodology)
 2. [Frontend Tests](#frontend-tests)
 3. [Backend Tests](#backend-tests)
-4. [Coverage Summary](#coverage-summary)
-5. [Test Results & Screenshots](#test-results--screenshots)
+    - [API Tests](#api-tests)
+    - [File Processing](#file-processing)
+    - [Text & Code Analysis](#text--code-analysis)
+    - [Metadata](#metadata)
+    - [LLM Integration](#llm-integration)
+    - [Portfolio & Resume](#portfolio--resume)
+    - [Project Analysis](#project-analysis)
+    - [Configuration, Utilites & Database](#configuration-utilities--database)
+4. [Test Results Screenshots](#test-results-screenshots)
 
 ---
 
@@ -96,7 +103,7 @@ The suite covers four levels of testing: **unit** (isolated functions and compon
 | Rendering | Heading, subtext, and progress bar |
 | Completion | `onComplete` callback fired when progress reaches 100% |
 
-### commitHeatmap.test.tsx *(open PR)*
+### commitHeatmap.test.tsx
 | Area | What is tested |
 |---|---|
 | Rendering | Header, commit count, toggle buttons, and Less/More legend |
@@ -254,21 +261,4 @@ Three complete end-to-end workflows using a `make_new_analysis()` helper:
 
 ---
 
-## Coverage Summary
-
-| Area | Test Files |
-|---|---|
-| Frontend pages | 9 |
-| API endpoints | 4 |
-| File processing | 7 |
-| Text & code analysis | 5 |
-| Metadata | 3 |
-| LLM & prompts | 4 |
-| Portfolio & resume | 6 |
-| Project analysis | 2 |
-| Configuration, utilities & database | 7 |
-| **Total** | **47** |
-
----
-
-## Test Results & Screenshots
+## Test Results Screenshots
