@@ -1,6 +1,7 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import "@testing-library/jest-dom";
+import { MemoryRouter } from "react-router-dom";
 import DevPortfolio from "../src/pages/Portfolio";
 
 // ─── MOCK DATA ───────────────────────────────────────────────────────────────
@@ -43,7 +44,7 @@ const mockApiResponse = {
         frameworks_summary: { top_frameworks: [] },
       },
     ],
-    growth_metrics: null,
+    growth_metrics: null as any,
   },
 };
 
@@ -81,7 +82,7 @@ function mockFetch(response = mockApiResponse) {
 
 async function renderLoaded(response = mockApiResponse, waitForText = "Jane Doe") {
   mockFetch(response);
-  render(<DevPortfolio portfolioId={1} />);
+  render(<MemoryRouter><DevPortfolio portfolioId={1} /></MemoryRouter>);
   await screen.findByText(waitForText);
 }
 
@@ -95,7 +96,7 @@ async function renderEditing() {
       projects_detail: [mockApiResponse.portfolio_data.projects_detail[0]],
     },
   });
-  render(<DevPortfolio portfolioId={1} />);
+  render(<MemoryRouter><DevPortfolio portfolioId={1} /></MemoryRouter>);
   await screen.findByText("Untitled Portfolio");
 }
 
@@ -256,13 +257,18 @@ describe("Portfolio — response variants", () => {
 
 // ─── EDIT: HEADER ────────────────────────────────────────────────────────────
 
-describe("Portfolio — edit header", () => {
+describe("Portfolio: edit header", () => {
   it("enters edit mode and saves new title", async () => {
     await renderEditing();
     fireEvent.click(screen.getByRole("button", { name: "Edit header" }));
-    fireEvent.change(screen.getByPlaceholderText("Enter Portfolio name"), { target: { value: "My Portfolio" } });
+
+    fireEvent.change(
+      screen.getByPlaceholderText("Enter Portfolio name"),
+      { target: { value: "My Portfolio" } }
+    );
+
     fireEvent.click(screen.getByRole("button", { name: "Save header" }));
-    expect(screen.getByText("My Portfolio")).toBeInTheDocument();
+    expect(await screen.findByText("My Portfolio")).toBeInTheDocument();
   });
 
   it("discards changes on cancel", async () => {
@@ -319,5 +325,139 @@ describe("Portfolio — edit projects", () => {
     fireEvent.change(screen.getByDisplayValue("my-cool-project"), { target: { value: "should-not-appear" } });
     fireEvent.click(screen.getByRole("button", { name: "Cancel project 0" }));
     expect(screen.queryByText("should-not-appear")).not.toBeInTheDocument();
+  });
+});
+
+// ─── PUBLIC / PRIVATE MODE ───────────────────────────────────────────────────
+
+describe("Portfolio — mode toggle", () => {
+  it("renders the Public button by default (private mode active)", async () => {
+    await renderLoaded();
+    expect(screen.getByTitle(/Switch to Public/i)).toBeInTheDocument();
+  });
+
+  it("switches to public mode and shows Private button", async () => {
+    await renderLoaded();
+    fireEvent.click(screen.getByTitle(/Switch to Public/i));
+    expect(screen.getByTitle(/Switch to Private/i)).toBeInTheDocument();
+  });
+
+  it("hides Edit buttons when in public mode", async () => {
+    await renderLoaded();
+    fireEvent.click(screen.getByTitle(/Switch to Public/i));
+    expect(screen.queryByRole("button", { name: /Edit header/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Edit languages/i })).not.toBeInTheDocument();
+  });
+
+  it("shows Edit buttons when back in private mode", async () => {
+    await renderLoaded();
+    fireEvent.click(screen.getByTitle(/Switch to Public/i));
+    fireEvent.click(screen.getByTitle(/Switch to Private/i));
+    expect(screen.getByRole("button", { name: /Edit header/i })).toBeInTheDocument();
+  });
+});
+
+// ─── PUBLIC MODE: SEARCH ─────────────────────────────────────────────────────
+
+describe("Portfolio — search (public mode)", () => {
+  async function goPublic() {
+    await renderLoaded();
+    fireEvent.click(screen.getByTitle(/Switch to Public/i));
+  }
+
+  it("filters project cards by name", async () => {
+    await goPublic();
+    fireEvent.change(
+      screen.getByPlaceholderText(/Search projects/i),
+      { target: { value: "my-cool-project" } }
+    );
+    expect(screen.getAllByText("my-cool-project").length).toBeGreaterThan(0);
+    // team-project-alpha should only exist as the filter chip, not as a card
+    const remaining = screen.getAllByText("team-project-alpha");
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0].closest("button")).toBeInTheDocument(); // it's the chip
+  });
+
+  it("filters language bars by name", async () => {
+    await goPublic();
+    fireEvent.change(
+      screen.getByPlaceholderText(/Search projects/i),
+      { target: { value: "Python" } }
+    );
+    expect(screen.getByText("Python")).toBeInTheDocument();
+    expect(screen.queryByText("JavaScript")).not.toBeInTheDocument();
+  });
+
+  it("shows empty state when no project matches the query", async () => {
+    await goPublic();
+    fireEvent.change(
+      screen.getByPlaceholderText(/Search projects/i),
+      { target: { value: "zzznomatch" } }
+    );
+    expect(screen.getByText(/No projects match your search/i)).toBeInTheDocument();
+  });
+
+  it("clears search query when switching back to private mode", async () => {
+    await goPublic();
+    fireEvent.change(
+      screen.getByPlaceholderText(/Search projects/i),
+      { target: { value: "my-cool-project" } }
+    );
+    fireEvent.click(screen.getByTitle(/Switch to Private/i));
+    // Both projects should be visible again
+    expect(screen.getByText("my-cool-project")).toBeInTheDocument();
+    expect(screen.getByText("team-project-alpha")).toBeInTheDocument();
+  });
+});
+
+// ─── PUBLIC MODE: FILTER CHIPS ────────────────────────────────────────────────
+
+describe("Portfolio — filter chips (public mode)", () => {
+  async function goPublic() {
+    await renderLoaded();
+    fireEvent.click(screen.getByTitle(/Switch to Public/i));
+  }
+
+  it("toggling a project chip hides that project card", async () => {
+    await goPublic();
+    // Target the chip button specifically
+    fireEvent.click(screen.getByRole("button", { name: /team-project-alpha/i }));
+    await waitFor(() => {
+      // The card should be gone; the chip (now deselected) still exists in the navbar
+      const matches = screen.getAllByText("team-project-alpha");
+      expect(matches).toHaveLength(1); // only the chip remains, not the card
+      expect(matches[0].closest("button")).toBeInTheDocument(); // it's the chip, not a card
+    });
+  });
+
+  it("toggling Language Proficiency chip hides the section", async () => {
+    await goPublic();
+    // Click the chip button specifically, not the section heading <p>
+    fireEvent.click(screen.getByRole("button", { name: /Language Proficiency/i }));
+    expect(screen.queryByText("JavaScript")).not.toBeInTheDocument();
+  });
+
+  it("toggling Growth & Evolution chip hides the section", async () => {
+    await renderLoaded({
+      ...mockApiResponse,
+      portfolio_data: {
+        ...mockApiResponse.portfolio_data,
+        growth_metrics: {
+          has_comparison: false,
+          earliest_project: "my-cool-project",
+          latest_project: "my-cool-project",
+          code_metrics: { commit_growth: 0, file_growth: 0, lines_growth: 0, user_lines_growth: 0 },
+          technology_metrics: { framework_growth: 0, earliest_frameworks: 0, latest_frameworks: 0 },
+          testing_evolution: { testing_status: "", coverage_improvement: 0, earliest_has_tests: false, latest_has_tests: false },
+          collaboration_evolution: { earliest_team_size: 3, latest_team_size: 3, earliest_level: "Top Contributor", latest_level: "Top Contributor", collaboration_summary: "" },
+          role_evolution: { earliest_role: "Lead Developer", latest_role: "Lead Developer", role_changed: false },
+          framework_timeline_list: [],
+        },
+      },
+    }, "Jane Doe");
+    fireEvent.click(screen.getByTitle(/Switch to Public/i));
+    fireEvent.click(screen.getByRole("button", { name: /Growth & Evolution/i }));
+    // GrowthMetrics section should no longer render
+    expect(screen.queryByText(/Moved from a smaller team/i)).not.toBeInTheDocument();
   });
 });

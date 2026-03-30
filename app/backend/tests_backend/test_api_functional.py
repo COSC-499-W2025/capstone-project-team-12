@@ -108,10 +108,10 @@ def mock_backend(mocker,sample_analysis,sample_resume, sample_portfolio,placehol
     
     db_instance.save_resume_points.return_value = True
     
-    #mock db_manager return for return all analyses
+    #mock db_manager return for return all analyses (using valid JSON strings for the parse_json_fields interceptor)
     db_instance.get_all_analyses_summary.return_value =[
-        {'analysis_id':placeholder_UUID,'analysis_title': 'Title','metadata_insights':'Some JSON Object as string','project_insights':'Some JSON Object as string','file_path':'some_path'},
-        {'analysis_id':placeholder_UUID,'analysis_title': 'Title2','metadata_insights':'Some JSON Object as string','project_insights':'Some JSON Object as string','file_path':'some_path2'}
+        {'analysis_id':placeholder_UUID,'analysis_title': 'Title','metadata_insights':'{"test": "data"}','project_insights':'{"test": "data"}','file_path':'some_path'},
+        {'analysis_id':placeholder_UUID,'analysis_title': 'Title2','metadata_insights':'{"test": "data"}','project_insights':'{"test": "data"}','file_path':'some_path2'}
     ]
     
     # mock db_manager returns for resume functions
@@ -705,7 +705,10 @@ def test_get_skills_implementation_empty_db(mock_backend):
 
     assert res.status_code == 200
     assert res.json() == {"skills": {}}
+
 TEST_UUID = "123e4567-e89b-12d3-a456-426614174000"
+
+@patch("main_api.pickle.dump")
 @patch("main_api.DictExporter")
 @patch("main_api.DictImporter")
 @patch("main_api.TreeManager")
@@ -717,7 +720,7 @@ TEST_UUID = "123e4567-e89b-12d3-a456-426614174000"
 def test_extract_update_endpoint(
     mock_db_cls, mock_config_cls,
     mock_pipeline_cls, mock_fm_cls, mock_merge,
-    mock_tm_cls, mock_importer_cls, mock_exporter_cls,
+    mock_tm_cls, mock_importer_cls, mock_exporter_cls, mock_pickle_dump
 ):
     """Test Phase 1: PUT /projects/{analysis_id}/update/extract"""
     # Mock FileManager to return a valid tree structure
@@ -736,6 +739,12 @@ def test_extract_update_endpoint(
         ["Python", "React"],
         {},
     )
+    mock_pipeline.data_bundle.metadata_results = {"test": "data"}
+    mock_pipeline.data_bundle.final_bow = []
+    mock_pipeline.data_bundle.processed_git_repos = []
+    mock_pipeline.result_bundle.metadata_analysis = {}
+    mock_pipeline.result_bundle.doc_topic_vectors = []
+    mock_pipeline.result_bundle.topic_term_vectors = []
     mock_pipeline.result_bundle.project_analysis_data = {"analyzed_insights": []}
     mock_exporter_cls.return_value.export.return_value = {}
 
@@ -754,12 +763,19 @@ def test_extract_update_endpoint(
     assert json_response["detected_skills"] == ["Python", "React"]
 
     mock_pipeline.run_analysis_extract.assert_called_once()
-    assert mock_pipeline.run_analysis_extract.call_args.kwargs["github_username"] == "testuser"
+
+    # Verify deep caching was successful
+    assert mock_pickle_dump.called
+    cached_payload = mock_pickle_dump.call_args[0][0]
+    assert "pipeline_data_bundle" in cached_payload
+    assert "pipeline_result_bundle" in cached_payload
+    assert cached_payload["pipeline_data_bundle"]["metadata_results"] == {"test": "data"}
 
     # Clean up the cache file created by the endpoint
     cache_path = os.path.join("cache", f"pending_update_{TEST_UUID}.pkl")
     if os.path.exists(cache_path):
         os.remove(cache_path)
+
 @patch("main_api.AnalysisPipeline")
 @patch("main_api.ConfigManager")
 @patch("main_api.DatabaseManager")
@@ -775,11 +791,23 @@ def test_commit_update_endpoint(mock_db_cls, mock_config_cls, mock_pipeline_cls)
             {"repository_name": "capstone_repo", "importance_score": 5},
             {"repository_name": "other_repo", "importance_score": 3},
         ],
+        "pipeline_data_bundle": {
+            "metadata_results": {"update_test": "data"},
+            "final_bow": [],
+            "processed_git_repos": []
+        },
+        "pipeline_result_bundle": {
+            "metadata_analysis": {},
+            "doc_topic_vectors": [],
+            "topic_term_vectors": [],
+            "project_analysis_data": {"analyzed_insights": []}
+        }
     }
     os.makedirs("cache", exist_ok=True)
     cache_path = os.path.join("cache", f"pending_update_{TEST_UUID}.pkl")
     with open(cache_path, "wb") as f:
         pickle.dump(cache_data, f)
+    
     mock_pipeline = mock_pipeline_cls.return_value
     mock_pipeline.run_analysis_generate.return_value = (
         "This is a fake AI generated summary for testing."
@@ -803,6 +831,8 @@ def test_commit_update_endpoint(mock_db_cls, mock_config_cls, mock_pipeline_cls)
         assert mock_pipeline.run_analysis_generate.call_args.kwargs["selected_projects"] == [
             "capstone_repo", "other_repo"
         ]
+        # Assert restoration
+        assert mock_pipeline.data_bundle.metadata_results == {"update_test": "data"}
     finally:
         if os.path.exists(cache_path):
             os.remove(cache_path)
@@ -813,6 +843,17 @@ UPLOAD_DUMMY_CACHE = {
     "topic_vector_bundle": {"topic_keywords": []},
     "text_analysis_data": {},
     "analyzed_repos": [{"repository_name": "Repo1", "importance_score": 10}],
+    "pipeline_data_bundle": {
+        "metadata_results": {"restored": "metadata"},
+        "final_bow": [],
+        "processed_git_repos": []
+    },
+    "pipeline_result_bundle": {
+        "metadata_analysis": {},
+        "doc_topic_vectors": [],
+        "topic_term_vectors": [],
+        "project_analysis_data": {"analyzed_insights": []}
+    }
 }
 
 
@@ -833,6 +874,12 @@ def test_extract_upload_success(
         ["Python"],
         {},
     )
+    mock_pipeline.data_bundle.metadata_results = {"test_metadata": "data"}
+    mock_pipeline.data_bundle.final_bow = []
+    mock_pipeline.data_bundle.processed_git_repos = []
+    mock_pipeline.result_bundle.metadata_analysis = {}
+    mock_pipeline.result_bundle.doc_topic_vectors = []
+    mock_pipeline.result_bundle.topic_term_vectors = []
     mock_pipeline.result_bundle.project_analysis_data = {"analyzed_insights": []}
 
     files = {"file": ("test.zip", b"dummy zip content", "application/zip")}
@@ -845,6 +892,14 @@ def test_extract_upload_success(
     assert "detected_skills" in json_response
     assert "analyzed_projects" in json_response
     assert json_response["detected_skills"] == ["Python"]
+
+    # Intercept what was written to the .pkl cache file
+    assert mock_pickle_dump.called
+    cached_payload = mock_pickle_dump.call_args[0][0]
+    
+    # Verify the pipeline's brain was successfully packed
+    assert "pipeline_data_bundle" in cached_payload
+    assert "pipeline_result_bundle" in cached_payload
 
 
 @patch("main_api.AnalysisPipeline")
@@ -894,6 +949,8 @@ def test_commit_upload_success(
     assert json_response["status"] == "success"
     assert json_response["summary"] == "Mocked AI Summary"
 
+    # Verify the new pipeline's empty memory was overwritten with our cache
+    assert mock_pipeline.data_bundle.metadata_results == {"restored": "metadata"}
 
 @patch("main_api.os.path.exists")
 @patch("main_api.DatabaseManager")

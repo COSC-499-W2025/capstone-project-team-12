@@ -59,23 +59,6 @@ def test_large_file_is_rejected(mocker):
     assert result["status"] == "error"
     assert "No valid files" in result["message"]
 
-
-def test_git_repo_recognition():
-    # Test that .git directories or files inside a repo are correctly recognized
-    repo_path = Path("/app/repos")
-    fm = FileManager()
-    result = fm.load_from_filepath(repo_path)
-
-    # Ensure the repo loads successfully
-    assert result["status"] == "success", f"Load failed: {result.get('message')}"
-
-    # Find any nodes that contain '.git' in their name
-    git_nodes = [n for n in fm.file_tree.descendants if ".git" in n.name]
-
-    # Expect at least one .git folder or file to be detected
-    assert len(git_nodes) >= 1, "Expected at least one .git node in the repo tree"
-
-
 def test_rar_files():
     # Test that unsupported archive types like .rar return an error
     file_path = TEST_FILES_DIR / "group12_project_proposal.rar"

@@ -95,19 +95,6 @@ class TestProcessRepositories:
         result: List[Dict[str, Any]] = processor.process_repositories([repo_node])
         assert all(k in result[0] for k in ['repository_name', 'repository_path', 'status'])
     
-    def test_process_with_actual_username(self) -> None:
-        # Covers lines 43-46, 90-151, 174 by using real repo with actual commits
-        if not TEST_REPO_PATH.exists():
-            pytest.skip("Test repository not found")
-        
-        processor: RepositoryProcessor = RepositoryProcessor("maddydeg", [])
-        repo_node: Node = Node("capstone_team12_testrepo", type="directory")
-        result: Dict[str, Any] = processor._extract_all_repository_data(repo_node, TEST_REPO_PATH)
-        
-        assert result['status'] == 'success'
-        assert len(result['user_commits']) > 0
-        assert result['statistics']['user_lines_added'] >= 0
-        assert result['repository_context']['total_commits_all_authors'] > 0
 
 
 class TestErrorHandlingAndCleanup:

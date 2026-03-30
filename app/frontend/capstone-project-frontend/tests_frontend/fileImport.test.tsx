@@ -139,6 +139,39 @@ describe("FileImport", () => {
     expect(screen.queryByText("remove-me.txt")).not.toBeInTheDocument();
   });
 
-  
-});
+  it("does not call onComplete when the backend upload fails (e.g. 500 error)", async () => {
+    // Suppress console.error for this specific test so the test output stays clean
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
+    // Mock a backend failure
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      text: () => Promise.resolve(JSON.stringify({ detail: "Internal Server Error" })),
+    });
+
+    const { onComplete } = setupStateful();
+    
+    // Add a file so the confirm button is enabled
+    const dropZone = screen.getByText("Drag & drop files or folders here").closest("div[class*='border-dashed']")!;
+    fireEvent.click(dropZone);
+    const fileInput = document.querySelector('input[type="file"]:not([webkitdirectory])') as HTMLInputElement;
+    const file = new File(["data"], "test.txt", { type: "text/plain" });
+    Object.defineProperty(fileInput, "files", { value: [file] });
+    fireEvent.change(fileInput);
+
+    // Trigger the upload
+    const btn = screen.getByRole("button", { name: /confirm & continue/i });
+    fireEvent.click(btn);
+
+    // Wait for the fetch to resolve
+    await waitFor(() => {
+      expect(globalThis.fetch).toHaveBeenCalled();
+    });
+
+    // Ensure the app caught the error and prevented advancement to the next page
+    expect(onComplete).not.toHaveBeenCalled();
+
+    consoleSpy.mockRestore();
+  });
+});
