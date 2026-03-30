@@ -4,6 +4,7 @@
 - Failed to load analysis toast when there are none done.
 - When a user manually edits the number of lines in a project for a portfolio, some of the metrics do not get recalculated automatically. 
 - If a project’s end date is towards the end of the month, the starting labels of the heatmap will overlap as the column space the first month requires is less than the length of the label itself 
+- When an analysis is aborted midway through we cleanup the pending analysis file, but is still visible on the dashboard
 
 ### Future Suggestions:
 - Include project stats in data sent to the LLM to add further context to generated summarys 
