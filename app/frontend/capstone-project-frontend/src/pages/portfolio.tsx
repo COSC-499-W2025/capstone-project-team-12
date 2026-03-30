@@ -866,8 +866,6 @@ export default function DevPortfolio({
         {data.growthMetrics && (!isPublic || filters.showSkillsTimeline || filters.showGrowth) && (
           <GrowthMetrics
             g={data.growthMetrics}
-            earliestProject={data.growthMetrics.earliest_project}
-            latestProject={data.growthMetrics.latest_project}
             showSkillsTimeline={!isPublic || filters.showSkillsTimeline}
             showGrowth={!isPublic || filters.showGrowth}
           />

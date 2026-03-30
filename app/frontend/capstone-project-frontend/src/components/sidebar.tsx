@@ -3,10 +3,9 @@ import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Modal } from './modals';
 
-const Sidebar = ( {onDashboard, isCollapsed: = false } : {onDashboard?: () => void; isCollapsed?: boolean; } ) => {
+const Sidebar = ( {onDashboard, isCollapsed = false } : {onDashboard?: () => void; isCollapsed?: boolean; } ) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const Maps = navigate;
   const [showLeaveModal, setShowLeaveModal] = useState(false);
 
   const getCurrentStepFromPath = (pathname: string): number => {
@@ -232,10 +231,10 @@ const Sidebar = ( {onDashboard, isCollapsed: = false } : {onDashboard?: () => vo
       {/* Divider */}
       <div style={{ height: "1px", background: "rgba(255,255,255,0.06)", margin: "0 12px" }} />
 
-      {/* My Dashboard button */}
+      {/* Return to Dashboard button */}
       <div style={{ padding: "12px", display: "flex", justifyContent: isCollapsed ? "center" : "flex-start" }}>
         <button
-          title={isCollapsed ? "My Dashboard" : undefined}
+          title={isCollapsed ? "Return to Dashboard" : undefined}
           style={{
             display: "flex",
             alignItems: "center",
@@ -252,25 +251,7 @@ const Sidebar = ( {onDashboard, isCollapsed: = false } : {onDashboard?: () => vo
           }}
           onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
           onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-          onClick={onDashboard}
-      {/* My Analyses button */}
-      <div style={{ padding: "12px" }}>
-        <button style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "10px",
-          width: "100%",
-          padding: "10px 12px",
-          borderRadius: "8px",
-          border: "none",
-          cursor: "pointer",
-          background: "transparent",
-          transition: "background 0.15s ease",
-          color: "rgba(255,255,255,0.5)",
-        }}
-        onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
-        onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-        onClick={() => setShowLeaveModal(true)}
+          onClick={() => setShowLeaveModal(true)}
         >
           <div style={{
             width: "28px",
@@ -284,7 +265,7 @@ const Sidebar = ( {onDashboard, isCollapsed: = false } : {onDashboard?: () => vo
           }}>
             <svg width="14" height="14" fill="none" stroke="rgba(255,255,255,0.55)" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74" />
             </svg>
           </div>
 
@@ -299,9 +280,8 @@ const Sidebar = ( {onDashboard, isCollapsed: = false } : {onDashboard?: () => vo
             transition: "opacity 0.2s ease, width 0.25s ease",
             pointerEvents: "none",
           }}>
-            My Dashboard
+            Return to Dashboard
           </span>
-          <span style={{ fontSize: "13px", fontWeight: "500", color: "white" }}>Return to dashboard</span>
         </button>
       </div>
 
@@ -314,7 +294,7 @@ const Sidebar = ( {onDashboard, isCollapsed: = false } : {onDashboard?: () => vo
           onCancel={() => setShowLeaveModal(false)}
           onConfirm={() => {
             setShowLeaveModal(false);
-            Maps('/dashboard');
+            onDashboard?.();
           }}
         />,
         document.body

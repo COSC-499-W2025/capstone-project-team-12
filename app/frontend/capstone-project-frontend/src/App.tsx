@@ -85,154 +85,18 @@ function PipelineImportPage() {
   );
 }
 
-function App() {
-  const [currentStep, setCurrentStep] = useState(1);
-  const [showDashboard, setShowDashboard] = useState(false);
-  const [onboardingData, setOnboardingData] = useState<OnboardingData | null>(null);
-  const [uploads, setUploads] = useState<UploadEntry[]>([]);
-  const [analysisMode, setAnalysisMode] = useState<'setup' | 'new-analysis'>('setup');
-  const [activeAnalysisId, setActiveAnalysisId] = useState<string | null>(null);
-  const [viewResumeId, setViewResumeId] = useState<number | null>(null);
-  const [viewPortfolioId, setViewPortfolioId] = useState<number | null>(null);
-  const [viewInsightsAnalysisId, setViewInsightsAnalysisId] = useState<string | null>(null);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+function PipelineProgressPage() {
+  const navigate = useNavigate();
+  return <ProgressPage onComplete={() => navigate('/analysis/new/finetune')} />;
+}
 
-  // --- Global States for Persistence & API ---
-  const [extractedData, setExtractedData] = useState<any>(null);
-  const [finetuneState, setFinetuneState] = useState<any>(null);
-  const [resumeLocation, setResumeLocation] = useState<string | null>(null);
-  const [portfolioLocation, setPortfolioLocation] = useState<string | null>(null);
-
-  const handleViewInsights = (analysisId: string) => {
-    setViewInsightsAnalysisId(analysisId);
-    setShowDashboard(false);
-    setCurrentStep(4);
-  };
-
-  const handleViewPortfolio = (portfolioId: number) => {
-    setViewPortfolioId(portfolioId);
-    setShowDashboard(false);
-    setCurrentStep(6); 
-  };
-  
-  const handleViewResume = (resumeId: number) => {
-    setViewResumeId(resumeId);
-    setShowDashboard(false);
-    setCurrentStep(5); 
-  };
-
-
-  const handleNewAnalysis = () => {
-    setShowDashboard(false);
-    setAnalysisMode('new-analysis');
-    setCurrentStep(1);
-  };
-
-
-  const handleIncremental = (analysisId: string) => {
-    setActiveAnalysisId(analysisId);
-    setShowDashboard(false);
-    setCurrentStep(2); // skip onboarding and go straight to FileImport
-  };
-  
-  
-  function PipelineProgressPage() {
-    const navigate = useNavigate();
-    return <ProgressPage onComplete={() => navigate('/analysis/new/finetune')} />;
-  }
-
-  function PipelineFinetunePage() {
-    const navigate = useNavigate();
-    const {
-      extractedData, finetuneState,setFinetuneState, activeAnalysisId, onboardingData, setResumeLocation, setPortfolioLocation, setViewResumeId, setViewPortfolioId, setViewInsightsAnalysisId,
-    } = useAnalysisPipeline();
+function PipelineFinetunePage() {
+  const navigate = useNavigate();
+  const {
+    extractedData, finetuneState, setFinetuneState, activeAnalysisId, onboardingData, setResumeLocation, setPortfolioLocation, setViewResumeId, setViewPortfolioId, setViewInsightsAnalysisId,
+  } = useAnalysisPipeline();
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#f0f2f8' }}>
-      <Sidebar currentStep={currentStep} onStepChange={(step) => { setShowDashboard(false); setCurrentStep(step); }} onDashboard={() => setShowDashboard(true)}   isCollapsed={sidebarCollapsed} />
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        {showDashboard ? (
-          <Dashboard 
-            onNewAnalysis={handleNewAnalysis} 
-            onIncremental={handleIncremental} 
-            onViewResume={handleViewResume} 
-            onViewPortfolio={handleViewPortfolio}
-            onViewInsights={handleViewInsights}
-          />) : (
-        <>
-          {currentStep === 1 && (
-          <Onboarding
-            initialData={onboardingData}
-            mode={analysisMode}
-            onComplete={(data) => { setOnboardingData(data); setCurrentStep(2); }}
-          />
-          )}
-            {currentStep === 2 && (
-              <FileImport
-                activeAnalysisId={activeAnalysisId}
-                onComplete={(data?: any) => { 
-                  if (data) setExtractedData(data);
-                  setCurrentStep(2.5); 
-                }}
-                model={onboardingData?.llmMode || 'online'}
-                uploads={uploads}
-                onUploadsChange={setUploads}
-              />
-            )}
-
-          {currentStep === 2.5 && <ProgressPage onComplete={() => setCurrentStep(3)} />}
-          
-          {currentStep === 3 && (
-            <FinetunePage 
-              extractedData={extractedData}
-              initialState={finetuneState}
-              activeAnalysisId={activeAnalysisId}
-              llmMode={onboardingData?.llmMode}
-              onBack={() => setCurrentStep(2.5)}
-              // Continuously sync state upwards so nothing is lost if user navigates away via sidebar
-              onStateChange={(state) => setFinetuneState(state)}
-              onComplete={(state, resLoc, portLoc, rId, pId) => {
-                setFinetuneState(state);
-                if (resLoc) setResumeLocation(resLoc);
-                if (portLoc) setPortfolioLocation(portLoc);
-                if (rId) setViewResumeId(rId);
-                if (pId) setViewPortfolioId(pId);
-                if (extractedData?.analysis_id) setViewInsightsAnalysisId(extractedData.analysis_id);
-                setCurrentStep(4);
-              }} 
-            />
-          )}
-
-          {currentStep === 4 && 
-            (<ProjectInsights 
-              onPrevious={() => setCurrentStep(3)} 
-              onComplete={() => setCurrentStep(5)} 
-              analysisId={viewInsightsAnalysisId}
-              /> 
-            )}
-          
-          {currentStep === 5 && (
-            <ResumeDisplay 
-              resumeId={viewResumeId}
-              onPrevious={() => setCurrentStep(4)} 
-              onComplete={() => setCurrentStep(6)} 
-            /> 
-          )}
-          
-          {currentStep === 6 && (
-            <Portfolio 
-              onPrevious={() => setCurrentStep(5)} 
-              onComplete={() => setShowDashboard(true)} 
-              portfolioId={viewPortfolioId} 
-              onSidebarCollapse={setSidebarCollapsed}
-            />
-          )}
-
-          {/* add other pages/components for other steps */}
-        </>      
-        )}
-      </main>
-    </div>
     <FinetunePage
       extractedData={extractedData}
       initialState={finetuneState}
