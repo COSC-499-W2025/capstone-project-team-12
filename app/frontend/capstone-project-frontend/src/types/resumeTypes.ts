@@ -47,11 +47,11 @@ export interface Resume {
     education: EducationEntry[];
     awards: AwardEntry[];
     work_experience: WorkEntry[];
-
-    // TODO: (for backend) we collect GitHub username and email in run_repo_analysis(), but we don't currently return it in the resume data. 
-    // We should add these fields here and return them from the backend, since they are important pieces of information to display in the resume.
     github_username?: string;
     user_email?: string;
+    phone?: string;
+    linkedin?: string;
+    full_name?: string;
 }
 
 

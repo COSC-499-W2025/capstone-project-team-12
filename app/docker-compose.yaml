@@ -34,6 +34,10 @@ services:
         target: /app/repos
         read_only: true
       - type: bind
+        source: ../utils/test_projects
+        target: /app/test_projects
+        read_only: true
+      - type: bind
         source: ./backend
         target: /app
     env_file:

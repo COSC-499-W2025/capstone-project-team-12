@@ -1,5 +1,6 @@
 import { type PortfolioData } from "../types/types";
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
+import { useNavigate, useParams } from 'react-router-dom';
 import ProjectCard from "../components/projectcard";
 import LangBar from "../components/langbar";
 import GrowthMetrics from "../components/growthMetrics";
@@ -129,17 +130,19 @@ const PORTFOLIO_DATA: PortfolioData = {
     ],
   },
 };
-
-// ─── API ──────────────────────────────────────────────────────────────────────
-const API_BASE = "http://localhost:8080";
+// --------- ENDPOINT ---------------
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
 async function fetchPortfolio(portfolioId: number): Promise<{ data: PortfolioData; raw: any }> {
   const res = await fetch(`${API_BASE}/portfolio/${portfolioId}`);
   if (!res.ok) throw new Error(`Failed to fetch portfolio: ${res.status} ${res.statusText}`);
   const json = await res.json();
-  const d = json.portfolio_data;
+
+  // Safe fallback if the backend returns a flat object instead of nested inside portfolio_data
+  const d = json.portfolio_data ?? json;
+
   const normalised: PortfolioData = {
-    title: json.portfolio_title ?? "",
+    title: json.portfolio_title ?? d.portfolio_title ?? "",
     coreCompetencies: d.skill_timeline?.high_level_skills ?? [],
     languages: (d.skill_timeline?.language_progression ?? []).map((l: any) => ({
       name: l.name, pct: l.percentage, files: l.file_count,
@@ -613,13 +616,21 @@ export default function DevPortfolio({
   onPrevious,
   portfolioId,
   onSidebarCollapse,
+  viewMode = 'pipeline'
 }: {
   onComplete?: () => void;
   onPrevious?: () => void;
   portfolioId?: number | null;
   /** Called whenever public mode changes so the parent can collapse/restore the sidebar */
   onSidebarCollapse?: (collapsed: boolean) => void;
+  viewMode?: 'pipeline' | 'standalone';
 }) {
+    
+  const navigate = useNavigate();
+  const params = useParams();
+  const routePortfolioId = params.id ? parseInt(params.id, 10) : null;
+  const resolvedPortfolioId = portfolioId ?? (Number.isNaN(routePortfolioId) ? null : routePortfolioId);
+
   const [data,       setData]       = useState<PortfolioData | null>(portfolioId == null ? PORTFOLIO_DATA : null);
   const [raw,        setRaw]        = useState<any>(null);
   const [loading,    setLoading]    = useState(portfolioId != null);
@@ -665,14 +676,21 @@ export default function DevPortfolio({
     onSidebarCollapse?.(next);
     if (!next) setSearchQuery(""); // clear search when returning to private
   }, [isPublic, onSidebarCollapse]);
+    
+  useEffect(() => {
+    if (resolvedPortfolioId == null) return;
+    fetchPortfolio(resolvedPortfolioId)
+      .then(({ data, raw }) => { setData(data); setRaw(raw); setLoading(false); })
+      .catch(e => { setError(e.message); setLoading(false); });
+  }, [resolvedPortfolioId]);
 
   const update = async (patch: Partial<PortfolioData>) => {
     if (!data) return;
     const next = { ...data, ...patch };
     setData(next);
-    if (portfolioId == null) return;
+    if (resolvedPortfolioId == null) return;
     setSaving(true);
-    try   { await putPortfolio(portfolioId, next, raw); }
+    try   { await putPortfolio(resolvedPortfolioId, next, raw); }
     catch (e) { setError(e instanceof Error ? e.message : "Save failed"); }
     finally   { setSaving(false); }
   };
@@ -858,19 +876,27 @@ export default function DevPortfolio({
         {/* ── Navigation ── */}
         {!isPublic && (
         <div className="flex justify-between mt-8">
-          <button onClick={onPrevious} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 shadow-sm hover:bg-indigo-700 transition-all">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
-            Back
-          </button>
-          <button onClick={onComplete} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 shadow-sm hover:bg-indigo-700 transition-all">
-            Next
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
-          </button>
+          {viewMode === 'pipeline' ? (
+            <>
+              <button onClick={() => (onPrevious ? onPrevious() : navigate('/analysis/new/resume'))} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 shadow-sm hover:bg-indigo-700 transition-all">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
+                Back
+              </button>
+              <button onClick={() => (onComplete ? onComplete() : navigate('/dashboard'))} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 shadow-sm hover:bg-indigo-700 transition-all">
+                Next
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+              </button>
+            </>
+          ) : (
+            <button onClick={() => navigate('/dashboard')} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-400 shadow-sm hover:bg-indigo-700 transition-all">
+              Return to Dashboard
+            </button>
+          )}
         </div>
         )}
 
         <p className="text-center text-xs text-slate-300 mt-4">
-          {portfolioId ? "" : "Preview mode · connect a portfolio ID to load real data"} · Generated by Team12 · {new Date().getFullYear()}
+          {resolvedPortfolioId ? "" : "Preview mode · connect a portfolio ID to load real data"} · Generated by Team 12 · {new Date().getFullYear()}
         </p>
       </div>
     </div>

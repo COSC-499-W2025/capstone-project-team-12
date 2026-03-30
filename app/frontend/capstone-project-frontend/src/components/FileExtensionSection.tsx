@@ -3,22 +3,24 @@ import type { FileExtension } from "../types/insightTypes";
 
 const categoryColors: Record<string, string> = {
   "Documentation":  "bg-sky-100 text-sky-700",
-  "Mobile App Dev": "bg-violet-100 text-violet-700",
+  "Mobile App Development": "bg-violet-100 text-violet-700",
   "Other":          "bg-slate-100 text-slate-600",
   "Database":       "bg-amber-100 text-amber-700",
   "DevOps":         "bg-green-100 text-green-700",
-  "Frontend":       "bg-pink-100 text-pink-700",
-  "Styling":        "bg-rose-100 text-rose-700",
+  "Data Science":       "bg-pink-100 text-pink-700",
+  "Backend Development":        "bg-amber-100 text-amber-700",
+  "Web Development": "bg-orange-100 text-orange-700",
 };
 
 interface FileExtensionSectionProps {
   fileExtensions: FileExtension[];
+  notice?: string;
 }
 
-export default function FileExtensionSection({ fileExtensions }: FileExtensionSectionProps) {
+export default function FileExtensionSection({ fileExtensions, notice }: FileExtensionSectionProps) {
   const maxPct = Math.max(...fileExtensions.map((f) => f.percentage));
   return (
-    <SectionCard title="File Extension Statistics" icon="📁">
+    <SectionCard title="File Extension Statistics" icon="📁" notice={notice}>
       <div className="space-y-3">
         {fileExtensions.map((f) => (
           <div key={f.ext} className="flex items-center gap-3">

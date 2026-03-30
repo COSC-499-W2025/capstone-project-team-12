@@ -1,14 +1,34 @@
-const Sidebar = ({
-  currentStep = 1,
-  onStepChange,
-  onDashboard,
-  isCollapsed = false,
-}: {
-  currentStep?: number;
-  onStepChange?: (step: number) => void;
-  onDashboard?: () => void;
-  isCollapsed?: boolean;
-}) => {
+import { useState } from 'react';
+import { createPortal } from 'react-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Modal } from './modals';
+
+const Sidebar = ( {onDashboard, isCollapsed: = false } : {onDashboard?: () => void; isCollapsed?: boolean; } ) => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const Maps = navigate;
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
+
+  const getCurrentStepFromPath = (pathname: string): number => {
+    if (pathname.includes('/analysis/new/onboarding')) return 1;
+    if (pathname.includes('/analysis/new/import') || pathname.includes('/analysis/new/progress')) return 2;
+    if (pathname.includes('/analysis/new/finetune')) return 3;
+    if (pathname.includes('/analysis/new/insights')) return 4;
+    if (pathname.includes('/analysis/new/resume')) return 5;
+    if (pathname.includes('/analysis/new/portfolio')) return 6;
+    return 1;
+  };
+
+  const currentStep = getCurrentStepFromPath(location.pathname);
+
+  const stepToRoute: Record<number, string> = {
+    1: '/analysis/new/onboarding',
+    2: '/analysis/new/import',
+    3: '/analysis/new/finetune',
+    4: '/analysis/new/insights',
+    5: '/analysis/new/resume',
+    6: '/analysis/new/portfolio',
+  };
   const steps = [
     { id: 1, label: "Onboarding" },
     { id: 2, label: "File Selection" },
@@ -122,8 +142,8 @@ const Sidebar = ({
           return (
             <button
               key={step.id}
-              onClick={() => onStepChange?.(step.id)}
               title={isCollapsed ? step.label : undefined}
+              onClick={() => navigate(stepToRoute[step.id])}
               style={{
                 width: "100%",
                 textAlign: "left",
@@ -233,6 +253,24 @@ const Sidebar = ({
           onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
           onMouseLeave={e => e.currentTarget.style.background = "transparent"}
           onClick={onDashboard}
+      {/* My Analyses button */}
+      <div style={{ padding: "12px" }}>
+        <button style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+          width: "100%",
+          padding: "10px 12px",
+          borderRadius: "8px",
+          border: "none",
+          cursor: "pointer",
+          background: "transparent",
+          transition: "background 0.15s ease",
+          color: "rgba(255,255,255,0.5)",
+        }}
+        onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+        onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+        onClick={() => setShowLeaveModal(true)}
         >
           <div style={{
             width: "28px",
@@ -263,8 +301,24 @@ const Sidebar = ({
           }}>
             My Dashboard
           </span>
+          <span style={{ fontSize: "13px", fontWeight: "500", color: "white" }}>Return to dashboard</span>
         </button>
       </div>
+
+      {showLeaveModal && createPortal(
+        <Modal
+          title="Leave Analysis?"
+          description="Are you sure you want to return to the dashboard? Your current analysis progress will be lost and cannot be recovered."
+          confirmLabel="Leave Analysis"
+          confirmColor="red"
+          onCancel={() => setShowLeaveModal(false)}
+          onConfirm={() => {
+            setShowLeaveModal(false);
+            Maps('/dashboard');
+          }}
+        />,
+        document.body
+      )}
     </div>
   );
 };

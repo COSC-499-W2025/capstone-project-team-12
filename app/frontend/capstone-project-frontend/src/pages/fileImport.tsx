@@ -1,6 +1,8 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import JSZip from "jszip";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+
 export interface UploadEntry {
   name: string;
   isDirectory: boolean;
@@ -16,8 +18,8 @@ interface FileImportProps {
   onUploadsChange: (uploads: UploadEntry[]) => void;
 }
 
-/** Recursively read all File objects from a FileSystemDirectoryEntry. */
-function readAllEntries(dirEntry: FileSystemDirectoryEntry): Promise<File[]> {
+/** Recursively read all File objects from a FileSystemDirectoryEntry, preserving paths. */
+function readAllEntries(dirEntry: FileSystemDirectoryEntry, pathPrefix: string = ""): Promise<File[]> {
   return new Promise((resolve) => {
     const reader = dirEntry.createReader();
     const allFiles: File[] = [];
@@ -29,13 +31,20 @@ function readAllEntries(dirEntry: FileSystemDirectoryEntry): Promise<File[]> {
           return;
         }
         for (const entry of entries) {
+          // Construct the relative path to maintain directory structure
+          const currentPath = pathPrefix + entry.name;
+          
           if (entry.isFile) {
             const file = await new Promise<File>((res) =>
               (entry as FileSystemFileEntry).file(res)
             );
+            
+            // Attach our manually tracked path to the File object
+            Object.defineProperty(file, 'customPath', { value: currentPath });
             allFiles.push(file);
+            
           } else if (entry.isDirectory) {
-            const nested = await readAllEntries(entry as FileSystemDirectoryEntry);
+            const nested = await readAllEntries(entry as FileSystemDirectoryEntry, currentPath + "/");
             allFiles.push(...nested);
           }
         }
@@ -82,7 +91,8 @@ const FileImport: React.FC<FileImportProps> = ({ activeAnalysisId, onComplete, m
 
       const entry = items[0].webkitGetAsEntry?.();
       if (entry?.isDirectory) {
-        const files = await readAllEntries(entry as FileSystemDirectoryEntry);
+        // Start recursive read with the root folder name as the base path
+        const files = await readAllEntries(entry as FileSystemDirectoryEntry, entry.name + "/");
         addUpload(entry.name, files, true);
       } else {
         const dropped = e.dataTransfer.files[0];
@@ -141,7 +151,8 @@ const FileImport: React.FC<FileImportProps> = ({ activeAnalysisId, onComplete, m
     const zip = new JSZip();
     const allFiles = uploads.flatMap((entry) => entry.files);
     for (const file of allFiles) {
-      const path = file.webkitRelativePath || file.name;
+      // Prioritize our customPath from drag&drop, fallback to standard inputs or pure filename
+      const path = (file as any).customPath || file.webkitRelativePath || file.name;
       zip.file(path, file);
     }
     const blob = await zip.generateAsync({ type: "blob" });
@@ -158,11 +169,11 @@ const FileImport: React.FC<FileImportProps> = ({ activeAnalysisId, onComplete, m
       const formData = new FormData();
       formData.append('file', zipped);
 
-      console.log('[UPLOAD] Sending POST http://localhost:8080/projects/upload/extract ...');
+      console.log('[UPLOAD] Sending extraction request ...');
       const fetchStart = performance.now();
 
       // url depends on whether this is an incremental or new analysis
-      const url = activeAnalysisId ? `http://localhost:8080/projects/${activeAnalysisId}/update/extract` : `http://localhost:8080/projects/upload/extract`;
+      const url = activeAnalysisId ? `${API_BASE}/projects/${activeAnalysisId}/update/extract` : `${API_BASE}/projects/upload/extract`;
 
 
       const response = await fetch(url, {
@@ -188,7 +199,6 @@ const FileImport: React.FC<FileImportProps> = ({ activeAnalysisId, onComplete, m
         return;
       }
 
-      // UPDATED: Passing the data variable into onComplete so App.tsx can save it
       onComplete(data);
     } catch (error) {
       console.error('[UPLOAD] Upload error:', error);
@@ -259,9 +269,12 @@ const FileImport: React.FC<FileImportProps> = ({ activeAnalysisId, onComplete, m
             <p className="text-sm font-semibold text-[#0f1629]">
               Drag & drop files or folders here
             </p>
-            <p className="text-xs text-[#9ca3af] mt-1">
+            <p className="text-xs text-[#9ca3af] mt-1 mb-1">
               or click to <span className="text-[#6378ff] font-semibold">browse</span>
             </p>
+             {/* <p className="text-[10.5px] text-amber-600/80 font-bold max-w-[280px] mx-auto mt-2 leading-tight">
+                Uploading a repository? Please upload it as a .zip file. Browsers strip hidden .git folders from folder uploads.
+              </p> */}
           </div>
 
           {/* Picker popover */}

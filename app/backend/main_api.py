@@ -161,11 +161,22 @@ async def extract_upload(
             else []
         )
 
-        # Cache heavy state for Phase 2 (commit)
+        # UPDATED: Cache the ENTIRE state for Phase 2 (commit) to prevent empty DB saves
         cache_data = {
             "topic_vector_bundle": topic_vector_bundle,
             "text_analysis_data": text_analysis_data,
             "analyzed_repos": analyzed_repos,
+            "pipeline_data_bundle": {
+                "metadata_results": pipeline.data_bundle.metadata_results,
+                "final_bow": pipeline.data_bundle.final_bow,
+                "processed_git_repos": pipeline.data_bundle.processed_git_repos,
+            },
+            "pipeline_result_bundle": {
+                "metadata_analysis": pipeline.result_bundle.metadata_analysis,
+                "doc_topic_vectors": pipeline.result_bundle.doc_topic_vectors,
+                "topic_term_vectors": pipeline.result_bundle.topic_term_vectors,
+                "project_analysis_data": pipeline.result_bundle.project_analysis_data,
+            }
         }
 
         os.makedirs("cache", exist_ok=True)
@@ -230,7 +241,7 @@ async def commit_upload(
         config = ConfigManager()
         config.save_prefs({"online_llm_consent": request.online_llm_consent})
 
-        #rReconstruct topic_vector_bundle with user edits
+        # Reconstruct topic_vector_bundle with user edits
         topic_vector_bundle = cached_data["topic_vector_bundle"]
         topic_vector_bundle["topic_keywords"] = [
             {"topic_id": tk.topic_id, "keywords": tk.keywords}
@@ -238,22 +249,21 @@ async def commit_upload(
         ]
         topic_vector_bundle["user_highlights"] = request.user_highlights
 
-        # Filter / order analyzed repos to match user selection
-        cached_repos = cached_data.get("analyzed_repos", [])
-        repo_lookup = {
-            repo.get("repository_name", repo.get("name", "")): repo
-            for repo in cached_repos
-        }
-        filtered_repos = [
-            repo_lookup[name]
-            for name in request.selected_projects
-            if name in repo_lookup
-        ]
-        cached_data["analyzed_repos"] = filtered_repos
-
         # Phase 2: generate AI summary and save results
-        #db.save_fileset not called here because run_analysis_extract already saved the fileset during Phase 1.
         pipeline = AnalysisPipeline(ConfigManager(), db)
+        
+        # UPDATED: Restore full pipeline state from cache so DB saves don't overwrite with {}
+        if "pipeline_data_bundle" in cached_data:
+            pipeline.data_bundle.metadata_results = cached_data["pipeline_data_bundle"].get("metadata_results", [])
+            pipeline.data_bundle.final_bow = cached_data["pipeline_data_bundle"].get("final_bow", [])
+            pipeline.data_bundle.processed_git_repos = cached_data["pipeline_data_bundle"].get("processed_git_repos", [])
+            
+        if "pipeline_result_bundle" in cached_data:
+            pipeline.result_bundle.metadata_analysis = cached_data["pipeline_result_bundle"].get("metadata_analysis", {})
+            pipeline.result_bundle.doc_topic_vectors = cached_data["pipeline_result_bundle"].get("doc_topic_vectors", [])
+            pipeline.result_bundle.topic_term_vectors = cached_data["pipeline_result_bundle"].get("topic_term_vectors", [])
+            pipeline.result_bundle.project_analysis_data = cached_data["pipeline_result_bundle"].get("project_analysis_data", {})
+
         summary = pipeline.run_analysis_generate(
             analysis_id=analysis_id,
             topic_vector_bundle=topic_vector_bundle,
@@ -749,13 +759,24 @@ async def extract_update(
             else []
         )
 
-        # Cache the heavy state for Phase 2
+        # UPDATED: Cache the ENTIRE state for Phase 2 (commit)
         cache_data = {
             "merged_tree_dict": exporter.export(merged_tree),
             "merged_binary_list": merged_binary_list,
             "topic_vector_bundle": topic_vector_bundle,
             "text_analysis_data": text_analysis_data,
             "analyzed_repos": analyzed_repos,
+            "pipeline_data_bundle": {
+                "metadata_results": pipeline.data_bundle.metadata_results,
+                "final_bow": pipeline.data_bundle.final_bow,
+                "processed_git_repos": pipeline.data_bundle.processed_git_repos,
+            },
+            "pipeline_result_bundle": {
+                "metadata_analysis": pipeline.result_bundle.metadata_analysis,
+                "doc_topic_vectors": pipeline.result_bundle.doc_topic_vectors,
+                "topic_term_vectors": pipeline.result_bundle.topic_term_vectors,
+                "project_analysis_data": pipeline.result_bundle.project_analysis_data,
+            }
         }
 
         os.makedirs("cache", exist_ok=True)
@@ -826,19 +847,6 @@ async def commit_update(
         ]
         topic_vector_bundle["user_highlights"] = request.user_highlights
 
-        # Filter / order analyzed repos to match user selection
-        cached_repos = cached_data.get("analyzed_repos", [])
-        repo_lookup = {
-            repo.get("repository_name", repo.get("name", "")): repo
-            for repo in cached_repos
-        }
-        filtered_repos = [
-            repo_lookup[name]
-            for name in request.selected_projects
-            if name in repo_lookup
-        ]
-        cached_data["analyzed_repos"] = filtered_repos
-
         # Save merged files to DB
         db.save_fileset(
             analysis_id,
@@ -849,6 +857,19 @@ async def commit_update(
 
         # Phase 2: generate AI summary and save results
         pipeline = AnalysisPipeline(ConfigManager(), db)
+        
+        # UPDATED: Restore full pipeline state from cache so DB saves don't overwrite with {}
+        if "pipeline_data_bundle" in cached_data:
+            pipeline.data_bundle.metadata_results = cached_data["pipeline_data_bundle"].get("metadata_results", [])
+            pipeline.data_bundle.final_bow = cached_data["pipeline_data_bundle"].get("final_bow", [])
+            pipeline.data_bundle.processed_git_repos = cached_data["pipeline_data_bundle"].get("processed_git_repos", [])
+            
+        if "pipeline_result_bundle" in cached_data:
+            pipeline.result_bundle.metadata_analysis = cached_data["pipeline_result_bundle"].get("metadata_analysis", {})
+            pipeline.result_bundle.doc_topic_vectors = cached_data["pipeline_result_bundle"].get("doc_topic_vectors", [])
+            pipeline.result_bundle.topic_term_vectors = cached_data["pipeline_result_bundle"].get("topic_term_vectors", [])
+            pipeline.result_bundle.project_analysis_data = cached_data["pipeline_result_bundle"].get("project_analysis_data", {})
+
         summary = pipeline.run_analysis_generate(
             analysis_id=analysis_id,
             topic_vector_bundle=topic_vector_bundle,

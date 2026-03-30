@@ -1,4 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useAnalysisPipeline } from '../context/AnalysisPipelineContext';
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
 interface FinetunePageProps {
   extractedData?: any;
@@ -6,7 +9,6 @@ interface FinetunePageProps {
   activeAnalysisId?: string | null;
   llmMode?: 'online' | 'local';
   onBack?: () => void;
-  onStateChange?: (state: any) => void;
   onComplete: (state: any, resumeLocation: string | null, portfolioLocation: string | null, resumeId: number | null, portfolioId: number | null) => void;
 }
 
@@ -28,7 +30,8 @@ interface Skill {
   selected: boolean;
 }
 
-export default function FinetunePage({ extractedData, initialState, activeAnalysisId, llmMode, onComplete, onBack, onStateChange }: FinetunePageProps) {
+export default function FinetunePage({ extractedData, initialState, activeAnalysisId, llmMode, onComplete, onBack }: FinetunePageProps) {
+  const { setFinetuneState } = useAnalysisPipeline();
   // --- UI State ---
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [showProjectInfoModal, setShowProjectInfoModal] = useState(false);
@@ -177,14 +180,9 @@ export default function FinetunePage({ extractedData, initialState, activeAnalys
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const isMounted = useRef(false);
   useEffect(() => {
-    if (isMounted.current && onStateChange) {
-      onStateChange({ projects, topics, skills });
-    } else {
-      isMounted.current = true;
-    }
-  }, [projects, topics, skills, onStateChange]);
+    setFinetuneState({ projects, topics, skills });
+  }, [projects, topics, skills, setFinetuneState]);
 
   const handleSubmit = async () => {
     if (!extractedData?.analysis_id) {
@@ -210,11 +208,10 @@ export default function FinetunePage({ extractedData, initialState, activeAnalys
 
       console.log(`\n============== [FINETUNE API LOGS] ==============`);
       console.log(`[FINETUNE] 1. Calling commit endpoint for Analysis ID: ${analysisId}`);
-      console.log(`[FINETUNE] Commit Payload being sent:`, JSON.stringify(commitPayload, null, 2));
 
-      const commitUrl = activeAnalysisId 
-          ? `http://localhost:8080/projects/${analysisId}/update/commit`
-          : `http://localhost:8080/projects/${analysisId}/upload/commit`;
+        const commitUrl = activeAnalysisId
+          ? `${API_BASE}/projects/${analysisId}/update/commit`
+          : `${API_BASE}/projects/${analysisId}/upload/commit`;
 
       const commitRes = await fetch(commitUrl, {
         method: 'POST',
@@ -231,29 +228,43 @@ export default function FinetunePage({ extractedData, initialState, activeAnalys
 
       // 2. Generate Resume
       console.log(`\n[FINETUNE] 2. Calling Resume Generation Endpoint...`);
-      const resumeResp = await fetch(`http://localhost:8080/resume/generate/${analysisId}`, { method: 'POST' });
+      const resumeResp = await fetch(`${API_BASE}/resume/generate/${analysisId}`, { method: 'POST' });
       const resumeLocation = resumeResp.headers.get('location');
-      const resumeData = await resumeResp.json().catch(() => ({}));
-      console.log(`[FINETUNE] Resume Status:`, resumeResp.status);
-      console.log(`[FINETUNE] Resume Location Header:`, resumeLocation);
-      console.log(`[FINETUNE] Resume Body Data:`, resumeData);
+      
+      // Standardize extracting the ID from either the header or the JSON
+      let rId = null;
+      if (resumeLocation) {
+        rId = parseInt(resumeLocation.split('/').pop() || '', 10);
+      }
+      if (!rId || isNaN(rId)) {
+        const resumeData = await resumeResp.json().catch(() => ({}));
+        rId = resumeData?.resume_id || resumeData?.id || null;
+      }
+      console.log(`[FINETUNE] Resume Extracted ID: ${rId}`);
       
       // 3. Generate Portfolio
       console.log(`\n[FINETUNE] 3. Calling Portfolio Generation Endpoint...`);
-      const portResp = await fetch(`http://localhost:8080/portfolio/generate/${analysisId}`, { method: 'POST' });
+      const portResp = await fetch(`${API_BASE}/portfolio/generate/${analysisId}`, { method: 'POST' });
       const portLocation = portResp.headers.get('location');
-      const portData = await portResp.json().catch(() => ({}));
-      console.log(`[FINETUNE] Portfolio Status:`, portResp.status);
-      console.log(`[FINETUNE] Portfolio Location Header:`, portLocation);
-      console.log(`[FINETUNE] Portfolio Body Data:`, portData);
+      
+      // Standardize extracting the ID from either the header or the JSON
+      let pId = null;
+      if (portLocation) {
+        pId = parseInt(portLocation.split('/').pop() || '', 10);
+      }
+      if (!pId || isNaN(pId)) {
+        const portData = await portResp.json().catch(() => ({}));
+        pId = portData?.portfolio_id || portData?.id || null;
+      }
+      console.log(`[FINETUNE] Portfolio Extracted ID: ${pId}`);
       console.log(`=================================================\n`);
 
       onComplete(
         { projects, topics, skills },
         resumeLocation,
         portLocation,
-        resumeData?.resume_id || null,
-        portData?.portfolio_id || null
+        rId,
+        pId
       );
       
     } catch (err) {
@@ -358,12 +369,12 @@ export default function FinetunePage({ extractedData, initialState, activeAnalys
               <div>
                 <h2 className="text-lg font-bold text-[#0f1629] tracking-tight mb-1">Fine-tune Topics</h2>
                 <p className="text-xs text-[#9ca3af]">
-                  Edit the extracted topic vectors.{" "}
+                  Edit the extracted topic keywords.{" "}
                   <button 
                     onClick={() => setShowInfoModal(true)}
                     className="text-[#6378ff] hover:text-[#a78bfa] underline underline-offset-2 transition-colors border-none bg-transparent cursor-pointer font-semibold p-0"
                   >
-                    What are topic vectors?
+                    What are topic keywords?
                   </button>
                 </p>
               </div>
@@ -545,7 +556,7 @@ export default function FinetunePage({ extractedData, initialState, activeAnalys
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0f1629]/30 backdrop-blur-sm px-4">
           <div className="bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.15)] border border-[rgba(0,0,0,0.05)] w-full max-w-md p-7 relative">
             <h3 className="text-[20px] font-extrabold text-[#0f1629] tracking-tight mb-3">
-              What are Topic Vectors?
+              What are Topic Keywords?
             </h3>
             <div className="text-sm text-[#6b7280] leading-relaxed space-y-3 mb-7">
               <p>
