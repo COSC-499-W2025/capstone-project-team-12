@@ -123,14 +123,6 @@ export default function ProjectInsights({
   const [activeTab, setActiveTab] = useState<Tab>("overview");
 
   useEffect(() => {
-    if (analysisId == null) return;
-    // Directly fetch the specific analysis ID
-    fetch(`http://localhost:8080/projects/${analysisId}`)
-      .then(r => { if (!r.ok) throw new Error(`${r.status}`); return r.json(); })
-      .then((data: any) => {
-        // Safely extract regardless of whether backend returns array or exact object
-        const targetData = Array.isArray(data) ? (data.find(d => d.analysis_id === analysisId) || data[0]) : data;
-        const mapped = mapToProjects(targetData);
     if (resolvedAnalysisId == null) return;
     setLoading(true);
     fetch(`${API_BASE}/projects`)

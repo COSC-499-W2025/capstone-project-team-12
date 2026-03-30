@@ -26,11 +26,9 @@ function GrowthBadge({ value, label, sub }: { value: number; label: string; sub?
 
 export default function GrowthMetrics({
   g,
-  earliestProject,
-  latestProject,
   showSkillsTimeline = true,
   showGrowth = true,
-}: GrowthMetricsProps) {
+}: Omit<GrowthMetricsProps, 'earliestProject' | 'latestProject'>) {
   if (!g.has_comparison) return null;
   if (!showSkillsTimeline && !showGrowth) return null;
 
