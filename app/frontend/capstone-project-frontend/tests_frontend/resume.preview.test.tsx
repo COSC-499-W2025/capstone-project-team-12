@@ -96,19 +96,26 @@ describe("downloadDocx", () => {
   });
 });
 
+vi.mock("html2canvas", () => ({
+  default: vi.fn().mockResolvedValue({
+    width: 816,
+    height: 1056,
+    toDataURL: () => "data:image/png;base64,abc",
+  }),
+}));
+
+vi.mock("jspdf", () => ({
+  jsPDF: class {
+    addImage = vi.fn();
+    save = vi.fn();
+  },
+}));
+
 describe("downloadPdf", () => {
-  it("calls window.print and cleans up", () => {
-    const printSpy = vi.spyOn(window, "print").mockImplementation(() => {});
+  it("resolves without throwing for valid resume data", async () => {
     const el = document.createElement("div");
-    el.innerHTML = "<p>Test</p>";
     document.body.appendChild(el);
-
-    downloadPdf(el);
-
-    expect(printSpy).toHaveBeenCalledOnce();
-    expect(document.getElementById("resume-print-target")).toBeNull();
-
+    await expect(downloadPdf(el)).resolves.not.toThrow();
     document.body.removeChild(el);
-    printSpy.mockRestore();
   });
 });

@@ -6,7 +6,7 @@ import { AnalysisCard } from "../components/analysisCard";
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
 
-// Mapping function
+// UPDATED Mapping function
 
 function mapProject(
   p: RawProject,
@@ -16,25 +16,49 @@ function mapProject(
   // Extract repo names from project_insights if available
   let repos: string[] = [];
   try {
-    const insights = typeof p.project_insights === "string"
-      ? JSON.parse(p.project_insights)
-      : p.project_insights;
-    repos = (insights?.analyzed_insights ?? []).map(
-      (r: any) => r.repository_name ?? r.name ?? "Unknown"
-    );
-  } catch {}
+    
+    let insights = p.project_insights;
+
+    // 1. If it's a string, parse it
+    if (typeof insights === "string") {
+      try {
+        insights = JSON.parse(insights);
+      } catch (parseError) {
+        console.warn(`[DASHBOARD] Could not parse project_insights for ${p.analysis_id}`);
+        insights = {};
+      }
+    }
+
+    // 2. Ensure it's an object before attempting extraction
+    if (insights && typeof insights === "object") {
+      // It might be nested under 'analyzed_insights'
+      const insightList = Array.isArray(insights) 
+        ? insights 
+        : (insights.analyzed_insights || []);
+
+      // Extract repo names robustly
+      repos = insightList.map((r: any) => 
+        r.repository_name || r.name || r.repoName || "Unknown Project"
+      );
+    }
+  } catch (err) {
+    console.error(`[DASHBOARD] Unexpected error mapping repos for ${p.analysis_id}:`, err);
+  }
+
+  // Deduplicate repo names just in case
+  repos = Array.from(new Set(repos));
 
   return {
     id: p.analysis_id,
-    label: p.analysis_title ?? p.analysis_id,
-    createdAt: p.creation_date?.slice(0, 10) ?? "",
+    label: p.analysis_title || p.analysis_id,
+    createdAt: p.creation_date?.slice(0, 10) || new Date().toISOString().slice(0, 10),
     repos,
     resumeIds: resumes.map(r => r.resume_id),
     portfolioIds: portfolios.map(r => r.portfolio_id),
     hasResume: resumes.length > 0,
     hasPortfolio: portfolios.length > 0,
-    hasInsights: true,
-    status: "complete",
+    hasInsights: repos.length > 0, // If we found repos, we have insights
+    status: "complete", 
   };
 }
 

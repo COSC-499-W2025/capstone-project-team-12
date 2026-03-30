@@ -92,7 +92,7 @@ function PipelineProgressPage() {
 function PipelineFinetunePage() {
   const navigate = useNavigate();
   const {
-    extractedData, finetuneState,setFinetuneState, activeAnalysisId, onboardingData, setResumeLocation, setPortfolioLocation, setViewResumeId, setViewPortfolioId, setViewInsightsAnalysisId, setPipelineStage,
+    extractedData, finetuneState, setFinetuneState, activeAnalysisId, onboardingData, setResumeLocation, setPortfolioLocation, setViewResumeId, setViewPortfolioId, setViewInsightsAnalysisId, setPipelineStage,
   } = useAnalysisPipeline();
 
   return (

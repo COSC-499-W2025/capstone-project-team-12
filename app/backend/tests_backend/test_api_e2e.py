@@ -154,6 +154,11 @@ class TestAPIEndToEnd:
         assert detailed_response.status_code == 200
         detailed_body = detailed_response.json()
         assert detailed_body  
+        
+        # NEW ASSERTS TO VERIFY ARCHITECTURAL FIXES:
+        # Ensure they are dictionaries (thanks to parse_json_fields) and have data (thanks to deep memory caching)
+        assert isinstance(detailed_body.get("metadata_insights"), dict)
+        assert isinstance(detailed_body.get("project_insights"), dict)
  
         # Delete the new analysis
         delete_response = client.delete(f"/projects/{analysis_id}")

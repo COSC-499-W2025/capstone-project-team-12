@@ -80,4 +80,14 @@ export interface Project {
   pacing: Pacing;
   userRole: UserRole;
   timeline: Timeline;
+  rawCommits?: {
+    hash: string;
+    date: string;
+    modified_files: {
+    filename: string;
+    change_type: string;
+    added_lines: number;
+    deleted_lines: number;
+  }[];
+  }[];
 }
