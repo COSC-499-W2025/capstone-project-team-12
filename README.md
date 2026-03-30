@@ -125,6 +125,15 @@ Follow the on-screen prompts to:
 For an indepth understanding of the API endpoints for this system, please [view our API Documentation here](docs/plan/API%20Documentation.md)
 
 ---
+## Testing Report
+
+The project includes a comprehensive test suite covering frontend components, backend API endpoints, file processing, text analysis, LLM integration, portfolio/resume generation, and database operations.
+
+Frontend tests use **Vitest + React Testing Library**, and backend tests use **Pytest** with a dedicated PostgreSQL `test_db` for integration and end-to-end testing.
+
+[View the full Testing Report here](docs/plan/Testing%20Report.md)
+
+---
 
 ## Troubleshooting
 
