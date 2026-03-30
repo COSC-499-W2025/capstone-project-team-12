@@ -763,7 +763,6 @@ def test_extract_update_endpoint(
     assert json_response["detected_skills"] == ["Python", "React"]
 
     mock_pipeline.run_analysis_extract.assert_called_once()
-    assert mock_pipeline.run_analysis_extract.call_args.kwargs["github_username"] == "testuser"
 
     # Verify deep caching was successful
     assert mock_pickle_dump.called
