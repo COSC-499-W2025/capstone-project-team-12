@@ -1,5 +1,31 @@
 # Sithara Chari Personal Log (22066401)
 
+## Term 2 Week 11 - 12 (03/16/2026 - 03/29/2026)
+### TODOs:
+- change progress page from dark mode and light mode to match rest of the app 
+- Link all pages to backend with api, as pages were static 
+- Ensure all pages link properly to each other
+    - there was an issue where after the finetune page, the rest of the result pages would be blank, and they would only work when we generate an analysis from the backend.
+### Work Done
+- Reworked process page 
+    - issue link: https://github.com/COSC-499-W2025/capstone-project-team-12/issues/518 
+    - PR link: https://github.com/COSC-499-W2025/capstone-project-team-12/pull/519 
+- linked API to finetune page 
+    - issue link: https://github.com/COSC-499-W2025/capstone-project-team-12/issues/527
+    - PR link: https://github.com/COSC-499-W2025/capstone-project-team-12/pull/528
+- Standardized API linkage across all pages 
+    - issue link: https://github.com/COSC-499-W2025/capstone-project-team-12/issues/545 
+    - PR link: https://github.com/COSC-499-W2025/capstone-project-team-12/pull/540 
+
+
+### What's next
+- Project selection next week 
+
+### Relfection
+- We were all working until late this week to get everything in before milestone 3. I think we all have things that we wish we could have done better if we had more time, but given everything I am happy with the end product. 
+
+
+
 ## Term 2 Week 10 (03/09/2026 - 03/015/2026)
 ### TODOs:
 - work on finetuning page
