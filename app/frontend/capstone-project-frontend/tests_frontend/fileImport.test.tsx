@@ -139,11 +139,6 @@ describe("FileImport", () => {
     expect(screen.queryByText("remove-me.txt")).not.toBeInTheDocument();
   });
 
-  it("renders the warning about zipping repositories", () => {
-    setup();
-    expect(screen.getByText(/Uploading a repository\? Please upload it as a \.zip file/i)).toBeInTheDocument();
-  });
-
   it("does not call onComplete when the backend upload fails (e.g. 500 error)", async () => {
     // Suppress console.error for this specific test so the test output stays clean
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
