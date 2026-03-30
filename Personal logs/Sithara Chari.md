@@ -24,6 +24,7 @@
 ### Relfection
 - We were all working until late this week to get everything in before milestone 3. I think we all have things that we wish we could have done better if we had more time, but given everything I am happy with the end product. 
 
+![alt text](<imgs/Sithara Chari T2 Week 11.png>)
 
 
 ## Term 2 Week 10 (03/09/2026 - 03/015/2026)
